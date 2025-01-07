@@ -1,0 +1,17 @@
+services:
+  restaurant_apps:
+    build: .
+    command: daphne -b 0.0.0.0 -p 8000 restaurant.asgi:application
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    env_file:
+      - .env
+
+  redis:
+    image: redis:6.2-alpine
+    ports:
+      - "6379:6379"

@@ -1,0 +1,253 @@
+
+{% extends "base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% block title %} 
+    {% if confirm %}
+        Confirm Production Plan
+    {% else %}
+        Production Plan Detail
+    {% endif %}
+ {% endblock %}
+{% block content %}
+<style>
+    input.loading {
+        background: url('{% static "images/loader.gif" %}') no-repeat right center;
+        background-size: 20px;
+        padding-right: 30px; 
+    }    
+</style>
+<div class="inventory">
+    <div class='add-production-plan'>
+        <div class='production-plan mt-2 d-flex justify-content-between align-items-center'>
+            <div>
+                <a href='{% url "inventory:production_plans" %}' class='border btn bx bx-arrow-back fs-5'></a>
+                <a href='/' class='bx bx-home btn border fs-5 mx-2'></a>
+                {% if confirm %}
+                    <span class='mt-2 fs-5'>Confirm Production Plan : {{ production_plan.production_plan_number }}</span>
+                {% else %}
+                    <span class='mt-2 fs-5'>Production Plan : {{ production_plan.production_plan_number }} Detail</span>
+                {% endif %}
+              </div>
+            <div>
+                <ul class="list-unstyled mt-3 d-flex align-items-center">
+                    <li>
+                        <a href="{% url 'inventory:production_plans' %}" class="mx-2 btn border">Production Plan</a>
+                    </li>
+                    {% if not production_plan.declared %}
+                        {% if not confirm %}
+                            <li>
+                                <a href="{% url 'inventory:declare_production_plan' production_plan.id %}" class="btn border btn-dark text-light">Declare production plan</a>
+                            </li>
+                        {% endif %}
+                    {% else %}
+                        <li>
+                            <button class="btn border btn-primary text-light" disabled>Production Plan Declared</pf=>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+        <div class="row">
+            <div class="">
+                <div class="d-flex align-items-center justify-content-between border rounded p-2 bg-dark text-light">
+                    <h5 class="fw-bold">Major Raw Materials</h5>
+                    <h5 class="fw-bold">Total Cost: ${{ total_cost_items }}</h5>
+                </div>
+                <table class="table" id='plan_item_table' style="width:100%;">
+                    <thead class="bg-primary">
+                        <th>Dish</th>
+                        <th>Quantity</th>
+                        <th>RM B/F Quantity</th>
+                        <th>LF B/f Quantity</th>
+                        <th>Actual Quantity</th>
+                        <th>Declared Quantity</th>
+                        <th>Portion Multiplier</th>
+                        <th>Portions</th>
+                        <th>Total Cost</th>
+                    </thead>
+                    <tbody>
+                        {% for item in production_plan_items  %}
+                          <tr>
+                            <td><small>{{ item.dish.name }}</small></td>
+                            <td><small>{{ item.quantity }} {{ item.raw_material.unit }}</small></td>
+                            <td><small>{{ item.rm_carried_forward_quantity }} {{ item.raw_material.unit }}</small></td>
+                            <td><small>{{ item.lf_carried_forward_quantity }} {{ item.raw_material.unit }}</small></td>
+                            <td><small>{{ item.actual_quantity }} {{ item.raw_material.unit }}</small></td>
+                            <td><small>{{ item.declared_quantity }}</small></td>
+                            <td><small>{{ item.dish.portion_multiplier }}</small></td>
+                            <td><small>{{ item.portions }} portions</small></td>
+                            <td><small>{{ item.total_cost }}</small></td>
+                          </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                
+                <div class=" mt-4 mb-2 d-flex align-items-center justify-content-between border rounded p-2 bg-dark text-light">
+                    <h5 class="fw-bold">Minor Raw Materials</h5>
+                    <h5 class="fw-bold">Total Cost: ${{ total_cost_minor_items }}</h5>
+                </div>
+
+                <table class="table" id="minor">
+                    <thead class="bg-primary">
+                        <tr>
+                            <th>Raw Material</th>
+                            {% if confirm %}
+                                <th>Quantity B/F (In production)</th>
+                            {% endif %}
+                            <th>Planned Quantity</th>
+                            <th>Expected Qnty From Inventory</th>
+                            <th>Allocated Qnty From Inventory</th>
+                            {% if not confirm %}
+                                <th>Remaing Quantity (kgs)</th>
+=======
+                            <th>Total Ingr Quantity (per kg)</th>
+                            <th>Planned Quantity (kgs)</th>
+                            <th>Expected Quantity (Planned x Total Quantity)</th>
+                            <th>Cost (per kg)</th>
+                            <th>Total Cost</th>
+                            {% if confirm %}
+                                <th>Kitchen Raw Material</th>
+                            {% endif %}
+                            {% if confirm %}
+                                <th>Actual Quantity Needed</th>
+                            {%else%}
+                                <th>Declared Quantity</th>
+                            {% endif %}
+                            {% if confirm %}
+                                <th>Confirm Raw Material</th>
+>>>>>>> d1c14cc97287c67047ba0ba1f6f8c7790636586a
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in production_plan_minor_items %}
+                        <tr data-id="{{ item.minor_raw_material.id }}">
+                            <td><small>{{ item.minor_raw_material }}</small></td>
+                            <td><small>{{ item.total_quantity_per_kg }}</small></td>
+                            <td><small>{{ item.planned_quantity }}</small></td>
+                            <td>
+                                <small data-expected-quantity="{{ item.expected_quantity }}">
+                                    {{ item.expected_quantity }}
+                                </small>
+                            </td>
+                            <td><small>{{ item.cost_per_kg }}</small></td>
+                            <td><small>{{ item.total_cost }}</small></td>
+                            {% if confirm %}
+                                <td>
+                                    <small data-kitchen-quantity="{{ k_item.quantity }}">
+                                        {% if k_item.id == item.id %}
+                                        {{ k_item.quantity }}
+                                        {% endif %}
+                                    </small>
+                                </td>
+                            {% endif %}
+                            <td><small id="actual_needed_quantity"></small></td>
+                            {% if confirm %}
+                            <td>
+                                {% csrf_token %}
+                                <input type="number" id="quantity">
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                
+
+                {% if confirm %}
+                    <div class="d-flex justify-content-end mt-4">
+                        <a href="" class="btn btn-danger text-light mx-2">Cancel</a>
+                        <a href="{% url 'inventory:process_production_plan' production_plan.id %}" class="btn-primary text-light btn">Confirm</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        new DataTable('#plan_item_table');
+        new DataTable('#minor',{paging:false});
+    
+        document.querySelectorAll('#minor input[type="number"]').forEach(function (input) {
+            input.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+
+                    const quantityEntered = parseFloat(this.value);
+                    const row = this.closest('tr');
+
+                    if (!isNaN(quantityEntered)) {
+                        Swal.fire({
+                            title: 'Processing Allocation',
+                            text: 'Please wait...',
+                            icon: 'info',
+                            showConfirmButton: false,
+                            timer: 1500
+                        });
+
+                        input.classList.add('loading');
+                        input.disabled = true;
+
+                        const rawMaterialId = row.getAttribute('data-id');
+
+                        fetch('{% url "inventory:confirm_minor_raw"%}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val(),
+                            },
+                            body: JSON.stringify({
+                                production_id: {{ production_plan.id }},
+                                raw_material_id: rawMaterialId,
+                                quantity: quantityEntered,
+                                csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                input.classList.remove('loading');
+                                // input.disabled = true;
+                                row.style.backgroundColor = '#d3d3d3';
+                                console.log('Quantity confirmed');
+                                focusNextInput(input);
+                            } else {
+                                Swal.fire({
+                                    title: "Error",
+                                    text: data.message,
+                                    icon: "error"
+                                });
+                                input.disabled = false; 
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            Swal.fire({
+                                title: "Error",
+                                text: "An error occurred during the request.",
+                                icon: "error"
+                            });
+                            input.disabled = false; // Re-enable input in case of a fetch error
+                        })
+                        .finally(() => {
+                            input.classList.remove('loading');
+                        });
+                    }
+                }
+            });
+        });
+        function focusNextInput(currentInput) {
+            const inputs = document.querySelectorAll('#minor input[type="number"]');
+            const currentIndex = Array.prototype.indexOf.call(inputs, currentInput);
+            if (currentIndex < inputs.length - 1) {
+                inputs[currentIndex + 1].focus();
+            }
+        }
+    });
+    
+</script>
+
+{% endblock content %}
