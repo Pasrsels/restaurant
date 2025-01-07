@@ -46,23 +46,29 @@
                             <small>{{ expense.description }}</small>
                         </td>
                         <td>
-                            <small>{{ expense.amount }}</small>
+                            <small>
+                                {%if expense.track_amount == 0%}
+                                    {{expense.amount}}
+                                {%else%}
+                                    {{expense.track_amount}}
+                                {%endif%}
+                            </small>
                         </td>
                         <td id="confidential">
                            <small>
                                 {% if request.user.role == 'admin' or request.user.role == 'supervisor' or request.user.role == 'accountant' or request.user.role == 'manager' %}
                                     {{ expense.cashier.first_name |default:expense.cashier.username }}
                                 {%else%}
-                                    {{request.user.role}}
+                                    {{request.user.role |default:expense.cashier.username}}
                                 {% endif %}
                            </small>
                         </td>
                         <td>
                             <small>
                                 {%if expense.status == False%}
-                                    <p class="bg-danger text-center rounded-5">Pending</p>
+                                    <p class="bg-danger text-center rounded-2 shadow-lg">Pending</p>
                                 {%else%}
-                                    <p class="bg-success text-center rounded-5">Allocated</p>
+                                    <p class="bg-success text-center rounded-2 shadow-lg">Allocated</p>
                                 {%endif%}
                             </small>
                         </td>
@@ -70,13 +76,12 @@
                             <small>
                                 <button class="btn btn-sm bx bx-edit mx-2" onclick="editexpense({{expense.id}}, '{{expense.name}}', '{{expense.description}}', {{expense.amount}})"></button>
                                 <button class="btn btn-sm bx bx-trash" onclick="deleteexpense({{expense.id}})"></button>
-                                {%if request.user.role == 'accountant'%}
-                                    <button class = "btn btn-sm bx bx-update"></button>
-                                {%else%}
+                                {%if request.user.role == 'admin' or request.user.role == 'supervisor' or request.user.role == 'accountant' or request.user.role == 'manager' or request.user.role == 'owner'%}
                                     {%if expense.status == False%}
                                         <button class = "btn btn-sm bx bx-check-circle" onclick="confirmexpense('{{expense.description}}', {{expense.amount}}, {{expense.id}})"></button>
                                     {%else%}
                                     {%endif%}
+                                {%else%}  
                                 {%endif%}
                             </small>
                         </td>
@@ -97,7 +102,7 @@
                     <form id="confirmexpenseForm">
                         <div id="div_confirm_amount" class="mb-3">
                             <label for="id_confirm_amount" class="form-label requiredField">Amount<span class="asteriskField">*</span></label>
-                            <input type="number" name="id_confirm_amount" placeholder="Enter amount" value="" step="0.01" class="numberinput form-control" required="" id="id_confirm_amount" readonly>
+                            <input type="number" name="id_confirm_amount" placeholder="Enter amount" value="" step="0.01" class="numberinput form-control" required="" id="id_confirm_amount">
                         </div>
                         <div class="d-flex mb-3">
                             <select name="category" class="select form-select" required="" id="id_confirm_category">

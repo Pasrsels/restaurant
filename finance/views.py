@@ -152,7 +152,7 @@ def expenses(request):
         try:
             data = json.loads(request.body)
             
-            amount = data.get('amount')
+            amount = Decimal(data.get('amount'))
             description = data.get('description')
             category = data.get('category')
             
@@ -163,7 +163,7 @@ def expenses(request):
                 category = ExpenseCategory.objects.get(id=category)
             except ExpenseCategory.DoesNotExist:
                 return JsonResponse({'success':False, 'message':f'Category with ID: {category}, doesn\'t exists.'})
-            
+           
             expense = Expense.objects.create(
                 amount = amount,
                 category = category,
@@ -174,8 +174,15 @@ def expenses(request):
             )
             if data.get('debit') == 'True':
                 cashier_expenses_update = CashierExpense.objects.get(id = data.get('expense'))
-                cashier_expenses_update.status = True
-                cashier_expenses_update.save()
+                if cashier_expenses_update.track_amount < amount:
+                    return JsonResponse({'success': False, 'message': 'approoved amount is greater than amount left'}, status = 400)
+                else:
+                    cashier_expenses_update.track_amount = cashier_expenses_update.track_amount - amount
+                    if cashier_expenses_update.track_amount == 0:
+                        cashier_expenses_update.status = True
+                    
+                    cashier_expenses_update.save()
+
 
                 CashBook.objects.create(
                     amount = amount,
@@ -192,7 +199,7 @@ def expenses(request):
                 )
 
             send_expense_creation_notification(expense.id)
-            
+                
             return JsonResponse({'success': True, 'messages':'Expense successfully created'}, status=201)
         except Exception as e:
             return JsonResponse({'success': False, 'message': str(e)}, status=400)
@@ -929,11 +936,11 @@ def transaction_logs(request):
 def cashier_expenses(request, cashier_id):
     if request.method == 'GET':
         logger.info(request.user.role)
+        expense_category = ExpenseCategory.objects.all()
         if request.user.role in ['manager', 'superviser', 'admin', 'accountant']:
             expenses = CashierExpense.objects.all()
-            expense_category = ExpenseCategory.objects.all()
         else:
-            expenses = CashierExpense.objects.filter(cashier__id = cashier_id)
+            expenses = CashierExpense.objects.filter(cashier__id = cashier_id).select_related('cashier')
 
         total_expenses = expenses.aggregate(total=Sum('amount'))['total'] or 0
         logger.info(expenses)
@@ -963,6 +970,7 @@ def cashier_expenses(request, cashier_id):
         CashierExpense.objects.create(
             name=name,
             amount=amount,
+            track_amount = amount,
             description=description,
             cashier=request.user,
             status = False
@@ -987,6 +995,7 @@ def cashier_expenses(request, cashier_id):
             
             expense.name = name
             expense.amount = amount
+            expense.track_amount = amount
             expense.description = description
         
             expense.save()
