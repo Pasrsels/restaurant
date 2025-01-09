@@ -27,12 +27,16 @@
             <tbody>
                 {% for budget in budgets  %}
                     <tr>
-                        <td><small>{{ budget.date }}</small></td>
+                        <td><small>{{ budget.start_date }}</small></td>
                         <td><small>{{ budget.description }}</small></td>
-                        <td><small>{{ budget.status }}</small></td>
+                        <td><small>{{ budget.confirmation }}</small></td>
                         <td>
                             <small>
-                                <a class="bx bx-show btn btn-sm"></button>
+                                <button class="bx bx-show btn btn-sm"></button>
+                                {%if request.user.role == 'cashier'%}
+                                {%else%}
+                                    <button class="btn btn-sm bx bx-check-circle"></button>
+                                {%endif%}
                             </small>
                         </td>
                     </tr>

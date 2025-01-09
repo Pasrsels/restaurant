@@ -12,7 +12,7 @@
     <div class="row">
         <div class="col-9">
             <p>Budget Items</p>
-            <table class="table table-hover table-striped table-bordered" id="cash_up_table">
+            <table class="table table-hover table-striped table-bordered table-responsive" id="cash_up_table">
                 <thead>
                     <th>Product</th>
                     <th>Amount</th>
@@ -20,10 +20,13 @@
                     <th>Total cost</th>
                     <th>Action</th>
                 </thead>
-                <tbody>
+                <tbody id="carttable">
                     
                 </tbody>
             </table>
+            <div class="d-flex justify-content-end">
+                <i class="btn btn-primary bx bx-save" onclick="SaveItems()">Save</i>
+            </div>
         </div>
         <div class="col-3 border rounded-2">
             <h5>Add Product</h5>
@@ -41,25 +44,156 @@
 <script>
     let cart = []
     function AddCart(){
-
+        console.log(cart)
         product = document.getElementById('id_product').value;
+        select_box = document.getElementById('id_product');
+        product_name = select_box.options[select_box.selectedIndex].textContent;
         amount = Number(document.getElementById('id_allocated_amount').value);
         quantity = Number(document.getElementById('id_quantity').value);
         total_cost = Number(amount * quantity);
-
-        cart_item = {
-            product: product,
-            amount: amount,
-            quantity: quantity,
-            total_cost: total_cost
-        };
-        cart.push(cart_item)
-
-        displayCart(cart)
+        if(product === "" || product_name === "" || amount === 0 || quantity === 0 || total_cost === 0){
+            Swal.fire({
+                icon: 'error',
+                text: 'Empty field',
+                title: 'Failed'
+            });
+        }else{
+            const checkExistance = cart.find(item => item.name === product_name);
+            if(!checkExistance){
+                cart_item = {
+                    product: product,
+                    name: product_name,
+                    amount: amount,
+                    quantity: quantity,
+                    total_cost: total_cost
+                };
+                cart.push(cart_item)
+                Swal.fire({
+                    icon: 'success',
+                    text: 'Added successfully',
+                    title: 'Success'
+                });
+                displayCart()
+            }else{
+                Swal.fire({
+                    icon: 'error',
+                    text: 'Item already exists',
+                    title: 'Failed'
+                });
+            }
+        }
     }
 
-    function displayCart(cart_info){
+    function displayCart(){
         console.log(cart)
+        document.getElementById('carttable').textContent = '';
+        cart.forEach(item =>{
+            const tableBody = document.getElementById('carttable');
+            const tableRow = document.createElement('tr');
+
+            const product = document.createElement('td');
+            product.textContent = item.name;
+            
+            const amount = document.createElement('td');
+            amount.textContent = item.amount;
+            
+            const quantity = document.createElement('td');
+            quantity.innerHTML = `
+                <input type="number" value="${item.quantity}"/>
+            `;
+
+            const total_cost = document.createElement('td');
+            total_cost.textContent = item.total_cost;
+
+            const actions = document.createElement('td');
+            actions.innerHTML = `
+                <i class="btn btn-sm bx bx-trash" onclick="cartRemove('${item.name}')"></i>
+            `;
+
+            tableRow.appendChild(product);
+            tableRow.appendChild(amount);
+            tableRow.appendChild(quantity);
+            tableRow.appendChild(total_cost);
+            tableRow.appendChild(actions);
+            
+            tableBody.appendChild(tableRow);
+        })
     }
+    function cartRemove(product){
+        //cart = cart.filter(item => item.name !== product);
+        //console.log(cart);
+
+        const itemIndex = cart.findIndex(item => item.name === product);
+        console.log(itemIndex);
+
+        if (itemIndex !== -1) {
+            // Use splice to remove the item from the cart
+            cart.splice(itemIndex, 1); // Removes 1 item at the found index
+            console.log(`Removed ${product} from the cart.`);
+        } else {
+            console.log(`${product} not found in the cart.`);
+        }
+        displayCart();
+        console.log(cart); // Check the updated cart
+    }
+
+    function SaveItems(){
+        if(cart.legnth > 0){
+            data = {
+                cart: cart
+            }
+            console.log(data)
+
+            url = "{% url 'inventory:create-budget'%}";
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(data),
+            }).then(response => response.json())
+            .then(data => {
+                if(data.success){
+                    Swal.fire({
+                        icon: 'success',
+                        text: data.message,
+                        title: 'Successful'
+                    });
+                    //window.location.reload();
+                    cart = [];
+                }else{
+                    Swal.fire({
+                        icon: 'error',
+                        text: data.message,
+                        title: 'Failed'
+                    });
+                    cart = [];
+                }
+            })
+        }else{
+            Swal.fire({
+                icon: 'error',
+                text: 'Empty cart',
+                title: 'Failed'
+            });
+        }
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
 </script>
 {% endblock %}

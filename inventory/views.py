@@ -2305,10 +2305,10 @@ def check_check_list(request):
 
 @login_required
 def budget(request):
-    # budgets = Budget.objects.all()
-    # logger.info(budgets)
+    budgets = Budget.objects.all().select_related('user')
+    logger.info(budgets)
     return render(request, 'inventory/budgets/budget.html', {
-        # 'budgets':budgets
+        'budgets':budgets
     })
 
 
@@ -2321,6 +2321,35 @@ def createBudgetItem(request):
         })
     
     if request.method == 'POST':
-        pass
-            
+        data = json.loads(request.body)
+        
+        with transaction.atomic():
+            items_info = data.get('cart')
+            logger.info(items_info)
+            budget_total_cost = 0
+
+            for item in items_info:
+                budget_total_cost += item['total_cost']
+
+            budget_info = Budget.objects.create(
+                name = 'BugetTest',
+                total_amount = budget_total_cost,
+                description = '',
+                start_date = '2025-01-09',
+                end_date = '2025-01-09',
+                confirmation =  False,
+                user = request.user
+            )
+
+            for item in items_info:
+                prod_info = Product.objects.get(id = item['product'])
+                BudgetItem.objects.create(
+                    budget = budget_info,
+                    product = prod_info,
+                    quantity = item['quantity'],
+                    allocated_amount = item['total_cost'],
+                    spent_amount = 0.00,
+                )
+            return JsonResponse({'success':True}, status= 201)
+        
             
