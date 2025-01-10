@@ -361,6 +361,10 @@
                     title: 'Success!',
                     text: 'Expense successfully edited.',
                     icon: 'success',
+                }).then(result =>{
+                    if(result.isConfirmed){
+                        location.reload();
+                    }
                 });
             }else{
                 Swal.fire({
@@ -410,13 +414,12 @@
                     icon: 'success',
                     text: data.message,
                     title: 'Success'
+                }).then(result =>{
+                    location.reload();
+                    document.getElementById('id_confirm_amount').value = '';
+                    document.getElementById('id_confirm_description').value = '';
+                    document.getElementById('id_confirm_category').value = '';
                 });
-                location.reload();
-                document.getElementById('id_confirm_amount').value = '';
-                document.getElementById('id_confirm_description').value = '';
-                document.getElementById('id_confirm_category').value = '';
-
-
             }else{
                 Swal.fire({
                     icon: 'error',
@@ -450,20 +453,19 @@
                     icon: 'success',
                     text: 'Added successfully',
                     title: 'Success'
-                });
-
-                document.getElementById('id_category').value = '';
-                category_data = data.data;
+                }).then(result =>{
+                    document.getElementById('id_category').value = '';
+                    category_data = data.data;
                 
-
-                category_data.forEach(item => {
-                    const select = document.getElementById('id_confirm_category');
-                    const option = document.createElement('option');
-                  
-                    option.value = item.id;
-                    option.textContent = item.name;
-                  
-                    select.appendChild(option);
+                    category_data.forEach(item => {
+                        const select = document.getElementById('id_confirm_category');
+                        const option = document.createElement('option');
+                    
+                        option.value = item.id;
+                        option.textContent = item.name;
+                    
+                        select.appendChild(option);
+                    });
                 });
             }else{
                 Swal.fire({

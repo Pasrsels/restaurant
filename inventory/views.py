@@ -1454,7 +1454,7 @@ def add_dish(request): # didn't change the name of the template, it caters for b
                     Ingredient.objects.create(
                         dish=dish,
                         note=item.get('note'),
-                        raw_material=raw_material,
+                        minor_raw_material=raw_material,
                         quantity=item.get('quantity'),
                     )
 
@@ -2305,11 +2305,26 @@ def check_check_list(request):
 
 @login_required
 def budget(request):
-    budgets = Budget.objects.all().select_related('user')
-    logger.info(budgets)
-    return render(request, 'inventory/budgets/budget.html', {
-        'budgets':budgets
-    })
+    if request.method == 'GET':
+        budgets = Budget.objects.all().select_related('user')
+        logger.info(budgets)
+        logger.info(BudgetItem.objects.all())
+        return render(request, 'inventory/budgets/budget.html', {
+            'budgets':budgets
+        })
+    elif request.method == 'DELETE':
+        data = json.loads(request.body)
+        b_id = data.get('id')
+        logger.info(b_id)
+        try:
+            with transaction.atomic():
+                budget_item_delete = BudgetItem.objects.get(budget__id = b_id)
+                budget_delete = Budget.objects.get(id = b_id)
+                budget_item_delete.delete()
+                budget_delete.delete()
+                return JsonResponse({'success': True}, status = 200)
+        except Exception as e:
+            return JsonResponse({'success': False, 'message':f'{e}'}, status = 400)
 
 
 @login_required

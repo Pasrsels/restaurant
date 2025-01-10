@@ -36,7 +36,9 @@
                                 {%if request.user.role == 'cashier'%}
                                 {%else%}
                                     <button class="btn btn-sm bx bx-check-circle"></button>
+                                    <button class="btn btn-sm bx bx-trash" onclick="RemoveBudget({{budget.id}})"></button>
                                 {%endif%}
+
                             </small>
                         </td>
                     </tr>
@@ -45,4 +47,65 @@
         </table>
     </div>
 </div>
+
+<script>
+    function RemoveBudget(id){
+        console.log(id);
+        data = {
+            id:id
+        };
+        url = "{% url 'inventory:budget'%}";
+
+        fetch(url, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(data),
+        }).then(res => res.json())
+        .then(data => {
+            console.log(data)
+            if(data.success){
+                Swal.fire({
+                    icon: 'success',
+                    text: 'Budget deleted',
+                    title: 'Success'
+                }).then(result => {
+                    if(result.isConfirmed){
+                        location.reload();
+                    }
+                });
+            }else{
+                Swal.fire({
+                    icon: 'error',
+                    text: data.message,
+                    title: 'Failed'
+                });
+            }
+        })
+        .catch(error => {
+            Swal.fire({
+                icon: 'error',
+                text: 'An error occurred while processing your request.',
+                title: 'Error'
+            });
+        });
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
 {% endblock %}

@@ -102,4 +102,5 @@ urlpatterns = [
     #budgets
     path('budgets/', budget, name='budget'),
     path('create-budget/', createBudgetItem, name='create-budget')
+    
 ]

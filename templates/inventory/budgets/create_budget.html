@@ -73,7 +73,10 @@
                     text: 'Added successfully',
                     title: 'Success'
                 });
-                displayCart()
+                displayCart();
+                document.getElementById('id_allocated_amount').value = '';
+                document.getElementById('id_product').value = '';
+                document.getElementById('id_quantity').value = '';
             }else{
                 Swal.fire({
                     icon: 'error',
@@ -130,6 +133,11 @@
             // Use splice to remove the item from the cart
             cart.splice(itemIndex, 1); // Removes 1 item at the found index
             console.log(`Removed ${product} from the cart.`);
+            Swal.fire({
+                icon: 'success',
+                text: 'Item removed',
+                title: 'Success'
+            })
         } else {
             console.log(`${product} not found in the cart.`);
         }
@@ -138,7 +146,8 @@
     }
 
     function SaveItems(){
-        if(cart.legnth > 0){
+        if(cart.length >= 1){
+            console.log('inside');
             data = {
                 cart: cart
             }
@@ -159,9 +168,12 @@
                         icon: 'success',
                         text: data.message,
                         title: 'Successful'
-                    });
-                    //window.location.reload();
-                    cart = [];
+                    }).then(result =>{
+                        if(result.isConfirmed){
+                            cart = [];
+                            location.reload();
+                        }
+                    });   
                 }else{
                     Swal.fire({
                         icon: 'error',
@@ -172,6 +184,7 @@
                 }
             })
         }else{
+            console.log('out');
             Swal.fire({
                 icon: 'error',
                 text: 'Empty cart',
