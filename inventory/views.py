@@ -1381,7 +1381,6 @@ class IngredientDeleteView(View):
 def add_dish(request): # didn't change the name of the template, it caters for both, dish and ingredient creation
     form = IngredientForm()
     dish_form = DishForm()
-    dish_form = DishForm()
     
     if request.method == 'GET':
         r_m = Product.objects.filter(raw_material=True)
@@ -2341,6 +2340,7 @@ def createBudgetItem(request):
         with transaction.atomic():
             items_info = data.get('cart')
             logger.info(items_info)
+            
             budget_total_cost = 0
 
             for item in items_info:
@@ -2355,16 +2355,23 @@ def createBudgetItem(request):
                 confirmation =  False,
                 user = request.user
             )
+            
+            budget_items = []
 
+            # Loop through the items_info and create BudgetItem instances
             for item in items_info:
-                prod_info = Product.objects.get(id = item['product'])
-                BudgetItem.objects.create(
-                    budget = budget_info,
-                    product = prod_info,
-                    quantity = item['quantity'],
-                    allocated_amount = item['total_cost'],
-                    spent_amount = 0.00,
+                prod_info = Product.objects.get(id=item['product']) 
+                
+                budget_items.append(
+                    BudgetItem(
+                        budget=budget_info,
+                        product=prod_info,
+                        quantity=item['quantity'],
+                        allocated_amount=item['total_cost'],
+                        spent_amount=0.00,
+                    )
                 )
+                BudgetItem.objects.bulk_create(budget_items)
             return JsonResponse({'success':True}, status= 201)
         
             

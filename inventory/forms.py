@@ -91,7 +91,7 @@ class DishForm(forms.ModelForm):
 class IngredientForm(forms.ModelForm):
     class Meta:
         model = Ingredient
-        fields = ['minor_raw_material', 'quantity', 'note',]
+        fields = ['minor_raw_material', 'quantity', 'note']
 
 class MealForm(forms.ModelForm):
     class Meta:

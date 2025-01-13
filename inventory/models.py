@@ -149,13 +149,12 @@ class Dish(models.Model):
 class Ingredient(models.Model):
     dish = models.ForeignKey(Dish, on_delete=models.CASCADE, null=True)
     note = models.CharField(max_length=100, null=True)
-    note = models.CharField(max_length=100, null=True)
     quantity = models.FloatField()
-    minor_raw_material = models.ForeignKey(Product, on_delete=models.CASCADE)
+    raw_material = models.CharField(null=True)
+    minor_raw_material = models.ForeignKey(Product, on_delete=models.CASCADE, null=True)
 
-    def __str__(self) -> str:
+    def __str__(self) -> str:        
         return self.minor_raw_material.name          
-        return self.raw_material.name          
     
 class MealCategory(models.Model):
     name = models.CharField(max_length=255)

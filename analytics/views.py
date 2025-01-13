@@ -9,6 +9,7 @@ from django.db.models import Sum
 from datetime import date, timedelta
 from django.db.models.functions import ExtractHour
 from collections import defaultdict
+import decimal
 
 
 def analytics_view(request):
@@ -83,7 +84,7 @@ def analytics_view(request):
     grouped_dishes = defaultdict(lambda: {})
     staff_dishes = defaultdict(lambda: {})
 
-    sales = SaleItem.objects.filter(sale__void=False, sale__staff=False, sale__date=today).select_related('sale', 'meal', 'dish', 'product').all()
+    sales = SaleItem.objects.filter(sale__void=False, sale__staff=False).select_related('sale', 'meal', 'dish', 'product').all()
 
     staff_sales = SaleItem.objects.filter(sale__void=False, sale__staff=True).select_related('sale', 'meal', 'dish', 'product').all()
 
@@ -165,7 +166,7 @@ def analytics_view(request):
                 logger.info(f'{meal_name} : {sale.meal.price}')
                 if meal_name in grouped_meals[category]:
                     grouped_meals[category][meal_name]['quantity'] += sale.quantity
-                    grouped_meals[category][meal_name]['price'] += sale.meal.price * sale.quantity
+                    grouped_meals[category][meal_name]['price'] += decimal.Decimal(sale.meal.price) * sale.quantity
                 else:
 
                     grouped_meals[category][meal_name] = {
