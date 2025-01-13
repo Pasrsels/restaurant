@@ -19,8 +19,10 @@
     <div class="table-responsive">
         <table class="table table-hover table-striped table-bordered" id="cash_up_table">
             <thead>
-                <th>date</th>
+                <th>Date Created</th>
+                <th>Date Approoved</th>
                 <th>Description</th>
+                <th>Created By</th>
                 <th>Status</th>
                 <th>Action</th>
             </thead>
@@ -28,7 +30,15 @@
                 {% for budget in budgets  %}
                     <tr>
                         <td><small>{{ budget.start_date }}</small></td>
+                        <td><small>
+                            {%if budget.confirmation == False%}
+                                To be approoved
+                            {%else%}
+                                {{ budget.end_date }}
+                            {%endif%}
+                        </small></td>
                         <td><small>{{ budget.description }}</small></td>
+                        <td><small>{{ budget.user.role }}</small></td>
                         <td><small>{{ budget.confirmation }}</small></td>
                         <td>
                             <small>
