@@ -2330,6 +2330,8 @@ def budget(request):
 def createBudgetItem(request):
     if request.method == 'GET':
         form = CreateBudgetItemForm()
+        budget_info = BudgetItem.objects.filter(budget__name = 'BugetTest').select_related('product', 'budget')
+    
         return render(request, 'inventory/budgets/create_budget.html', {
             'form':form
         })
@@ -2373,5 +2375,25 @@ def createBudgetItem(request):
                 )
                 BudgetItem.objects.bulk_create(budget_items)
             return JsonResponse({'success':True}, status= 201)
+
+def ViewBudget(request, id):
+    if request.method == 'GET':
+        try:
+            budget_info = BudgetItem.objects.filter(budget__id = id).select_related('product', 'budget')
+            logger.info(budget_info)
+            budget_info_list = []
+            for item in budget_info:
+                budget_info_list.append(
+                    {
+                        'product': item.product.name,
+                        'Quantity': item.quantity,
+                        'Amount': item.allocated_amount,
+                        'Spent amount': item.spent_amount
+                    }
+                )
+            return JsonResponse({'success': True, 'data':budget_info_list}, status = 200)
+        except Exception as e:
+            return JsonResponse({'success': False, 'message':e}, status = 400)
+    
         
             
