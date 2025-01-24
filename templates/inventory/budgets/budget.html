@@ -1,0 +1,311 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Cash Ups{% endblock title %}
+{% block content %}
+<div>
+    <nav class="d-flex justify-content-between align-items-center rounded mb-2 py-2 border-bottom">
+        <div>
+            <span class='mt-2 fs-5'>Inventory Budgets</span>
+        </div>
+        <div class="d-flex justify-content-between mt-1">
+            <ul class="list-unstyled d-flex">
+                <li>
+                    <a href="{% url 'inventory:create-budget' %}" class="btn btn-outline-dark mx-2">Create Budget</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    
+    <div class="table-responsive">
+        <table class="table table-hover table-striped table-bordered" id="cash_up_table">
+            <thead>
+                <th>Name</th>
+                <th>Date Created</th>
+                <th>Date Approoved</th>
+                <th>Description</th>
+                <th>Created By</th>
+                <th>Status</th>
+                <th>Action</th>
+            </thead>
+            <tbody>
+                {% for budget in budgets  %}
+                    <tr>
+                        <td><small>{{ budget.name }}</small></td>
+                        <td><small>{{ budget.start_date }}</small></td>
+                        <td><small>
+                            {%if budget.confirmation == False%}
+                                To be approoved
+                            {%else%}
+                                {{ budget.end_date }}
+                            {%endif%}
+                        </small></td>
+                        <td><small>{{ budget.description }}</small></td>
+                        <td><small>{{ budget.user.role }}</small></td>
+                        <td><small>{{ budget.confirmation }}</small></td>
+                        <td>
+                            <small>
+                                <button class="bx bx-show btn btn-sm" onclick="ViewBudgetItem({{budget.id}})"></button>
+                                {%if request.user.role == 'cashier'%}
+                                {%else%}
+                                    <button class="btn btn-sm bx bx-check-circle" onclick="ConfirmBudget({{budget.id}})"></button>
+                                    <button class="btn btn-sm bx bx-trash" onclick="RemoveBudget({{budget.id}})"></button>
+                                {%endif%}
+
+                            </small>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!--budget View Modal -->
+    <div class="modal fade" id="budgetViewModal" tabindex="-1" aria-labelledby="budgetViewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="budgetViewModalLabel">Budget View</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex justify-content-between mb-3">
+                        <div><strong>Total Amount:</strong> <span id="totalAmount">$0.00</span></div>
+                        <div><strong>Budget Name:</strong> <span id="budgetName">Sample Budget</span></div>
+                    </div>
+                    <table class="table table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Product</th>
+                                <th>Quantity</th>
+                                <th>Amount</th>
+                                <th>Amount Approved</th>
+                            </tr>
+                        </thead>
+                        <tbody id="budgetItemsTableBody">
+                            <!-- dynamically populate rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="budgetConfirmModal" tabindex="-1" aria-labelledby="budgetConfirmModalLabel" aria-hidden="true">    
+        <div class="modal-dialog modal-lg">        
+            <div class="modal-content">            
+                <div class="modal-header">                
+                    <h5 class="modal-title" id="budgetConfirmModalLabel">Budget View</h5>                
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>            
+                </div>            
+                <div class="modal-body">                
+                    <div><strong>Budget Name:</strong> <span id="budgetConfirmName">Sample Budget</span></div>                    
+                    <div class="d-flex justify-content-between mb-3">                        
+                        <div><strong>Total Amount:</strong> <span id="ConfirmtotalAmount">$0.00</span></div>                        
+                        <div><strong>Approved Total Amount:</strong> <span id="amountApproved">$0.00</span></div>                        
+                        <div><strong>Difference:</strong> <span id="difference">$0.00</span></div>               
+                    </div>                  
+                    <table class="table table-bordered">                    
+                        <thead class="table-light">                        
+                            <tr>                            
+                                <th>Product</th>                            
+                                <th>Quantity</th>                            
+                                <th>Amount Declared <sup>1</sup></th>                            
+                                <th>Amount Approved <sup>2</sup></th>                        
+                            </tr>                    
+                        </thead>                    
+                        <tbody id="ConfirmsbudgetItemsTableBody">                                          
+                        </tbody>                
+                    </table>                
+                    <div class="mt-3 d-flex align-items-center">                    
+                        <label for="note" class="me-2"><strong>NOTE:</strong></label>                    
+                        <input type="text" id="note" class="form-control" placeholder="Enter note if 1 and 2 are not '=='" />                
+                    </div>            
+                </div>        
+            </div>    
+        </div> 
+    </div>
+</div>
+
+<script>
+    budgetModal = new bootstrap.Modal(document.getElementById('budgetViewModal'));
+    ConfirmBudgetModal = new bootstrap.Modal(document.getElementById('budgetConfirmModal'));
+    function ViewBudgetItem(id){
+        console.log('View Budget');
+        budgetModal.show();
+
+        data = {
+            id: id
+        };
+
+        url = "{% url 'inventory:budget'%}";
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(data),
+        }).then(response => response.json())
+        .then(data =>{
+            if(data.success){
+                budgetInfo = data.budget
+                console.log(budgetInfo)
+                const tableBody = document.getElementById('budgetItemsTableBody');
+                tableBody.innerHTML = '';
+
+                budgetInfo.forEach(item =>{
+
+                    budgetName = document.getElementById('budgetName');
+                    budgetAmount = document.getElementById('totalAmount');
+
+                    budgetName.textContent = item.budget_name;
+                    budgetAmount.textContent = '$'+item.budget_cost
+
+                    const tableBody = document.getElementById('budgetItemsTableBody');
+                    tableRow = document.createElement('tr');
+
+                    product = document.createElement('td');
+                    product.textContent = item.product;
+
+                    quantity = document.createElement('td');
+                    quantity.textContent = item.quantity;
+
+                    amount = document.createElement('td');
+                    amount.textContent = '$'+item.amount;
+
+                    spent_amount = document.createElement('td');
+                    spent_amount.textContent = '$'+item.spent;
+
+                    tableRow.appendChild(product);
+                    tableRow.appendChild(quantity);
+                    tableRow.appendChild(amount);
+                    tableRow.appendChild(spent_amount);
+
+                    tableBody.appendChild(tableRow);
+                })
+            }
+        })
+    }
+
+    function ConfirmBudget(id){
+        console.log('View Budget');
+        ConfirmBudgetModal.show();
+
+        data = {
+            id: id
+        };
+
+        url = "{% url 'inventory:budget'%}";
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(data),
+        }).then(response => response.json())
+        .then(data =>{
+            if(data.success){
+                budgetInfo = data.budget
+                console.log(budgetInfo)
+                const tableBody = document.getElementById('ConfirmsbudgetItemsTableBody');
+                tableBody.innerHTML = '';
+
+                total_approoved_amount = 0;
+                total_difference = 0;
+                budgetInfo.forEach(item =>{
+
+                    budgetName = document.getElementById('budgetConfirmName');
+                    budgetAmount = document.getElementById('ConfirmtotalAmount');
+                    budgetAmountApprooved = document.getElementById('amountApproved');
+                    budgetAmountDifference = document.getElementById('difference')
+
+                    budgetName.textContent = item.budget_name;
+                    budgetAmount.textContent = '$'+item.budget_cost
+
+                    const tableBody = document.getElementById('ConfirmsbudgetItemsTableBody');
+                    tableRow = document.createElement('tr');
+
+                    product = document.createElement('td');
+                    product.textContent = item.product;
+
+                    quantity = document.createElement('td');
+                    quantity.textContent = item.quantity;
+
+                    amount = document.createElement('td');
+                    amount.textContent = '$'+item.amount;
+
+                    spent_amount = document.createElement('td');
+                    spent_amount.textContent = '$'+item.spent;
+
+                    tableRow.appendChild(product);
+                    tableRow.appendChild(quantity);
+                    tableRow.appendChild(amount);
+                    tableRow.appendChild(spent_amount);
+
+                    tableBody.appendChild(tableRow);
+                })
+            }
+        })
+    }
+
+    function RemoveBudget(id){
+        console.log(id);
+        data = {
+            id:id
+        };
+        url = "{% url 'inventory:budget'%}";
+
+        fetch(url, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(data),
+        }).then(res => res.json())
+        .then(data => {
+            console.log(data)
+            if(data.success){
+                Swal.fire({
+                    icon: 'success',
+                    text: 'Budget deleted',
+                    title: 'Success'
+                }).then(result => {
+                    if(result.isConfirmed){
+                        location.reload();
+                    }
+                });
+            }else{
+                Swal.fire({
+                    icon: 'error',
+                    text: data.message,
+                    title: 'Failed'
+                });
+            }
+        })
+        .catch(error => {
+            Swal.fire({
+                icon: 'error',
+                text: 'An error occurred while processing your request.',
+                title: 'Error'
+            });
+        });
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+{% endblock %}

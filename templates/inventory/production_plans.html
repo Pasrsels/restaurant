@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% load static%}
+{% load crispy_forms_tags %}
+{% block title%} Production Plan {% endblock%}
+{% block content %}
+<style>
+    @media (min-width:600px ) and (max-width:1024px){
+        .checklist{
+            display: none;
+        }
+        .col-10{
+            width: 100%; 
+            flex: 0 0 100%;
+            max-width: 100%; 
+        }
+        .Production{
+            margin-right: 15px;
+        }
+    }
+    @media (max-width: 1024px) {
+        .Production .production-buttons {
+            display: none; 
+        }
+        .hamburger-menu {
+            display: block;
+        }
+    }
+
+    @media (min-width: 1025px) {
+        .hamburger-menu {
+            display: none; /
+        }
+    }
+</style>
+   <div class="Production" style="margin-left: 15px;">
+        <div class="inventory-navbar">
+            <nav class="d-flex justify-content-between align-items-center mt-2 mb-2">
+                <div class='fw-bold d-flex align-items-center'>
+                    {% if request.user.role != 'chef'%}
+                        <a href='/' class='bx bx-home btn border fs-5'></a>
+                    {% endif %}
+                    <span class='fs-5 mx-2'>Production</span>
+                </div>
+                <div class="d-flex align-items-center mt-2">
+                    <button class="btn btn-dark hamburger-menu" type="button" data-bs-toggle="collapse" data-bs-target="#hamburgerMenuContent" aria-expanded="false" aria-controls="hamburgerMenuContent">
+                        <i class="bx bx-menu"></i>
+                    </button>
+    
+                    <!-- Hamburger menu content -->
+                    <div class="collapse" id="hamburgerMenuContent">
+                        <ul class="list-unstyled mt-2">
+                            <li>
+                                <a href="{% url 'inventory:create_production_plan' %}" class='btn btn-outline-dark w-100 mb-2'>Create Production Plan</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'inventory:production_transfers' %}" class='btn btn-outline-dark w-100 mb-2'>Receive Transfers <span class='badge text-dark'>{{ transfer_count }}</span></a>
+                            </li>
+                            <li>
+                                <a href="{% url 'inventory:production_raw_materials' %}" class='btn btn-outline-dark w-100 mb-2'>Production Raw Materials</a>
+                            </li>
+                            <li>
+                                <button type="button" class='btn btn-outline-dark w-100' data-bs-toggle="modal" data-bs-target="#checklistModal">Checklist</button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="dropdown mx-2" style="margin-top: -9px;">
+                        <button class="btn btn-outline-dark dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                          Add
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                            <li class="mx-2 py-2">
+                                <a href="{% url 'inventory:meal_list' %}">Meals</a>
+                            </li>
+                            <li class="mx-2 py-2">
+                                <a href="{% url 'inventory:dish_list' %}">Dishes</a>
+                            </li>
+                        </ul>
+                    </div>
+                    <ul class="list-unstyled mt-2 d-flex">
+                        <li class="">
+                            <a href="{% url 'inventory:create_production_plan' %}" class='btn btn-outline-dark'>Create Production Plan</a>
+                        </li>
+                        <li class="">
+                            <a href="{% url 'inventory:production_transfers' %}" class='btn btn-outline-dark mx-2'>
+                                Receive Transfers
+                                <span class='badge text-dark'>{{ transfer_count }}</span>
+                            </a>
+                        </li>
+                        <li class="">
+                            <a href="{% url 'inventory:production_raw_materials' %}" class='btn btn-outline-dark'>Production Raw Materials</a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+        </div>
+        <div>
+            <div class=" mt-2 w-100">
+                <table class='table border table-bordered table-hover rounded p-2' id='production_table' style="width: 100%;" >
+                        <thead class='bg-primary'>
+                            <tr>
+                                <th>Date</th>
+                                <th>PP Number</th>
+                                <th>
+                                    <span class='text-danger'>BY ADMIN</span>
+                                    <span class='mx-2'>(Confimation Status)</span>
+                                </th>
+                                {% if request.user.role != 'chef'%}
+                                    <th>
+                                        <span class='text-danger'>BY CHEF</span>
+                                        <span class='mx-2'>(Confimation Status)</span>
+                                    </th>
+                                {% endif %}
+                                <th>Actions</th>
+                            </tr>
+                            </thead>
+                        <tbody>
+                            {% for plan in plans %}
+                                <tr>
+                                    <td><small>{{ plan.date_created }} {{ plan.time_created }}</small></td>
+                                    <td><small>{{ plan.production_plan_number }}</small></td>
+                                    <td>
+                                        {% if request.user.role != 'admin' or request.user.role != 'accountant' %}
+                                            <small >
+                                                {% if plan.status %}
+                                                    <small class="bg-success text-light p-2 rounded text-center w-100">Confirmed</small>
+                                                {%else %}
+                                                    <a href="{% url 'inventory:confirm_production_plan' plan.id %}" class="bg-danger text-light p-2 rounded text-center w-100">Please Confirm</a>
+                                                {% endif %}
+                                            </small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if request.user.role != 'chef'%}
+                                            <small>
+                                                {% if plan.declared %}
+                                                    <small class="bg-success text-light p-2 rounded text-center w-100" disabled>Declared</small>
+                                                {% else %}
+                                                    {% if plan.status %}
+                                                        <a href="{% url 'inventory:declare_production_plan' plan.id %}" class="bg-danger text-light p-2 rounded text-center w-100">Waiting declaration</a>
+                                                    {% else %}
+                                                        <small class="bg-danger text-light p-2 rounded text-center w-100" disabled>Awaiting production plan confirmation</small>
+                                                    {% endif %}
+                                                {% endif %}
+                                            </small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small>
+                                            <a href="{% url 'inventory:production_plan_detail' plan.id %}" class="bx bx-show mx-2"></a>
+                                            <a href="" class="bx bx-printer"></a>
+                                        </small>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="modal fade" id="statusFormModal" tabindex="-1" aria-labelledby="loaderModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-body">
+                        <h5 class="fw-bold">Change Status</h5>
+                        <form action="">
+                            {% csrf_token %}
+                            {{ status_form | crispy }}
+                            <div class="d-flex justify-content-end">
+                                <div class="">
+                                    <button type="reset" class="btn btn-danger btn-sm w-100">
+                                        <i class='bx bx-reset'></i>
+                                        Reset
+                                    </button>
+                                </div>
+                                <span class="px-1"></span>
+                                <div class="">
+                                    <button type="button" onclick="changeStatus()" class="btn btn-secondary btn-sm w-100">
+                                        <i class='bx bx-save'></i>
+                                        change
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="loaderModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-body text-center">
+                        <h5 class="fw-bold">Status Successfully Changed and Related Accounts updated</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+   </div> 
+   <script>
+        new DataTable('#production_table',{
+            pageLength: 100  
+        });
+   </script>
+{% endblock content %}

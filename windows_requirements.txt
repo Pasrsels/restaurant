@@ -1,0 +1,4 @@
+psycopg-binary==3.2.4
+regex==2024.11.6
+setuptools==75.8.0
+wheel==0.45.1
