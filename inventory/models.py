@@ -399,6 +399,8 @@ class BudgetItem(models.Model):
     quantity = models.IntegerField()
     allocated_amount = models.DecimalField(max_digits=15, decimal_places=2)
     spent_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+    reoccuring = models.BooleanField(default=False)
+    approove_by = models.DateField()
 
     def __str__(self) -> str:
         return f'{self.product.name} - {self.allocated_amount}'

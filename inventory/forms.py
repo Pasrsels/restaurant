@@ -115,6 +115,6 @@ class TransferForm(forms.Form):
 class CreateBudgetItemForm(forms.ModelForm):
     class Meta:
         model = BudgetItem
-        fields = ['product', 'allocated_amount', 'quantity']
+        fields = ['product', 'allocated_amount', 'quantity', 'approove_by',  'reoccuring']
 
         
