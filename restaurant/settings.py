@@ -33,6 +33,7 @@ CSRF_TRUSTED_ORIGINS = [
 # Application definition
 
 DJANGO_APPS = [
+    "django_celery_beat",
     "daphne",
     "django.contrib.admin",
     "django.contrib.auth",

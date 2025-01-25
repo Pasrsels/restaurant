@@ -3,7 +3,10 @@ from . models import (
     Production, 
     Transfer,
     Supplier,
-    PurchaseOrderItem
+    PurchaseOrderItem,
+    Product,
+    Budget,
+    BudgetItem
 )
 from django.core.mail import EmailMessage
 from utils.supplier_best_price import best_price
@@ -89,11 +92,29 @@ def supplier_email(supplier_id, purchase_order_item):
             logger.info('here')
             send_email(purchase_order_item)
 
-    
 
+def CreateBudgetTask(budget_id):
+    budget_info = Budget.objects.get(id = budget_id)
+    budget_item_info = BudgetItem.objects.filter(budget__id = budget_id).select_related('product', 'budget')
 
+    budget_create = Budget.objects.create(
+        name = budget_info.name,
+        total_amount = budget_info.total_amount,
+        description = budget_info.description,
+        confirmation = False,
+        user = budget_info.user
+    )
 
-        
-
-    
-    
+    budget_items_list = []
+    for items in budget_item_info:
+        prod_info = Product.objects.get(id = items.product.id)
+        budget_items_list.append(
+            BudgetItem(
+                budget = budget_create,
+                product = prod_info,
+                quantity = items.quantity,
+                allocated_amount = items.allocated_amount,
+                spent_amount = items.spent_amount,
+            )
+        )
+    BudgetItem.objects.bulk_create(budget_items_list)

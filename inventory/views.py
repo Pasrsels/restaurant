@@ -2306,9 +2306,28 @@ def check_check_list(request):
 def budget(request):
     if request.method == 'GET':
         budgets = Budget.objects.all().select_related('user')
-    
+        reodre = Reorder.objects.all()
+        exp = Expense.objects.all()
+        logger.info(reodre)
+        logger.info(exp)
+        reorder_list = []
+        expense_list = []
+        for item in reodre:
+            reorder_list.append({
+                'name': item.product.name,
+                'amount': item.product.cost,
+                'quantity': item.reorder_quantity
+            })
+        for item in exp:
+            expense_list.append({
+                'name': item.category.name,
+                'amount': item.amount,
+            })
+        
         return render(request, 'inventory/budgets/budget.html', {
-            'budgets':budgets
+            'budgets':budgets,
+            'expense': expense_list,
+            'reorder': reorder_list,
         })
     elif request.method == 'DELETE':
         data = json.loads(request.body)
@@ -2351,50 +2370,66 @@ def budget(request):
 def createBudgetItem(request):
     if request.method == 'GET':
         form = CreateBudgetItemForm()
-    
+        prod = Product.objects.all().values('name', 'quantity', 'cost', 'category__name')
+        expense = Expense.objects.all().values('category__name', 'amount')
         return render(request, 'inventory/budgets/create_budget.html', {
-            'form':form
+            'form':form,
+            'inventory': prod,
+            'expense': expense
         })
     
     if request.method == 'POST':
         data = json.loads(request.body)
         
-        with transaction.atomic():
-            items_info = data.get('cart')
-            logger.info(items_info)
-            
-            budget_total_cost = 0
-
-            for item in items_info:
-                budget_total_cost += item['total_cost']
-
-            budget_info = Budget.objects.create(
-                name = 'BugetTest',
-                total_amount = budget_total_cost,
-                description = '',
-                start_date = '2025-01-09',
-                end_date = '2025-01-09',
-                confirmation =  False,
-                user = request.user
-            )
-            
-            budget_items = []
-
-            # Loop through the items_info and create BudgetItem instances
-            for item in items_info:
-                prod_info = Product.objects.get(id=item['product']) 
+        if data.get('save'):
+            with transaction.atomic():
+                items_info = data.get('cart')
+                logger.info(items_info)
                 
-                budget_items.append(
-                    BudgetItem(
-                        budget=budget_info,
-                        product=prod_info,
-                        quantity=item['quantity'],
-                        allocated_amount=item['total_cost'],
-                        spent_amount=0.00,
-                    )
+                budget_total_cost = 0
+
+                for item in items_info:
+                    budget_total_cost += item['total_cost']
+
+                budget_info = Budget.objects.create(
+                    name = 'BugetTest',
+                    total_amount = budget_total_cost,
+                    description = '',
+                    start_date = '2025-01-09',
+                    end_date = '2025-01-09',
+                    confirmation =  False,
+                    user = request.user
                 )
-                BudgetItem.objects.bulk_create(budget_items)
-            return JsonResponse({'success':True}, status= 201)
+                
+                budget_items = []
+
+                # Loop through the items_info and create BudgetItem instances
+                for item in items_info:
+                    prod_info = Product.objects.get(id=item['product']) 
+                    
+                    budget_items.append(
+                        BudgetItem(
+                            budget=budget_info,
+                            product=prod_info,
+                            quantity=item['quantity'],
+                            allocated_amount=item['total_cost'],
+                            spent_amount=0.00,
+                        )
+                    )
+                    BudgetItem.objects.bulk_create(budget_items)
+                return JsonResponse({'success':True}, status= 201)
+        else:
+            if data.get('expense'):
+                category = data.get('category')
+                amount = data.get('amount')
+                user = request.user
+
+                category_instance = ExpenseCategory.objects.get(name  = category)
+                Expense.objects.create(
+                    category = category_instance,
+                    amount = amount,
+                    user = user
+                )
 
 def ViewBudget(request, id):
     if request.method == 'GET':
