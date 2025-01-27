@@ -2473,11 +2473,14 @@ def BudgetApproval(request):
                 budget_item.spent_amount = item.get('approoved_amount')
                 budget_item_list.append(budget_item)
             BudgetItem.objects.bulk_update(budget_item_list, ['spent_amount'])
+            return JsonResponse({'success': True}, status = 201)
         else:
             budget_item_info = BudgetItem.objects.get(id = data.get('budget_item_id'))
 
             budget_item_info.spent_amount = float(data.get('approoved_amount'))
             budget_item_info.save()
+            return JsonResponse({'success': True}, status = 201)
+    return JsonResponse({'success': False}, status = 500)
 
 @login_required
 def ConversionFormula(request):
@@ -2519,6 +2522,19 @@ def ConversionFormula(request):
             'amount': item.amount
         })
 
+    grouped_expenses = {}
+
+# Iterate through the expense list
+    for item in expense_info:
+        category = item.category.name
+        amount = item.amount
+        
+        # Add the amount to the existing category total or initialize it
+        if category in grouped_expenses:
+            grouped_expenses[category] += amount
+        else:
+            grouped_expenses[category] = amount
+    logger.info(grouped_expenses)
     combined_list = [
         {'Inventory':
             { 
@@ -2623,4 +2639,4 @@ def ConversionFormula(request):
                 item['estimated_cost'] = rounded_estimate_cost
 
     logger.info(combined_list)
-    return JsonResponse({'combined_list': combined_list}, status = 200)
+    return JsonResponse({'success': True,'combined_list': combined_list}, status = 200)
