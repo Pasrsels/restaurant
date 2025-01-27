@@ -102,6 +102,7 @@ urlpatterns = [
     #budgets
     path('budgets/', budget, name='budget'),
     path('create-budget/', createBudgetItem, name='create-budget'),
-    path('budget/view-information/<int:id>/', ViewBudget, name='view_budget')
+    path('budget/view-information/<int:id>/', ViewBudget, name='view_budget'),
+    path('budget/estimations/<str:period>/', ConversionFormula, name='estimations')
     
 ]
