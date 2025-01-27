@@ -2,6 +2,56 @@
 {% load static %}
 {% block title %}Cash Ups{% endblock title %}
 {% block content %}
+
+<div class="container mt-4">
+    <div class="row align-items-center">
+        <div class="col-md-3 mb-3">
+            <div class="dropdown">
+                <button class="btn btn-primary btn-lg dropdown-toggle w-100" type="button" id="generateByButton" data-bs-toggle="dropdown" aria-expanded="false">
+                    Generate By
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="generateByButton">
+                    <li><a class="dropdown-item" href="#" onclick="generateReport('daily')">Daily</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="generateReport('weekly')">Weekly</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="generateReport('monthly')">Monthly</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="generateReport('yearly')">Yearly</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <div class="row">
+
+                <div class="col-md-2 mb-2">
+                    <label for="adminInventory" class="form-label fw-bold">Admin</label>
+                    <input type="text" id="adminInventory" class="form-control" value="$0.00" disabled>
+                </div>
+
+                <div class="col-md-2 mb-2">
+                    <label for="inventory" class="form-label fw-bold">Inventory</label>
+                    <input type="text" id="inventory" class="form-control" value="$0.00" disabled>
+                </div>
+
+                <div class="col-md-2 mb-2">
+                    <label for="operating" class="form-label fw-bold">Operating</label>
+                    <input type="text" id="operating" class="form-control" value="$0.00" disabled>
+                </div>
+
+                <div class="col-md-2 mb-2">
+                    <label for="others" class="form-label fw-bold">Others</label>
+                    <input type="text" id="others" class="form-control" value="$0.00" disabled>
+                </div>
+
+                <div class="col-md-2 mb-2">
+                    <label for="total" class="form-label fw-bold">Total</label>
+                    <input type="text" id="total" class="form-control" value="$0.00" disabled>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 <div>
     <nav class="d-flex justify-content-between align-items-center rounded mb-2 py-2 border-bottom">
         <div>
@@ -17,47 +67,55 @@
     </nav>
     
     <div class="table-responsive">
-        <table class="table table-hover table-striped table-bordered" id="cash_up_table">
+        <table class="table table-hover table-striped" id="Budget2_table">
             <thead>
+                <th>Date</th>
                 <th>Name</th>
-                <th>Date Created</th>
-                <th>Date Approoved</th>
-                <th>Description</th>
-                <th>Created By</th>
-                <th>Status</th>
-                <th>Action</th>
+                <th>Period</th>
+                <th>Projected</th>
+                <th>Approved</th>
+                <th>Actual</th>
+                <th>Difference</th>
+                <th>Actions</th>
             </thead>
             <tbody>
                 {% for budget in budgets  %}
                     <tr>
+                        <td><small>{{ budget.date }}</small></td>
                         <td><small>{{ budget.name }}</small></td>
-                        <td><small>{{ budget.start_date }}</small></td>
-                        <td><small>
-                            {%if budget.confirmation == False%}
-                                To be approoved
-                            {%else%}
-                                {{ budget.end_date }}
-                            {%endif%}
-                        </small></td>
-                        <td><small>{{ budget.description }}</small></td>
-                        <td><small>{{ budget.user.role }}</small></td>
-                        <td><small>{{ budget.confirmation }}</small></td>
+                        <td><small>{{ budget.period }}</small></td>
+                        <td><small>{{ budget.projected | floatformat:2 }}</small></td>
                         <td>
                             <small>
-                                <button class="bx bx-show btn btn-sm" onclick="ViewBudgetItem({{budget.id}})"></button>
-                                {%if request.user.role == 'cashier'%}
-                                {%else%}
-                                    <button class="btn btn-sm bx bx-check-circle" onclick="ConfirmBudget({{budget.id}})"></button>
-                                    <button class="btn btn-sm bx bx-trash" onclick="RemoveBudget({{budget.id}})"></button>
-                                {%endif%}
-
+                                {% if request.user.role == 'accountant' %}
+                                    <input type="number" class="form-control form-control-sm" 
+                                        value="{{ budget.approved | floatformat:2 }}" 
+                                        onchange="UpdateApprovedAmount({{ budget.id }}, this.value)">
+                                {% else %}
+                                    {{ budget.approved | floatformat:2 }}
+                                {% endif %}
                             </small>
                         </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+                        <td><small>{{ budget.actual | floatformat:2 }}</small></td>
+                    <td><small>{{ budget.difference | floatformat:2 }}</small></td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="EditBudgetItem({{ budget.id }})">
+                            <i class="bx bx-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="DeleteBudgetItem({{ budget.id }})">
+                            <i class="bx bx-trash"></i>
+                        </button>
+                        {% if request.user.role == 'accountant' %}
+                            <button class="btn btn-sm btn-success" onclick="ApproveBudget({{ budget.id }})">
+                                <i class="bx bx-check-circle"></i> Approve
+                            </button>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 
     <!--budget View Modal -->
     <div class="modal fade" id="budgetViewModal" tabindex="-1" aria-labelledby="budgetViewModalLabel" aria-hidden="true">
@@ -127,185 +185,200 @@
 </div>
 
 <script>
-    budgetModal = new bootstrap.Modal(document.getElementById('budgetViewModal'));
-    ConfirmBudgetModal = new bootstrap.Modal(document.getElementById('budgetConfirmModal'));
-    function ViewBudgetItem(id){
-        console.log('View Budget');
-        budgetModal.show();
+    function generateReport(period) {
+        console.log('Generating report for:', period);
+        // call an API to update values based on the selection    
+    }    
+    // Function to update the values of the categories
+    function updateCategoryValues(adminInventory, inventory, operating) {
+        // Update the textboxes with the respective values
+        document.getElementById('admin').value = ``;
+        document.getElementById('inventory').value = ``;
+        document.getElementById('operating').value = ``;
+        document.getElementById('others').value = ``;
+        const total = admin + inventory + operating + others;
+        document.getElementById('total').value = `$${total.toFixed(2)}`;
+        
+    }
+        budgetModal = new bootstrap.Modal(document.getElementById('budgetViewModal'));
+        ConfirmBudgetModal = new bootstrap.Modal(document.getElementById('budgetConfirmModal'));
+        function ViewBudgetItem(id){
+            console.log('View Budget');
+            budgetModal.show();
 
-        data = {
-            id: id
-        };
+            data = {
+                id: id
+            };
 
-        url = "{% url 'inventory:budget'%}";
-        fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify(data),
-        }).then(response => response.json())
-        .then(data =>{
-            if(data.success){
-                budgetInfo = data.budget
-                console.log(budgetInfo)
-                const tableBody = document.getElementById('budgetItemsTableBody');
-                tableBody.innerHTML = '';
-
-                budgetInfo.forEach(item =>{
-
-                    budgetName = document.getElementById('budgetName');
-                    budgetAmount = document.getElementById('totalAmount');
-
-                    budgetName.textContent = item.budget_name;
-                    budgetAmount.textContent = '$'+item.budget_cost
-
+            url = "{% url 'inventory:budget'%}";
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(data),
+            }).then(response => response.json())
+            .then(data =>{
+                if(data.success){
+                    budgetInfo = data.budget
+                    console.log(budgetInfo)
                     const tableBody = document.getElementById('budgetItemsTableBody');
-                    tableRow = document.createElement('tr');
+                    tableBody.innerHTML = '';
 
-                    product = document.createElement('td');
-                    product.textContent = item.product;
+                    budgetInfo.forEach(item =>{
 
-                    quantity = document.createElement('td');
-                    quantity.textContent = item.quantity;
+                        budgetName = document.getElementById('budgetName');
+                        budgetAmount = document.getElementById('totalAmount');
 
-                    amount = document.createElement('td');
-                    amount.textContent = '$'+item.amount;
+                        budgetName.textContent = item.budget_name;
+                        budgetAmount.textContent = '$'+item.budget_cost
 
-                    spent_amount = document.createElement('td');
-                    spent_amount.textContent = '$'+item.spent;
+                        const tableBody = document.getElementById('budgetItemsTableBody');
+                        tableRow = document.createElement('tr');
 
-                    tableRow.appendChild(product);
-                    tableRow.appendChild(quantity);
-                    tableRow.appendChild(amount);
-                    tableRow.appendChild(spent_amount);
+                        product = document.createElement('td');
+                        product.textContent = item.product;
 
-                    tableBody.appendChild(tableRow);
-                })
-            }
-        })
-    }
+                        quantity = document.createElement('td');
+                        quantity.textContent = item.quantity;
 
-    function ConfirmBudget(id){
-        console.log('View Budget');
-        ConfirmBudgetModal.show();
+                        amount = document.createElement('td');
+                        amount.textContent = '$'+item.amount;
 
-        data = {
-            id: id
-        };
+                        spent_amount = document.createElement('td');
+                        spent_amount.textContent = '$'+item.spent;
 
-        url = "{% url 'inventory:budget'%}";
-        fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify(data),
-        }).then(response => response.json())
-        .then(data =>{
-            if(data.success){
-                budgetInfo = data.budget
-                console.log(budgetInfo)
-                const tableBody = document.getElementById('ConfirmsbudgetItemsTableBody');
-                tableBody.innerHTML = '';
+                        tableRow.appendChild(product);
+                        tableRow.appendChild(quantity);
+                        tableRow.appendChild(amount);
+                        tableRow.appendChild(spent_amount);
 
-                total_approoved_amount = 0;
-                total_difference = 0;
-                budgetInfo.forEach(item =>{
+                        tableBody.appendChild(tableRow);
+                    })
+                }
+            })
+        }
 
-                    budgetName = document.getElementById('budgetConfirmName');
-                    budgetAmount = document.getElementById('ConfirmtotalAmount');
-                    budgetAmountApprooved = document.getElementById('amountApproved');
-                    budgetAmountDifference = document.getElementById('difference')
+        function ConfirmBudget(id){
+            console.log('View Budget');
+            ConfirmBudgetModal.show();
 
-                    budgetName.textContent = item.budget_name;
-                    budgetAmount.textContent = '$'+item.budget_cost
+            data = {
+                id: id
+            };
 
+            url = "{% url 'inventory:budget'%}";
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(data),
+            }).then(response => response.json())
+            .then(data =>{
+                if(data.success){
+                    budgetInfo = data.budget
+                    console.log(budgetInfo)
                     const tableBody = document.getElementById('ConfirmsbudgetItemsTableBody');
-                    tableRow = document.createElement('tr');
+                    tableBody.innerHTML = '';
 
-                    product = document.createElement('td');
-                    product.textContent = item.product;
+                    total_approoved_amount = 0;
+                    total_difference = 0;
+                    budgetInfo.forEach(item =>{
 
-                    quantity = document.createElement('td');
-                    quantity.textContent = item.quantity;
+                        budgetName = document.getElementById('budgetConfirmName');
+                        budgetAmount = document.getElementById('ConfirmtotalAmount');
+                        budgetAmountApprooved = document.getElementById('amountApproved');
+                        budgetAmountDifference = document.getElementById('difference')
 
-                    amount = document.createElement('td');
-                    amount.textContent = '$'+item.amount;
+                        budgetName.textContent = item.budget_name;
+                        budgetAmount.textContent = '$'+item.budget_cost
 
-                    spent_amount = document.createElement('td');
-                    spent_amount.textContent = '$'+item.spent;
+                        const tableBody = document.getElementById('ConfirmsbudgetItemsTableBody');
+                        tableRow = document.createElement('tr');
 
-                    tableRow.appendChild(product);
-                    tableRow.appendChild(quantity);
-                    tableRow.appendChild(amount);
-                    tableRow.appendChild(spent_amount);
+                        product = document.createElement('td');
+                        product.textContent = item.product;
 
-                    tableBody.appendChild(tableRow);
-                })
-            }
-        })
-    }
+                        quantity = document.createElement('td');
+                        quantity.textContent = item.quantity;
 
-    function RemoveBudget(id){
-        console.log(id);
-        data = {
-            id:id
-        };
-        url = "{% url 'inventory:budget'%}";
+                        amount = document.createElement('td');
+                        amount.textContent = '$'+item.amount;
 
-        fetch(url, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify(data),
-        }).then(res => res.json())
-        .then(data => {
-            console.log(data)
-            if(data.success){
-                Swal.fire({
-                    icon: 'success',
-                    text: 'Budget deleted',
-                    title: 'Success'
-                }).then(result => {
-                    if(result.isConfirmed){
-                        location.reload();
-                    }
-                });
-            }else{
+                        spent_amount = document.createElement('td');
+                        spent_amount.textContent = '$'+item.spent;
+
+                        tableRow.appendChild(product);
+                        tableRow.appendChild(quantity);
+                        tableRow.appendChild(amount);
+                        tableRow.appendChild(spent_amount);
+
+                        tableBody.appendChild(tableRow);
+                    })
+                }
+            })
+        }
+
+        function RemoveBudget(id){
+            console.log(id);
+            data = {
+                id:id
+            };
+            url = "{% url 'inventory:budget'%}";
+
+            fetch(url, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(data),
+            }).then(res => res.json())
+            .then(data => {
+                console.log(data)
+                if(data.success){
+                    Swal.fire({
+                        icon: 'success',
+                        text: 'Budget deleted',
+                        title: 'Success'
+                    }).then(result => {
+                        if(result.isConfirmed){
+                            location.reload();
+                        }
+                    });
+                }else{
+                    Swal.fire({
+                        icon: 'error',
+                        text: data.message,
+                        title: 'Failed'
+                    });
+                }
+            })
+            .catch(error => {
                 Swal.fire({
                     icon: 'error',
-                    text: data.message,
-                    title: 'Failed'
+                    text: 'An error occurred while processing your request.',
+                    title: 'Error'
                 });
-            }
-        })
-        .catch(error => {
-            Swal.fire({
-                icon: 'error',
-                text: 'An error occurred while processing your request.',
-                title: 'Error'
             });
-        });
-    }
+        }
 
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
                 }
             }
+            return cookieValue;
         }
-        return cookieValue;
-    }
 </script>
 {% endblock %}
