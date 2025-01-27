@@ -2365,6 +2365,29 @@ def budget(request):
             return JsonResponse({'success': True,'budget': budget_list}, status = 200)
         except Exception as e:
             return JsonResponse({'success': False, 'message':f'Error encountered is:{e}'}, status = 400)
+    elif request.method == 'PUT':
+        try:
+            data = json.loads(request.body)
+            id = data.get('id')
+
+            budget_infomation = BudgetItem.objects.filter(budget__id = id).select_related('budget', 'product')
+           
+            budget_list = []
+            for item in budget_infomation:
+                budget_list.append(
+                    {
+                        'budget_name': item.budget.name,
+                        'budget_cost': item.budget.total_amount,
+                        'product': item.product.name,
+                        'quantity': item.quantity,
+                        'amount': item.allocated_amount,
+                        'spent': item.spent_amount
+                    }
+                )
+            logger.info(budget_list)
+            return JsonResponse({'success': True,'budget': budget_list}, status = 200)
+        except Exception as e:
+            return JsonResponse({'success': False, 'message':f'Error encountered is:{e}'}, status = 400)
 
 @login_required
 def createBudgetItem(request):
@@ -2382,55 +2405,42 @@ def createBudgetItem(request):
     if request.method == 'POST':
         data = json.loads(request.body)
         
-        if data.get('save'):
-            with transaction.atomic():
-                items_info = data.get('cart')
-                logger.info(items_info)
-                
-                budget_total_cost = 0
+        with transaction.atomic():
+            items_info = data.get('cart')
+            logger.info(items_info)
+            
+            budget_total_cost = 0
 
-                for item in items_info:
-                    budget_total_cost += item['total_cost']
+            for item in items_info:
+                budget_total_cost += item['total_cost']
 
-                budget_info = Budget.objects.create(
-                    name = 'BugetTest',
-                    total_amount = budget_total_cost,
-                    description = '',
-                    start_date = '2025-01-09',
-                    end_date = '2025-01-09',
-                    confirmation =  False,
-                    user = request.user
-                )
-                
-                budget_items = []
-
-                # Loop through the items_info and create BudgetItem instances
-                for item in items_info:
-                    prod_info = Product.objects.get(id=item['product']) 
-                    
-                    budget_items.append(
-                        BudgetItem(
-                            budget=budget_info,
-                            product=prod_info,
-                            quantity=item['quantity'],
-                            allocated_amount=item['total_cost'],
-                            spent_amount=0.00,
-                        )
-                    )
-                    BudgetItem.objects.bulk_create(budget_items)
-                return JsonResponse({'success':True}, status= 201)
-        else:
-            if data.get('expense'):
-                category = data.get('category')
-                amount = data.get('amount')
+            budget_info = Budget.objects.create(
+                name = 'BugetTest',
+                total_amount = budget_total_cost,
+                description = '',
+                start_date = '2025-01-09',
+                end_date = '2025-01-09',
+                confirmation =  False,
                 user = request.user
+            )
+            
+            budget_items = []
 
-                category_instance = ExpenseCategory.objects.get(name  = category)
-                Expense.objects.create(
-                    category = category_instance,
-                    amount = amount,
-                    user = user
+            # Loop through the items_info and create BudgetItem instances
+            for item in items_info:
+                prod_info = Product.objects.get(id=item['product']) 
+                
+                budget_items.append(
+                    BudgetItem(
+                        budget=budget_info,
+                        product=prod_info,
+                        quantity=item['quantity'],
+                        allocated_amount=item['total_cost'],
+                        spent_amount=0.00,
+                    )
                 )
+                BudgetItem.objects.bulk_create(budget_items)
+            return JsonResponse({'success':True}, status= 201)
 
 def ViewBudget(request, id):
     if request.method == 'GET':
@@ -2450,6 +2460,24 @@ def ViewBudget(request, id):
             return JsonResponse({'success': True, 'data':budget_info_list}, status = 200)
         except Exception as e:
             return JsonResponse({'success': False, 'message':e}, status = 400)
+
+@login_required
+def BudgetApproval(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        if data.get('Save') == 'all':
+
+            budget_item_list = []
+            for item in data.get('budget_info'):
+                budget_item = BudgetItem.objects.get(id = data.get('budget_item_id'))
+                budget_item.spent_amount = item.get('approoved_amount')
+                budget_item_list.append(budget_item)
+            BudgetItem.objects.bulk_update(budget_item_list, ['spent_amount'])
+        else:
+            budget_item_info = BudgetItem.objects.get(id = data.get('budget_item_id'))
+
+            budget_item_info.spent_amount = float(data.get('approoved_amount'))
+            budget_item_info.save()
 
 @login_required
 def ConversionFormula(request):
