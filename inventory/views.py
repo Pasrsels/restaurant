@@ -2,7 +2,7 @@ import json, csv, io
 from django.utils import timezone
 from . models import *
 from loguru import logger
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from django.views import View    
 from django.contrib import messages 
 from django.http import JsonResponse, HttpResponse
@@ -2310,6 +2310,7 @@ def budget(request):
         exp = Expense.objects.all()
         logger.info(reodre)
         logger.info(exp)
+        ConversionFormula()
         reorder_list = []
         expense_list = []
         for item in reodre:
@@ -2372,6 +2373,7 @@ def createBudgetItem(request):
         form = CreateBudgetItemForm()
         prod = Product.objects.all().values('name', 'quantity', 'cost', 'category__name')
         expense = Expense.objects.all().values('category__name', 'amount')
+        
         return render(request, 'inventory/budgets/create_budget.html', {
             'form':form,
             'inventory': prod,
@@ -2449,6 +2451,75 @@ def ViewBudget(request, id):
             return JsonResponse({'success': True, 'data':budget_info_list}, status = 200)
         except Exception as e:
             return JsonResponse({'success': False, 'message':e}, status = 400)
-    
-        
-            
+
+def ConversionFormula():
+    purchase_info = PurchaseOrderItem.objects.all()
+    product_info = Product.objects.all()
+
+    inventory_list = []
+    inventory_total = 0
+    for item in purchase_info:
+        id = item.product.id
+        for items in product_info:
+            if id == items.id:
+                inventory_list.append({
+                    'name': items.name,
+                    'date': item.purchase_order.order_date,
+                    'cost': item.unit_cost,
+                    'quantity': item.quantity
+                })
+                inventory_total += (item.unit_cost * Decimal(item.quantity))
+
+    reorder_info = Reorder.objects.filter(ordered = False)
+
+    for item in reorder_info:
+        name = item.product.name
+        for items in inventory_list:
+            if name == items['name']:
+                new_date = items['date'] + timedelta(days=item.approx_days)
+                items['reorder_date'] = new_date
+
+    expense_info = Expense.objects.all()
+
+    expense_list = []
+    expense_total = 0
+    for item in expense_info:
+        expense_total += item.amount
+        expense_list.append({
+            'category': item.category.name,
+            'date': item.date,
+            'amount': item.amount
+        })
+
+    combined_list = [
+        {'Inventory':
+            { 
+               'inventory_details': inventory_list,
+               'total': inventory_total
+            }
+        }, 
+        {'Expenses': 
+            {
+                'expanse_details':expense_list,
+                'total': expense_total
+            }
+        }
+    ]
+
+    if 'week':
+        time_diff = 0
+        for item in inventory_list:
+            first_date = item['date']
+            last_date = item['reorder_date']
+            time_diff = first_date - last_date
+            logger.info(time_diff)
+            time_diff_in_days = abs(time_diff.total_seconds() / 86400)
+            if time_diff_in_days <= 7:
+                estimate_quantity = (7/time_diff_in_days) * item['quantity']
+                estimate_cost = Decimal(estimate_quantity) * item['cost']
+                rounded = estimate_cost.quantize(Decimal('0.01'),  rounding=ROUND_HALF_UP)
+                logger.info(estimate_quantity)
+                logger.info(rounded)
+
+
+    return logger.info(combined_list)
