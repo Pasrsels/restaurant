@@ -67,55 +67,26 @@
     </nav>
     
     <div class="table-responsive">
-        <table class="table table-hover table-striped" id="Budget2_table">
+       <table class="table table-hover table-striped" id="Budget2_table">
             <thead>
-                <th>Date</th>
-                <th>Name</th>
-                <th>Period</th>
-                <th>Projected</th>
-                <th>Approved</th>
-                <th>Actual</th>
-                <th>Difference</th>
-                <th>Actions</th>
-            </thead>
-            <tbody>
-                {% for budget in budgets  %}
                     <tr>
-                        <td><small>{{ budget.date }}</small></td>
-                        <td><small>{{ budget.name }}</small></td>
-                        <td><small>{{ budget.period }}</small></td>
-                        <td><small>{{ budget.projected | floatformat:2 }}</small></td>
-                        <td>
-                            <small>
-                                {% if request.user.role == 'accountant' %}
-                                    <input type="number" class="form-control form-control-sm" 
-                                        value="{{ budget.approved | floatformat:2 }}" 
-                                        onchange="UpdateApprovedAmount({{ budget.id }}, this.value)">
-                                {% else %}
-                                    {{ budget.approved | floatformat:2 }}
-                                {% endif %}
-                            </small>
-                        </td>
-                        <td><small>{{ budget.actual | floatformat:2 }}</small></td>
-                    <td><small>{{ budget.difference | floatformat:2 }}</small></td>
-                    <td>
-                        <button class="btn btn-sm btn-primary" onclick="EditBudgetItem({{ budget.id }})">
-                            <i class="bx bx-edit"></i>
-                        </button>
-                        <button class="btn btn-sm btn-danger" onclick="DeleteBudgetItem({{ budget.id }})">
-                            <i class="bx bx-trash"></i>
-                        </button>
-                        {% if request.user.role == 'accountant' %}
-                            <button class="btn btn-sm btn-success" onclick="ApproveBudget({{ budget.id }})">
-                                <i class="bx bx-check-circle"></i> Approve
-                            </button>
-                        {% endif %}
-                    </td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
+                        <th>Category</th>
+                        <th>Date</th>
+                        <th>Name</th>
+                        <th>Projected</th>
+                        <th>Approved</th>
+                        <th>Actual</th>
+                        <th>Difference</th>
+                        <th>Actions</th>
+                     </tr>
+                </thead>
+                <tbody>
+                        <!-- Rows will be dynamically added here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+        
 
     <!--budget View Modal -->
     <div class="modal fade" id="budgetViewModal" tabindex="-1" aria-labelledby="budgetViewModalLabel" aria-hidden="true">
@@ -185,11 +156,10 @@
 </div>
 
 <script>
-    function generateReport(period) {
+ function generateReport(period) {
         console.log('Generating report for:', period);
         // call an API to update values based on the selection    
     }    
-    // Function to update the values of the categories
     function updateCategoryValues(adminInventory, inventory, operating) {
         // Update the textboxes with the respective values
         document.getElementById('admin').value = ``;
@@ -198,173 +168,176 @@
         document.getElementById('others').value = ``;
         const total = admin + inventory + operating + others;
         document.getElementById('total').value = `$${total.toFixed(2)}`;
-        
     }
-        budgetModal = new bootstrap.Modal(document.getElementById('budgetViewModal'));
-        ConfirmBudgetModal = new bootstrap.Modal(document.getElementById('budgetConfirmModal'));
-        function ViewBudgetItem(id){
-            console.log('View Budget');
-            budgetModal.show();
+async function fetchCategories() {
+    const tableBody = document.querySelector("#Budget2_table tbody");
+    tableBody.innerHTML = "";
 
-            data = {
-                id: id
-            };
+    try {
+        const response = await fetch("/api/");
+        const data = await response.json(); 
 
-            url = "{% url 'inventory:budget'%}";
-            fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
-                },
-                body: JSON.stringify(data),
-            }).then(response => response.json())
-            .then(data =>{
-                if(data.success){
-                    budgetInfo = data.budget
-                    console.log(budgetInfo)
-                    const tableBody = document.getElementById('budgetItemsTableBody');
-                    tableBody.innerHTML = '';
+        Object.keys(data).forEach(category => {
+            const dropdownRow = `
+                <tr class="category-header">
+                    <td colspan="7">
+                        <button class="btn btn-link" onclick="toggleCategoryRows('${category}')">
+                            ${category} <span class="dropdown-icon">+</span>
+                        </button>
+                    </td>
+                    <td>
+                        <i class="btn btn-sm btn-success bi bi-play-circle-fill" onclick="approveCategory('${category}')" title="Approve Category"></i>
+                        <i class="btn btn-sm btn-primary bi bi-pencil-square" onclick="editCategory('${category}')" title="Edit Category"></i>
+                        <i class="btn btn-sm btn-danger bi bi-trash" onclick="deleteCategory('${category}')" title="Delete Category"></i>
+                    </td>
+                </tr>
+            `;
+            tableBody.insertAdjacentHTML("beforeend", dropdownRow);
 
-                    budgetInfo.forEach(item =>{
+            budgetData[category] = data[category];
+        });
+    } catch (error) {
+        console.error("Error fetching categories:", error);
+    }
+}
 
-                        budgetName = document.getElementById('budgetName');
-                        budgetAmount = document.getElementById('totalAmount');
+function toggleCategoryRows(category) {
+    const tableBody = document.querySelector("#Budget2_table tbody");
+    const existingRows = document.querySelectorAll(`.category-${category}`);
 
-                        budgetName.textContent = item.budget_name;
-                        budgetAmount.textContent = '$'+item.budget_cost
+    if (existingRows.length > 0) {
+        existingRows.forEach(row => row.remove());
+    } else {
+        const rows = budgetData[category].map(item => `
+            <tr class="category-${category}">
+                <td></td>
+                <td>${item.date}</td>
+                <td>${item.name}</td>
+                <td>${item.projected.toFixed(2)}</td>
+                <td>${item.approved.toFixed(2)}</td>
+                <td>${item.actual.toFixed(2)}</td>
+                <td>${(item.projected - item.actual).toFixed(2)}</td>
+                <td>
+                    <i class="btn btn-sm btn-success bi bi-play-circle-fill" onclick="approveItem('${category}', ${item.id})" title="Approve Item"></i>
+                    <i class="btn btn-sm btn-primary bi bi-pencil-square" onclick="editItem('${category}', ${item.id})" title="Edit Item"></i>
+                    <i class="btn btn-sm btn-danger bi bi-trash" onclick="deleteItem('${category}', ${item.id})" title="Delete Item"></i>
+                </td>
+            </tr>
+        `).join("");
 
-                        const tableBody = document.getElementById('budgetItemsTableBody');
-                        tableRow = document.createElement('tr');
+        tableBody.insertAdjacentHTML("beforeend", rows);
+    }
+}
 
-                        product = document.createElement('td');
-                        product.textContent = item.product;
-
-                        quantity = document.createElement('td');
-                        quantity.textContent = item.quantity;
-
-                        amount = document.createElement('td');
-                        amount.textContent = '$'+item.amount;
-
-                        spent_amount = document.createElement('td');
-                        spent_amount.textContent = '$'+item.spent;
-
-                        tableRow.appendChild(product);
-                        tableRow.appendChild(quantity);
-                        tableRow.appendChild(amount);
-                        tableRow.appendChild(spent_amount);
-
-                        tableBody.appendChild(tableRow);
-                    })
-                }
-            })
+async function approveCategory(category) {
+    try {
+        const response = await fetch(`/api/`, { //approve whole category
+            method: "POST"
+        });
+        if (response.ok) {
+            alert(`Category "${category}" approved successfully!`);
+        } else {
+            console.error("Error approving category:", response.statusText);
         }
+    } catch (error) {
+        console.error("Error:", error);
+    }
+}
 
-        function ConfirmBudget(id){
-            console.log('View Budget');
-            ConfirmBudgetModal.show();
-
-            data = {
-                id: id
-            };
-
-            url = "{% url 'inventory:budget'%}";
-            fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
-                },
-                body: JSON.stringify(data),
-            }).then(response => response.json())
-            .then(data =>{
-                if(data.success){
-                    budgetInfo = data.budget
-                    console.log(budgetInfo)
-                    const tableBody = document.getElementById('ConfirmsbudgetItemsTableBody');
-                    tableBody.innerHTML = '';
-
-                    total_approoved_amount = 0;
-                    total_difference = 0;
-                    budgetInfo.forEach(item =>{
-
-                        budgetName = document.getElementById('budgetConfirmName');
-                        budgetAmount = document.getElementById('ConfirmtotalAmount');
-                        budgetAmountApprooved = document.getElementById('amountApproved');
-                        budgetAmountDifference = document.getElementById('difference')
-
-                        budgetName.textContent = item.budget_name;
-                        budgetAmount.textContent = '$'+item.budget_cost
-
-                        const tableBody = document.getElementById('ConfirmsbudgetItemsTableBody');
-                        tableRow = document.createElement('tr');
-
-                        product = document.createElement('td');
-                        product.textContent = item.product;
-
-                        quantity = document.createElement('td');
-                        quantity.textContent = item.quantity;
-
-                        amount = document.createElement('td');
-                        amount.textContent = '$'+item.amount;
-
-                        spent_amount = document.createElement('td');
-                        spent_amount.textContent = '$'+item.spent;
-
-                        tableRow.appendChild(product);
-                        tableRow.appendChild(quantity);
-                        tableRow.appendChild(amount);
-                        tableRow.appendChild(spent_amount);
-
-                        tableBody.appendChild(tableRow);
-                    })
-                }
-            })
+async function approveItem(category, id) {
+    try {
+        const response = await fetch(`/api/`, { //approve one product or expense
+            method: "POST"
+        });
+        if (response.ok) {
+            alert(`Item approved successfully!`);
+        } else {
+            console.error("Error approving item:", response.statusText);
         }
+    } catch (error) {
+        console.error("Error:", error);
+    }
+}
 
-        function RemoveBudget(id){
-            console.log(id);
-            data = {
-                id:id
-            };
-            url = "{% url 'inventory:budget'%}";
-
-            fetch(url, {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
-                },
-                body: JSON.stringify(data),
-            }).then(res => res.json())
-            .then(data => {
-                console.log(data)
-                if(data.success){
-                    Swal.fire({
-                        icon: 'success',
-                        text: 'Budget deleted',
-                        title: 'Success'
-                    }).then(result => {
-                        if(result.isConfirmed){
-                            location.reload();
-                        }
-                    });
-                }else{
-                    Swal.fire({
-                        icon: 'error',
-                        text: data.message,
-                        title: 'Failed'
-                    });
-                }
-            })
-            .catch(error => {
-                Swal.fire({
-                    icon: 'error',
-                    text: 'An error occurred while processing your request.',
-                    title: 'Error'
-                });
+async function editCategory(category) {
+    const newCategoryName = prompt(`Enter a new name for category "${category}":`);
+    if (newCategoryName) {
+        try {
+            const response = await fetch(`/api/`, { //edit category
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: newCategoryName })
             });
+            if (response.ok) {
+                alert(`Category "${category}" updated successfully!`);
+                fetchCategories();
+            } else {
+                console.error("Error editing category:", response.statusText);
+            }
+        } catch (error) {
+            console.error("Error:", error);
         }
+    }
+}
+
+async function editItem(category, id) {
+    const newItemName = prompt(`Enter a new name for item with ID "${id}":`);
+    if (newItemName) {
+        try {
+            const response = await fetch(`/api/`, { //edit item
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: newItemName })
+            });
+            if (response.ok) {
+                alert(`Item "${id}" updated successfully!`);
+                toggleCategoryRows(category); 
+            } else {
+                console.error("Error editing item:", response.statusText);
+            }
+        } catch (error) {
+            console.error("Error:", error);
+        }
+    }
+}
+
+async function deleteCategory(category) {
+    if (confirm(`Are you sure you want to delete category "${category}"?`)) {
+        try {
+            const response = await fetch(`/api/`, { //delete category
+                method: "DELETE"
+            });
+            if (response.ok) {
+                alert(`Category deleted successfully!`);
+                fetchCategories(); 
+            } else {
+                console.error("Error deleting category:", response.statusText);
+            }
+        } catch (error) {
+            console.error("Error:", error);
+        }
+    }
+}
+
+async function deleteItem(category, id) {
+    if (confirm(`Are you sure you want to delete item "${id}"?`)) {
+        try {
+            const response = await fetch(`/api/`, { //delete item
+                method: "DELETE"
+            });
+            if (response.ok) {
+                alert(`Item deleted successfully!`);
+                toggleCategoryRows(category);
+            } else {
+                console.error("Error deleting item:", response.statusText);
+            }
+        } catch (error) {
+            console.error("Error:", error);
+        }
+    }
+}
+
+document.addEventListener("DOMContentLoaded", fetchCategories);
 
         function getCookie(name) {
             let cookieValue = null;
