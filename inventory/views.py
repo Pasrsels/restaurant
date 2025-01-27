@@ -2323,7 +2323,6 @@ def budget(request):
                 'name': item.category.name,
                 'amount': item.amount,
             })
-        
         return render(request, 'inventory/budgets/budget.html', {
             'budgets':budgets,
             'expense': expense_list,
@@ -2529,7 +2528,6 @@ def ConversionFormula(request):
         category = item.category.name
         amount = item.amount
         
-        # Add the amount to the existing category total or initialize it
         if category in grouped_expenses:
             grouped_expenses[category] += amount
         else:
