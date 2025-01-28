@@ -12,7 +12,7 @@
             <nav class="d-flex justify-content-end align-items-center rounded mb-2 py-2 border-bottom">
                 <div class="d-flex align-items-center">
                     <div class="me-3">
-                        <a href="{% url 'inventory:create-budget' %}" class="btn btn-outline-dark btn-lg w-100" style="min-width: 150px;">Create Budget</a>
+                        <a href="{% url 'inventory:create-budget' %}" class="btn btn-outline-dark btn-lg w-100" type="button" aria-expanded="false" style="min-width: 150px;">Create Budget</a>
                     </div>
                     <div class="me-3">
                         <div class="dropdown">
@@ -168,10 +168,11 @@
         }    
     function updateCategoryValues(adminInventory, inventory, operating) {
             // Update the textboxes with the respective values
-            document.getElementById('admin').value = ``;
-            document.getElementById('inventory').value = ``;
-            document.getElementById('operating').value = ``;
-            document.getElementById('others').value = ``;
+            document.getElementsByName('admin')[0].value = `admin`;
+            document.getElementsByName('inventory')[1].value = `inventory`;
+            document.getElementsByName('operating')[2].value = `operating`;
+            document.getElementsByName('others')[3].value = `others`;
+
             const total = admin + inventory + operating + others;
             document.getElementById('total').value = `$${total.toFixed(2)}`;
         }
@@ -192,9 +193,9 @@
                             </button>
                         </td>
                         <td>
-                            <i class="btn btn-sm btn-success bi bi-play-circle-fill" onclick="approveCategory('${category}')" title="Approve Category"></i>
-                            <i class="btn btn-sm btn-primary bi bi-pencil-square" onclick="editCategory('${category}')" title="Edit Category"></i>
-                            <i class="btn btn-sm btn-danger bi bi-trash" onclick="deleteCategory('${category}')" title="Delete Category"></i>
+                            <i class="btn btn-sm btn-success bx bx-play" onclick="approveCategory('${category}')" title="Approve Category"></i>
+                            <i class="btn btn-sm btn-primary bx bx-pencil" onclick="editCategory('${category}')" title="Edit Category"></i>
+                            <i class="btn btn-sm btn-danger bx bx-trash" onclick="deleteCategory('${category}')" title="Delete Category"></i>
                         </td>
                     </tr>
                 `;
@@ -235,35 +236,73 @@
         }
     }
 
-    async function approveCategory(category) {
-        try {
-            const response = await fetch("{% url 'inventory:budget-approval' %}", { //approve whole category
-                method: "POST"
-            });
-            if (response.ok) {
+    async function approveCategory(category, budgetInfo) {
+    try {
+        const data = {
+            Save: 'all',
+            budget_info:[budget_id, category_name, budget_item_id]
+        };
+
+        const response = await fetch("{% url 'inventory:budget-approval' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCSRFToken(), 
+            },
+            body: JSON.stringify(data),
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
                 alert(`Category "${category}" approved successfully!`);
             } else {
-                console.error("Error approving category:", response.statusText);
+                alert("Error: Unable to approve category. Please try again.");
             }
-        } catch (error) {
-            console.error("Error:", error);
+        } else {
+            console.error("Error approving category:", response.statusText);
+            alert("Failed to approve category. Please try again later.");
         }
+    } catch (error) {
+        console.error("Error:", error);
+        alert("An error occurred while approving the category. Please try again.");
     }
+}
 
-    async function approveItem(category, id) {
-        try {
-            const response = await fetch("{% url 'inventory:budget-approval' %}", { //approve one product or expense
-                method: "POST"
-            });
-            if (response.ok) {
-                alert(`Item approved successfully!`);
+async function approveItem(category, id, approvedAmount) {
+    try {
+        const data = {
+            Save: 'single', 
+            budget_item_id: id, 
+            approoved_amount: approvedAmount 
+        };
+
+        const response = await fetch("{% url 'inventory:budget-approval' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCSRFToken(), 
+            },
+            body: JSON.stringify(data),
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+                alert(`Item in category "${category}" approved successfully!`);
             } else {
-                console.error("Error approving item:", response.statusText);
+                alert("Error: Unable to approve item. Please try again.");
             }
-        } catch (error) {
-            console.error("Error:", error);
+        } else {
+            console.error("Error approving item:", response.statusText);
+            alert("Failed to approve item. Please try again later.");
         }
+    } catch (error) {
+        console.error("Error:", error);
+        alert("An error occurred while approving the item. Please try again.");
     }
+}
+
     /*
     async function editCategory(category) {
         const newCategoryName = prompt(`Enter a new name for category "${category}":`);
@@ -285,7 +324,7 @@
             }
         }
     }
-    */
+    
     async function editItem(category, id) {
         const newItemName = prompt(`Enter a new name for item with ID "${id}":`);
         if (newItemName) {
@@ -306,42 +345,81 @@
             }
         }
     }
+        */
 
-    async function deleteCategory(category) {
-        if (confirm(`Are you sure you want to delete category "${category}"?`)) {
-            try {
-                const response = await fetch("{% url 'inventory:budget' %}", { //delete category
-                    method: "DELETE"
-                });
-                if (response.ok) {
-                    alert(`Category deleted successfully!`);
+        async function deleteCategory(category) {
+    if (confirm(`Are you sure you want to delete all items in the category "${category}"?`)) {
+        try {
+            const data = {
+                budget_id:budget_id,
+                category: category_name, 
+                action: "delete_all" 
+            };
+
+            const response = await fetch("{% url 'inventory:budget' %}", {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": getCSRFToken(), 
+                },
+                body: JSON.stringify(data),
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success) {
+                    alert(`All items in category "${category}" deleted successfully!`);
                     fetchCategories(); 
                 } else {
-                    console.error("Error deleting category:", response.statusText);
+                    alert("Error: Unable to delete category. Please try again.");
                 }
-            } catch (error) {
-                console.error("Error:", error);
+            } else {
+                console.error("Error deleting category:", response.statusText);
+                alert("Failed to delete category. Please try again later.");
             }
+        } catch (error) {
+            console.error("Error:", error);
+            alert("An error occurred while deleting the category. Please try again.");
         }
     }
+}
 
-    async function deleteItem(category, id) {
-        if (confirm(`Are you sure you want to delete item "${id}"?`)) {
-            try {
-                const response = await fetch("{% url 'inventory:budget' %}", { //delete item
-                    method: "DELETE"
-                });
-                if (response.ok) {6
+async function deleteItem(category, id) {
+    if (confirm(`Are you sure you want to delete item in category "${category}"?`)) {
+        try {
+            const data = {
+                budget_id,
+                budget_item_id: id, 
+                action: "delete_item" 
+            };
+
+            const response = await fetch("{% url 'inventory:budget' %}", {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": getCSRFToken(), 
+                },
+                body: JSON.stringify(data),
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success) {
                     alert(`Item deleted successfully!`);
-                    toggleCategoryRows(category);
+                    toggleCategoryRows(category); 
                 } else {
-                    console.error("Error deleting item:", response.statusText);
+                    alert("Error: Unable to delete item. Please try again.");
                 }
-            } catch (error) {
-                console.error("Error:", error);
+            } else {
+                console.error("Error deleting item:", response.statusText);
+                alert("Failed to delete item. Please try again later.");
             }
+        } catch (error) {
+            console.error("Error:", error);
+            alert("An error occurred while deleting the item. Please try again.");
         }
     }
+}
 
     document.addEventListener("DOMContentLoaded", fetchCategories);
 
