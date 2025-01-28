@@ -31,10 +31,35 @@
         <div class="col-3 border rounded-2">
             <h5>Add Product</h5>
             <form class="mt-2">
-                {% csrf_token %}
-                {{ form | crispy }}
+                <div id="div_id_product" class="mb-3"> 
+                    <label for="id_product" class="form-label requiredField">Product</label>
+                    <select name="product" class="select form-select" required="" id="id_product">
+                        <option value="" selected="">---------</option>
+                        {% for item in combined%}
+                            <option value="{{item.id}}" data-amount="{{item.amount}}">{{item.name}}</option>
+                        {% endfor %}
+                    </select> 
+                </div>
+                <div id="div_id_allocated_amount" class="mb-3">
+                    <label for="id_allocated_amount" class="form-label requiredField">Allocated amount</label>
+                    <input type="number" name="allocated_amount" step="0.01" class="numberinput form-control" required="" id="id_allocated_amount">
+                </div>
+                <div id="div_id_quantity" class="mb-3">
+                    <label for="id_quantity" class="form-label requiredField">Quantity</label>
+                    <input type="number" name="quantity" class="numberinput form-control" required="" id="id_quantity">
+                </div>
+                <div id="div_id_approove_by" class="mb-3">
+                    <label for="id_approove_by" class="form-label requiredField">Approove by</label>
+                    <input type="text" name="approove_by" class="dateinput form-control" required="" id="id_approove_by">
+                </div>
+                <div class="mb-3"> 
+                    <div id="div_id_reoccuring" class="mb-3 form-check">
+                        <input type="checkbox" name="reoccuring" class="checkboxinput form-check-input" id="id_reoccuring">
+                        <label for="id_reoccuring" class="form-check-label">Reoccuring</label>
+                    </div> 
+                </div>
                 <div class="d-flex justify-content-end py-2">
-                    <button type="button" class="btn btn-sm btn-secondary mx-2">Clear</button>
+                    <button type="button" class="btn btn-sm btn-secondary mx-2" onclick="ClearEntry()">Clear</button>
                     <button type="button" class="btn btn-sm btn-primary" onclick="AddCart()">Add</button>
                 </div>
             </form>
@@ -42,6 +67,13 @@
     </div>
 </div>
 <script>
+    document.getElementById('id_allocated_amount').value = '';
+    document.getElementById('id_product').value = '';
+    document.getElementById('id_quantity').value = '';
+    document.getElementById('id_approove_by').value = '';
+    document.getElementById('id_reoccuring').value = '';
+
+
     let cart = []
     function AddCart(){
         console.log(cart)
@@ -192,6 +224,28 @@
             });
         }
     }
+
+    document.getElementById('id_product').addEventListener('change', function() {
+        
+        const selectedOption = this.options[this.selectedIndex];
+        
+        const selectedId = selectedOption.value;
+        const selectedAmount = selectedOption.getAttribute('data-amount');
+        
+        console.log('Selected ID:', selectedId);
+        console.log('Selected Amount:', selectedAmount);
+
+        document.getElementById('id_allocated_amount').value = selectedAmount;
+    });
+    
+    function ClearEntry(){
+        document.getElementById('id_allocated_amount').value = '';
+        document.getElementById('id_product').value = '';
+        document.getElementById('id_quantity').value = '';
+        document.getElementById('id_approove_by').value = '';
+        document.getElementById('id_reoccuring').value = '';
+    }
+
 
     function getCookie(name) {
         let cookieValue = null;

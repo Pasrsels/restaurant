@@ -2323,10 +2323,12 @@ def budget(request):
                 'name': item.category.name,
                 'amount': item.amount,
             })
+        
+        logger.info(expense_list + reorder_list)
+        combined_list = expense_list + reorder_list
         return render(request, 'inventory/budgets/budget.html', {
             'budgets':budgets,
-            'expense': expense_list,
-            'reorder': reorder_list,
+            'combined': combined_list,
         })
     elif request.method == 'DELETE':
         data = json.loads(request.body)
@@ -2392,13 +2394,32 @@ def budget(request):
 def createBudgetItem(request):
     if request.method == 'GET':
         form = CreateBudgetItemForm()
-        prod = Product.objects.all().values('name', 'quantity', 'cost', 'category__name')
-        expense = Expense.objects.all().values('category__name', 'amount')
+        reodre = Reorder.objects.all()
+        exp = Expense.objects.all()
+        logger.info(reodre)
+        logger.info(exp)
+        reorder_list = []
+        expense_list = []
+        for item in reodre:
+            reorder_list.append({
+                'id': item.id,
+                'name': item.product.name,
+                'amount': item.product.cost,
+                'quantity': item.reorder_quantity
+            })
+        for item in exp:
+            expense_list.append({
+                'id': item.id,
+                'name': item.category.name,
+                'amount': item.amount,
+            })
+        
+        logger.info(expense_list + reorder_list)
+        combined_list = expense_list + reorder_list
         
         return render(request, 'inventory/budgets/create_budget.html', {
             'form':form,
-            'inventory': prod,
-            'expense': expense
+            'combined': combined_list,
         })
     
     if request.method == 'POST':
@@ -2483,158 +2504,162 @@ def BudgetApproval(request):
 
 @login_required
 def ConversionFormula(request):
-    purchase_info = PurchaseOrderItem.objects.all()
-    product_info = Product.objects.all()
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        logger.info(data.get('period'))
 
-    inventory_list = []
-    inventory_total = 0
-    for item in purchase_info:
-        id = item.product.id
-        for items in product_info:
-            if id == items.id:
-                inventory_list.append({
-                    'name': items.name,
-                    'date': item.purchase_order.order_date,
-                    'cost': item.unit_cost,
-                    'quantity': item.quantity
-                })
-                inventory_total += (item.unit_cost * Decimal(item.quantity))
+        purchase_info = PurchaseOrderItem.objects.all()
+        product_info = Product.objects.all()
 
-    reorder_info = Reorder.objects.filter(ordered = False)
+        inventory_list = []
+        inventory_total = 0
+        for item in purchase_info:
+            id = item.product.id
+            for items in product_info:
+                if id == items.id:
+                    inventory_list.append({
+                        'name': items.name,
+                        'date': item.purchase_order.order_date,
+                        'cost': item.unit_cost,
+                        'quantity': item.quantity
+                    })
+                    inventory_total += (item.unit_cost * Decimal(item.quantity))
 
-    for item in reorder_info:
-        name = item.product.name
-        for items in inventory_list:
-            if name == items['name']:
-                new_date = items['date'] + timedelta(days=item.approx_days)
-                items['reorder_date'] = new_date
 
-    expense_info = Expense.objects.all()
+        reorder_info = Reorder.objects.filter(ordered = False)
+        for item in reorder_info:
+            name = item.product.name
+            for items in inventory_list:
+                if name == items['name']:
+                    new_date = items['date'] + timedelta(days=item.approx_days)
+                    items['reorder_date'] = new_date
 
-    expense_list = []
-    expense_total = 0
-    for item in expense_info:
-        expense_total += item.amount
-        expense_list.append({
-            'category': item.category.name,
-            'date': item.date,
-            'amount': item.amount
-        })
 
-    grouped_expenses = {}
+        expense_info = Expense.objects.all()
+        expense_list = []
+        expense_total = 0
+        for item in expense_info:
+            expense_total += item.amount
+            expense_list.append({
+                'category': item.category.name,
+                'date': item.date,
+                'amount': item.amount
+            })
 
-# Iterate through the expense list
-    for item in expense_info:
-        category = item.category.name
-        amount = item.amount
-        
-        if category in grouped_expenses:
-            grouped_expenses[category] += amount
-        else:
-            grouped_expenses[category] = amount
-    logger.info(grouped_expenses)
-    combined_list = [
-        {'Inventory':
-            { 
-               'inventory_details': inventory_list,
-               'total': inventory_total
+
+        grouped_expenses = {}
+        for item in expense_info:
+            category = item.category.name
+            amount = item.amount
+            
+            if category in grouped_expenses:
+                grouped_expenses[category] += amount
+            else:
+                grouped_expenses[category] = amount
+        logger.info(grouped_expenses)
+
+        if data.get('period') == 'daily':
+            time_diff = 0
+            for item in inventory_list:
+                first_date = item['date']
+                last_date = item['reorder_date']
+                time_diff = first_date - last_date
+                logger.info(time_diff)
+                time_diff_in_days = abs(time_diff.total_seconds() / 86400)
+                logger.info(time_diff_in_days)
+                estimate_quantity = (1/time_diff_in_days) * item['quantity']
+                estimate_cost = Decimal(estimate_quantity) * item['cost']
+                rounded_estimate_cost = estimate_cost.quantize(Decimal('0.01'),  rounding=ROUND_HALF_UP)
+                logger.info(estimate_quantity)
+                logger.info(rounded_estimate_cost)
+                item['estimated_quantity'] = estimate_quantity
+                item['estimated_cost'] = rounded_estimate_cost
+        elif data.get('period') =='weekly':
+            time_diff = 0
+            for item in inventory_list:
+                first_date = item['date']
+                last_date = item['reorder_date']
+                time_diff = first_date - last_date
+                logger.info(time_diff)
+                time_diff_in_days = abs(time_diff.total_seconds() / 86400)
+                if time_diff_in_days <= 7:
+                    estimate_quantity = (7/time_diff_in_days) * item['quantity']
+                    estimate_cost = Decimal(estimate_quantity) * item['cost']
+                    rounded_estimate_cost = estimate_cost.quantize(Decimal('0.01'),  rounding=ROUND_HALF_UP)
+                    logger.info(estimate_quantity)
+                    logger.info(rounded_estimate_cost)
+                    item['estimated_quantity'] = estimate_quantity
+                    item['estimated_cost'] = rounded_estimate_cost
+                if time_diff_in_days >= 7:
+                    estimate_quantity = (time_diff_in_days/7) * item['quantity']
+                    estimate_cost = Decimal(estimate_quantity) * item['cost']
+                    rounded_estimate_cost = estimate_cost.quantize(Decimal('0.01'),  rounding=ROUND_HALF_UP)
+                    logger.info(estimate_quantity)
+                    logger.info(rounded_estimate_cost)
+                    item['estimated_quantity'] = estimate_quantity
+                    item['estimated_cost'] = rounded_estimate_cost
+        elif data.get('period') =='monthly':
+            time_diff = 0
+            for item in inventory_list:
+                first_date = item['date']
+                last_date = item['reorder_date']
+                time_diff = first_date - last_date
+                logger.info(time_diff)
+                time_diff_in_days = abs(time_diff.total_seconds() / 86400)
+                if time_diff_in_days <= 31:
+                    estimate_quantity = (31/time_diff_in_days) * item['quantity']
+                    estimate_cost = Decimal(estimate_quantity) * item['cost']
+                    rounded_estimate_cost = estimate_cost.quantize(Decimal('0.01'),  rounding=ROUND_HALF_UP)
+                    logger.info(estimate_quantity)
+                    logger.info(rounded_estimate_cost)
+                    item['estimated_quantity'] = estimate_quantity
+                    item['estimated_cost'] = rounded_estimate_cost
+                if time_diff_in_days >= 31:
+                    estimate_quantity = (time_diff_in_days/31) * item['quantity']
+                    estimate_cost = Decimal(estimate_quantity) * item['cost']
+                    rounded_estimate_cost = estimate_cost.quantize(Decimal('0.01'),  rounding=ROUND_HALF_UP)
+                    logger.info(estimate_quantity)
+                    logger.info(rounded_estimate_cost)
+                    item['estimated_quantity'] = estimate_quantity
+                    item['estimated_cost'] = rounded_estimate_cost
+        elif data.get('period') =='yearly':
+            time_diff = 0
+            for item in inventory_list:
+                first_date = item['date']
+                last_date = item['reorder_date']
+                time_diff = first_date - last_date
+                logger.info(time_diff)
+                time_diff_in_days = abs(time_diff.total_seconds() / 86400)
+                if time_diff_in_days <= 356:
+                    estimate_quantity = (356/time_diff_in_days) * item['quantity']
+                    estimate_cost = Decimal(estimate_quantity) * item['cost']
+                    rounded_estimate_cost = estimate_cost.quantize(Decimal('0.01'),  rounding=ROUND_HALF_UP)
+                    logger.info(estimate_quantity)
+                    logger.info(rounded_estimate_cost)
+                    item['estimated_quantity'] = estimate_quantity
+                    item['estimated_cost'] = rounded_estimate_cost
+                if time_diff_in_days >= 356:
+                    estimate_quantity = (time_diff_in_days/356) * item['quantity']
+                    estimate_cost = Decimal(estimate_quantity) * item['cost']
+                    rounded_estimate_cost = estimate_cost.quantize(Decimal('0.01'),  rounding=ROUND_HALF_UP)
+                    logger.info(estimate_quantity)
+                    logger.info(rounded_estimate_cost)
+                    item['estimated_quantity'] = estimate_quantity
+                    item['estimated_cost'] = rounded_estimate_cost
+
+        combined_list = [
+            {'Inventory':
+                { 
+                'inventory_details': inventory_list,
+                'total': inventory_total
+                }
+            }, 
+            {'Expenses': 
+                {
+                    'expanse_details':[grouped_expenses],
+                    'total': expense_total
+                }
             }
-        }, 
-        {'Expenses': 
-            {
-                'expanse_details':expense_list,
-                'total': expense_total
-            }
-        }
-    ]
-    if 'day':
-        time_diff = 0
-        for item in inventory_list:
-            first_date = item['date']
-            last_date = item['reorder_date']
-            time_diff = first_date - last_date
-            logger.info(time_diff)
-            time_diff_in_days = abs(time_diff.total_seconds() / 86400)
-            logger.info(time_diff_in_days)
-            estimate_quantity = (1/time_diff_in_days) * item['quantity']
-            estimate_cost = Decimal(estimate_quantity) * item['cost']
-            rounded_estimate_cost = estimate_cost.quantize(Decimal('0.01'),  rounding=ROUND_HALF_UP)
-            logger.info(estimate_quantity)
-            logger.info(rounded_estimate_cost)
-            item['estimated_quantity'] = estimate_quantity
-            item['estimated_cost'] = rounded_estimate_cost
-    elif 'week':
-        time_diff = 0
-        for item in inventory_list:
-            first_date = item['date']
-            last_date = item['reorder_date']
-            time_diff = first_date - last_date
-            logger.info(time_diff)
-            time_diff_in_days = abs(time_diff.total_seconds() / 86400)
-            if time_diff_in_days <= 7:
-                estimate_quantity = (7/time_diff_in_days) * item['quantity']
-                estimate_cost = Decimal(estimate_quantity) * item['cost']
-                rounded_estimate_cost = estimate_cost.quantize(Decimal('0.01'),  rounding=ROUND_HALF_UP)
-                logger.info(estimate_quantity)
-                logger.info(rounded_estimate_cost)
-                item['estimated_quantity'] = estimate_quantity
-                item['estimated_cost'] = rounded_estimate_cost
-            if time_diff_in_days >= 7:
-                estimate_quantity = (time_diff_in_days/7) * item['quantity']
-                estimate_cost = Decimal(estimate_quantity) * item['cost']
-                rounded_estimate_cost = estimate_cost.quantize(Decimal('0.01'),  rounding=ROUND_HALF_UP)
-                logger.info(estimate_quantity)
-                logger.info(rounded_estimate_cost)
-                item['estimated_quantity'] = estimate_quantity
-                item['estimated_cost'] = rounded_estimate_cost
-    elif 'month':
-        time_diff = 0
-        for item in inventory_list:
-            first_date = item['date']
-            last_date = item['reorder_date']
-            time_diff = first_date - last_date
-            logger.info(time_diff)
-            time_diff_in_days = abs(time_diff.total_seconds() / 86400)
-            if time_diff_in_days <= 31:
-                estimate_quantity = (31/time_diff_in_days) * item['quantity']
-                estimate_cost = Decimal(estimate_quantity) * item['cost']
-                rounded_estimate_cost = estimate_cost.quantize(Decimal('0.01'),  rounding=ROUND_HALF_UP)
-                logger.info(estimate_quantity)
-                logger.info(rounded_estimate_cost)
-                item['estimated_quantity'] = estimate_quantity
-                item['estimated_cost'] = rounded_estimate_cost
-            if time_diff_in_days >= 31:
-                estimate_quantity = (time_diff_in_days/31) * item['quantity']
-                estimate_cost = Decimal(estimate_quantity) * item['cost']
-                rounded_estimate_cost = estimate_cost.quantize(Decimal('0.01'),  rounding=ROUND_HALF_UP)
-                logger.info(estimate_quantity)
-                logger.info(rounded_estimate_cost)
-                item['estimated_quantity'] = estimate_quantity
-                item['estimated_cost'] = rounded_estimate_cost
-    elif 'year':
-        time_diff = 0
-        for item in inventory_list:
-            first_date = item['date']
-            last_date = item['reorder_date']
-            time_diff = first_date - last_date
-            logger.info(time_diff)
-            time_diff_in_days = abs(time_diff.total_seconds() / 86400)
-            if time_diff_in_days <= 356:
-                estimate_quantity = (356/time_diff_in_days) * item['quantity']
-                estimate_cost = Decimal(estimate_quantity) * item['cost']
-                rounded_estimate_cost = estimate_cost.quantize(Decimal('0.01'),  rounding=ROUND_HALF_UP)
-                logger.info(estimate_quantity)
-                logger.info(rounded_estimate_cost)
-                item['estimated_quantity'] = estimate_quantity
-                item['estimated_cost'] = rounded_estimate_cost
-            if time_diff_in_days >= 356:
-                estimate_quantity = (time_diff_in_days/356) * item['quantity']
-                estimate_cost = Decimal(estimate_quantity) * item['cost']
-                rounded_estimate_cost = estimate_cost.quantize(Decimal('0.01'),  rounding=ROUND_HALF_UP)
-                logger.info(estimate_quantity)
-                logger.info(rounded_estimate_cost)
-                item['estimated_quantity'] = estimate_quantity
-                item['estimated_cost'] = rounded_estimate_cost
-
-    logger.info(combined_list)
-    return JsonResponse({'success': True,'combined_list': combined_list}, status = 200)
+        ]
+        logger.info(combined_list)
+        return JsonResponse({'success': True,'combined_list': combined_list}, status = 200)

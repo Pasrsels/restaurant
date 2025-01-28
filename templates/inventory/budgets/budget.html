@@ -30,8 +30,8 @@
 
                     <div class="row g-2">
                         <div class="col-md-2 mb-2">
-                            <label for="adminInventory" class="form-label fw-bold">Admin</label>
-                            <input type="text" id="adminInventory" class="form-control" value="$0.00" disabled>
+                            <label for="admin" class="form-label fw-bold">Admin</label>
+                            <input type="text" id="admin" class="form-control" value="$0.00" disabled>
                         </div>
 
                         <div class="col-md-2 mb-2">
@@ -148,33 +148,69 @@
 </div>
 
 <script>
+    document.getElementById('admin').value = `$${0.00}`;
+    document.getElementById('inventory').value = `$${0.00}`;
+    document.getElementById('operating').value = `$${0.00}`;
+    document.getElementById('others').value = `$${0.00}`;
+    document.getElementById('total').value = `$${0.00}`;
+
+    categories_admin = 0;
+    categories_inventory = 0;
+    categories_operating = 0;
+    categories_other = 0;
+
     function generateReport(period) {
             console.log('Generating report for:', period);
+            data = {
+                period: period
+            };
             const url = "{% url 'inventory:estimations'%}";
             fetch(url,{
-                method: 'GET',
+                method: 'POST',
                 headers: {
-                    'ContentType': 'application/json',
-                    'X-CSRFToken': getCookie('csrf_token')
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
                 },
+                body: JSON.stringify(data),
             }).then(response => response.json())
             .then(data =>{
                 if(data.success){
                     console.log(data.combined_list)
+                    categories = data.combined_list;
+                    categories.forEach(item =>{
+                        if(item.Inventory){
+                            item.Inventory.inventory_details.forEach(items =>{
+                                console.log('details',items.estimated_cost);
+                                categories_inventory = items.estimated_cost;
+                            })
+                        }if(item.Expenses){
+                            item.Expenses.expanse_details.forEach(items =>{
+                                console.log(items.Admin)
+                                if(items.Admin){
+                                    categories_admin = items.Admin;
+                                }if(items.Operating){
+                                    categories_operating = items.Operating
+                                }
+                                if(items.Other){
+                                    categories_other = items.Other;
+                                }
+                            })
+                        }
+                    })
+                    console.log('1',categories_admin, '2',categories_inventory, '3',categories_operating, '4',categories_other)
+                    updateCategoryValues(categories_admin, categories_inventory, categories_operating, categories_other);
                 }
-            })
-
-            // call an API to update values based on the selection    
+            })   
         }    
-    function updateCategoryValues(adminInventory, inventory, operating) {
+    function updateCategoryValues(admin, inventory, operating, others) {
             // Update the textboxes with the respective values
-            document.getElementsByName('admin')[0].value = `admin`;
-            document.getElementsByName('inventory')[1].value = `inventory`;
-            document.getElementsByName('operating')[2].value = `operating`;
-            document.getElementsByName('others')[3].value = `others`;
-
-            const total = admin + inventory + operating + others;
-            document.getElementById('total').value = `$${total.toFixed(2)}`;
+            document.getElementById('admin').value = `$${admin}`;
+            document.getElementById('inventory').value = `$${inventory}`;
+            document.getElementById('operating').value = `$${operating}`;
+            document.getElementById('others').value = `$${others}`;
+            console.log(admin,inventory,operating,others)
+            const total = parseFloat(admin) + parseFloat(inventory) + parseFloat(operating) + parseFloat(others);
+            document.getElementById('total').value = `$${total}`;
         }
     async function fetchCategories() {
         const tableBody = document.querySelector("#Budget2_table tbody");
