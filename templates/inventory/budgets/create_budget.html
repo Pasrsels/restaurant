@@ -17,6 +17,7 @@
                     <th>Product</th>
                     <th>Amount</th>
                     <th>Quantity</th>
+                    <th>Approove By</th>
                     <th>Total cost</th>
                     <th>Action</th>
                 </thead>
@@ -82,6 +83,7 @@
         product_name = select_box.options[select_box.selectedIndex].textContent;
         amount = Number(document.getElementById('id_allocated_amount').value);
         quantity = Number(document.getElementById('id_quantity').value);
+        approve_by = document.getElementById('id_approove_by').value;
         total_cost = Number(amount * quantity);
         if(product === "" || product_name === "" || amount === 0 || quantity === 0 || total_cost === 0){
             Swal.fire({
@@ -97,6 +99,7 @@
                     name: product_name,
                     amount: amount,
                     quantity: quantity,
+                    approve_by: approve_by,
                     total_cost: total_cost
                 };
                 cart.push(cart_item)
@@ -136,6 +139,8 @@
             quantity.innerHTML = `
                 <input type="number" value="${item.quantity}"/>
             `;
+            const date_approve = document.createElement('td');
+            date_approve.textContent = item.approve_by;
 
             const total_cost = document.createElement('td');
             total_cost.textContent = item.total_cost;
@@ -148,6 +153,7 @@
             tableRow.appendChild(product);
             tableRow.appendChild(amount);
             tableRow.appendChild(quantity);
+            tableRow.appendChild(date_approve);
             tableRow.appendChild(total_cost);
             tableRow.appendChild(actions);
             

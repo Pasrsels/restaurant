@@ -181,18 +181,18 @@
                         if(item.Inventory){
                             item.Inventory.inventory_details.forEach(items =>{
                                 console.log('details',items.estimated_cost);
-                                categories_inventory = items.estimated_cost;
+                                categories_inventory += parseFloat(items.estimated_cost);
                             })
                         }if(item.Expenses){
                             item.Expenses.expanse_details.forEach(items =>{
                                 console.log(items.Admin)
                                 if(items.Admin){
-                                    categories_admin = items.Admin;
+                                    categories_admin += parseFloat(items.Admin);
                                 }if(items.Operating){
-                                    categories_operating = items.Operating
+                                    categories_operating += parseFloat(items.Operating);
                                 }
-                                if(items.Other){
-                                    categories_other = items.Other;
+                                if(items.Others){
+                                    categories_other += parseFloat(items.Others);
                                 }
                             })
                         }
@@ -210,7 +210,7 @@
             document.getElementById('others').value = `$${others}`;
             console.log(admin,inventory,operating,others)
             const total = parseFloat(admin) + parseFloat(inventory) + parseFloat(operating) + parseFloat(others);
-            document.getElementById('total').value = `$${total}`;
+            document.getElementById('total').value = `$${total.toFixed(2)}`;
         }
     async function fetchCategories() {
         const tableBody = document.querySelector("#Budget2_table tbody");

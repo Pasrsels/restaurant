@@ -173,6 +173,13 @@ class Meal(models.Model):
     def __str__(self) -> str:
         return self.name
 
+class LeftOvers(models.Model):
+    dish = models.ForeignKey(Dish, on_delete= models.CASCADE, null=True)
+    product = models.ForeignKey(Product, on_delete= models.CASCADE, null= True)
+    total_amount = models.DecimalField(max_digits=100, decimal_places=2, default= 0.00)
+    quantity = models.IntegerField(default= 0)
+    date = models.DateTimeField(auto_now_add=True)
+
 class PurchaseOrder(models.Model):
     """Model for purchase orders."""
 

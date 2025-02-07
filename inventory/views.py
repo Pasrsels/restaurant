@@ -2396,15 +2396,14 @@ def createBudgetItem(request):
         form = CreateBudgetItemForm()
         reodre = Reorder.objects.all()
         exp = Expense.objects.all()
-        logger.info(reodre)
-        logger.info(exp)
+    
         reorder_list = []
         expense_list = []
         for item in reodre:
             reorder_list.append({
                 'id': item.id,
                 'name': item.product.name,
-                'amount': item.product.cost,
+                'amount': item.product.price,
                 'quantity': item.reorder_quantity
             })
         for item in exp:
@@ -2538,6 +2537,7 @@ def ConversionFormula(request):
         expense_info = Expense.objects.all()
         expense_list = []
         expense_total = 0
+    
         for item in expense_info:
             expense_total += item.amount
             expense_list.append({
@@ -2545,7 +2545,6 @@ def ConversionFormula(request):
                 'date': item.date,
                 'amount': item.amount
             })
-
 
         grouped_expenses = {}
         for item in expense_info:
@@ -2557,6 +2556,24 @@ def ConversionFormula(request):
             else:
                 grouped_expenses[category] = amount
         logger.info(grouped_expenses)
+
+        previous = None
+        count = 0
+        date_diff = 0
+        sum_diff = timedelta(days=0)
+        id_in_use = 0
+        for items in expense_info:
+            count += 1
+            id = items.category.id
+            if previous is not None and id == id_in_use:
+                date_diff = items.date - previous
+                sum_diff += date_diff
+                logger.info('inside')
+            previous = items.date
+            id_in_use = item.category.id
+            logger.info(date_diff)
+            logger.info(previous)
+            logger.info(count)
 
         if data.get('period') == 'daily':
             time_diff = 0

@@ -24,5 +24,6 @@ urlpatterns = [
 
     # cash up
     path('cash_up/<int:cashier_id>/', cash_up, name='cash_up'),
+    path('cash_up_modified/', cashUpModified, name='cash_up_modified'),
     path('update-cashed-amount/<int:cashup_id>/', update_cashed_amount, name='update_cashed_amount'),
 ]
