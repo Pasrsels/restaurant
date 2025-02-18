@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administrator Cash-Up Report</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            width: 80mm;
+            margin: 0;
+            padding: 10px;
+        }
+        h2, h3, h4, h5 {
+            text-align: center;
+            margin: 5px 0;
+        }
+        p {
+            margin: 5px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #000;
+            padding: 5px;
+            text-align: right;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .totals {
+            margin-top: 15px;
+            font-size: 16px;
+        }
+        .line {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="receipt">
+        <div class="header">
+            <h2>Parsales Investments</h2>
+            <p>65 Speke Ave, Harare</p>
+            <p>TIN No: 2001020099</p>
+        </div>
+
+        <h3>Administrator Cash-Up Report</h3>
+        <p>Cashier: {{ request.user.first_name }}</p>
+        <p>Date: {{ now|date:"Y-m-d" }}</p>
+        <p>Time: {{ now|date:"H:i:s" }}</p>
+
+        <h4>Cash-Up Summary</h4>
+        <table>
+            <tr>
+                <th>Dish</th>
+                <th>Sold Portions</th>
+                <th>S_Amount ($)</th>
+                <th>Leftovers</th>
+                <th>L_Amount ($)</th>
+                <th>Expected ($)</th>
+            </tr>
+            {% for dish in dishes %}
+            <tr>
+                <td style="text-align: left;">{{ dish.name }}</td>
+                <td>{{ dish.sold }}</td>
+                <td>{{ dish.sold|floatformat:2 }}</td>
+                <td>{{ dish.leftovers }}</td>
+                <td>{{ dish.leftovers|floatformat:2 }}</td>
+                <td></td>
+            </tr>
+            {% endfor %}
+            <tr style="font-weight: bold;">
+                <td colspan="2">Total</td>
+                <td>{{ total_s_amount|floatformat:2 }}</td>
+                <td></td>
+                <td>{{ total_l_amount|floatformat:2 }}</td>
+                <td>{{ total_expected|floatformat:2 }}</td>
+            </tr>
+        </table>
+
+        <h4>Staff Usage</h4>
+        <table>
+            <tr>
+                <th>Dish</th>
+                <th>Portions</th>
+                <th>Cost ($)</th>
+                <th>Accumulative</th>
+            </tr>
+            {% for dish in dishes %}
+            <tr>
+                <td style="text-align: left;">{{ dish.name }}</td>
+                <td>{{ dish.sold }}</td>
+                <td></td>
+                <td>N/A</td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        <div class="totals">
+            <div class="line"><span>Total Sales:</span> <span>${{ total_sales|floatformat:2}}</span></div>
+            <div class="line"><span>Total Expenses:</span> <span>${{ total_leftovers|floatformat:2 }}</span></div>
+            <div class="line"><span>Declared Cash:</span> <span>${{ declared_cash|floatformat:2 }}</span></div>
+            <div class="line"><span>Variance:</span> <span>${{ variance|floatformat:2 }}</span></div>
+        </div>
+    </div>
+</body>
+</html>

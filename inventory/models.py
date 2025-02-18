@@ -51,6 +51,7 @@ class Product(models.Model):
     finished_product = models.BooleanField(default=False)
     description = models.TextField()
     deactivate = models.BooleanField(default=False)
+    image = models.ImageField(upload_to='product_images/', default='placeholder.png', null=True)
     
     def __str__(self) -> str:
         return self.name
@@ -150,7 +151,7 @@ class Ingredient(models.Model):
     dish = models.ForeignKey(Dish, on_delete=models.CASCADE, null=True)
     note = models.CharField(max_length=100, null=True)
     quantity = models.FloatField()
-    raw_material = models.CharField(null=True)
+    # raw_material = models.CharField(null=True, blank=True)
     minor_raw_material = models.ForeignKey(Product, on_delete=models.CASCADE, null=True)
 
     def __str__(self) -> str:        
@@ -169,15 +170,17 @@ class Meal(models.Model):
     category = models.ForeignKey(MealCategory, on_delete=models.CASCADE, null=True)
     deactivate = models.BooleanField(default=False)
     meal = models.BooleanField(default=True)
-    
+    image = models.ImageField(upload_to='meal_images/', default='placeholder.png', null=True)
     def __str__(self) -> str:
         return self.name
 
 class LeftOvers(models.Model):
+    cashier = models.ForeignKey(User, on_delete=models.CASCADE)
     dish = models.ForeignKey(Dish, on_delete= models.CASCADE, null=True)
     product = models.ForeignKey(Product, on_delete= models.CASCADE, null= True)
     total_amount = models.DecimalField(max_digits=100, decimal_places=2, default= 0.00)
     quantity = models.IntegerField(default= 0)
+    cash = models.DecimalField(max_digits=100, decimal_places=2, default=0.00)
     date = models.DateTimeField(auto_now_add=True)
 
 class PurchaseOrder(models.Model):

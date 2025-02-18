@@ -14,7 +14,7 @@
             </div>
         </div>
         
-        <form method="post" class="rounded border mt-2 p-2">
+        <form method="post" enctype="multipart/form-data" class="rounded border mt-2 p-2">
             {% csrf_token %}
             {{ form | crispy}}
             <div class="d-flex justify-content-end">

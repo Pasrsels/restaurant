@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accountant Cash-Up Report</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            width: 80mm;
+            margin: 0;
+            padding: 10px;
+        }
+        h3, h4 {
+            text-align: center;
+            margin: 5px 0;
+        }
+        p {
+            margin: 5px 0;
+        }
+        .totals {
+            width: 100%;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        .line {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+        }
+        .line span {
+            display: inline-block;
+        }
+        hr {
+            margin: 10px 0;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="receipt">
+        <div class="header">
+            <h3>Parsles Investments (Urban Eats)</h3>
+            <h4>Cash Up</h4>
+            <hr>
+            <p>Cashier: {{ request.user.first_name }}</p>
+            <p>Date: {{ cash_up_data.date|date:"Y-m-d" }}</p>
+            <p>Time: {{ cash_up_data.date|date:"H:i:s" }}</p>
+        </div>
+        <div class="totals">
+            <div class="line">
+                <span>Total Sales:</span>
+                <span>${{ cash_up_data.total_sales|floatformat:2 }}</span>
+            </div>
+            <div class="line">
+                <span>Total Expenses:</span>
+                <span>${{ cash_up_data.total_expenses|floatformat:2 }}</span>
+            </div>
+            <div class="line">
+                <span>Total Change:</span>
+                <span>${{ cash_up_data.total_change|floatformat:2 }}</span>
+            </div>
+            <div class="line">
+                <span>Accumulative Change:</span>
+                <span>${{ cash_up_data.accumulative_change|floatformat:2 }}</span>
+            </div>
+            <div class="line">
+                <span>Previous Change Given:</span>
+                <span>${{ cash_up_data.previous_change_given|floatformat:2 }}</span>
+            </div>
+            <div class="line">
+                <span>Cash In Hand:</span>
+                <span>${{ cash_up_data.cash_in_hand|floatformat:2 }}</span>
+            </div>
+            <div class="line">
+                <span>Declared Cash:</span>
+                <span>${{ cash_up_data.declared_cash|floatformat:2 }}</span>
+            </div>
+            <div class="line">
+                <span>Variance:</span>
+                <span>${{ cash_up_data.variance|floatformat:2 }}</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

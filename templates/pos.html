@@ -97,11 +97,24 @@
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
     }
+    .card {
+        width: 250px;
+        height: 300px;
+        overflow: hidden;
+      }
+      
+      .card-img-top {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center;
+      }
+      
 </style>
     <div class="pos px-2">
         <div class="">
             <div class="row">
-                <div class="col-8">
+                <div class="col-9">
                     <div class="div" style='height:78vh;'>
                         <div class="d-flex justify-content-between bg-dark text-light p-1 rounded mt-2 align-items-center">
                             <h5 class="text-light">Products</h5>
@@ -141,8 +154,14 @@
                             <li class='mx-2'>
                                 <a href="{% url 'finance:cashier_expenses' request.user.id %}" class="btn btn-outline-dark w-100">Expenses</a>
                             </li>
-                            <li class='mx-2'>
-                                <button onclick="cashupAuth()" class="btn btn-outline-dark w-100">Cash Up</a>
+                            <li>
+                                <a class="btn btn-outline-dark w-100" id="cashup">Cash Up</a>
+                            </li>
+                            <li>
+                                <a href='{% url "pos:cash_up_admin_report" %}' class="btn btn-outline-dark w-100">Supervisor Report</a>
+                            </li>
+                            <li>
+                                <a href='{% url "pos:cash_up_accountant_report" %}' class="btn btn-outline-dark w-100">Accountant Report</a>
                             </li>
                         </div>
                         <div>
@@ -153,7 +172,7 @@
                     </div>
 
                 </div>
-                <div class="col-4">
+                <div class="col-3">
                     <div class="bg-dark text-light sidebar rounded p-4" style='width:380px;'>
                         <h5 class="fw-bold">Order Details</h5>
                         <div id="orderDetails" style="height:300px"></div>
@@ -186,80 +205,69 @@
             </div>
         </div>
 <!--cashup modal-->
-        <div class="modal fade" id="authCashModal" tabindex="-1" aria-labelledby="chargeModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="chargeModalLabel">Authenticate & Cash Up</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="cashUpForm" method="POST" autocomplete="off">
-                            <div class="mb-3">
-                                <label for="cash_on_hand" class="form-lable">Cash on Hand</label>
-                                <input type="number" id="cash_on_hand" name="cash_on_hand" class="form-control" placeholder="Enter amount of cash on hand" required>
-                            </div>
-                            <!-- Leftovers-->
-                             <div class="mb-3">
-                                <h6>Enter Leftover Portions for Each Dish</h6>
-                                    <div id="dishesList"></div>
-                             </div>
 
-                             <!-- Authentication-->
-                              <div class="mb-3">
-                                <label for="c_username" class="form-label">Username</label>
-                                <input type="text" id="c_username" name="username" class="form-control" placeholder="Enter username" required>
-                              </div>
-                              <div class="mb-3">
-                                <label for="c_password" class="form-label">Password</label>
-                                <input type="password" id="c_password" name="password" class="form-control" placeholder="Enter password" required>
-                              </div>
-                              <button type="button" class="btn btn-primary w-100" onclick="cashUp()">Authenticate &Submit</button>
-                              <button type="button" class="btn btn-primary" onclick="submitLeftovers()">Submit Leftovers</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
+<div class="modal fade" id="cashupModal" tabindex="-1" aria-labelledby="cashupModalLabel" aria-hidden="false">
+    <div class="modal-dialog bg modal-dialog-centered">
+        <div class="modal-content p-2">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cashupModalLabel">Enter User Credentials</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-
-
-
-        <div class="modal fade" id="authCashModal" tabindex="-1" aria-labelledby="chargeModalLabel" aria-hidden="true">
-            <div class="modal-dialog bg modal-dialog-centered">
-                <div class="modal-content p-2">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="chargeModalLabel">Authenticate to Cash Up</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <form action="" method="POST" autocomplete="off" >
-                        <div class="mb-3">
-                            <label for="username" class="form-label">Usernafme</label>
-                            <input 
-                                type="text" 
-                                id="c_username" 
-                                name="username" 
-                                class="form-control" 
-                                placeholder="Enter username" 
-                                autocomplete="off"
-                                required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="password" class="form-label">Password</label>
-                            <input 
-                                type="password" 
-                                id="c_password" 
-                                name="password" 
-                                class="form-control" 
-                                placeholder="Enter password" 
-                                autocomplete="new-password"
-                                required>
-                        </div>
-                        <button type="button" onclick="cashUp()" class="btn btn-primary w-100">Authenticate</button>
-                    </form>
+            <form action="" method="POST" autocomplete="off" >
+                <div class="mb-3">
+                    <label for="username" class="form-label">Username</label>
+                    <input 
+                        type="text" 
+                        id="c_username" 
+                        name="username" 
+                        class="form-control" 
+                        placeholder="Enter username" 
+                        autocomplete="off"
+                        required>
                 </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password</label>
+                    <input 
+                        type="password" 
+                        id="c_password" 
+                        name="password" 
+                        class="form-control" 
+                        placeholder="Enter password" 
+                        autocomplete="new-password"
+                        required>
+                </div>
+                <button id="cash_upbutton" class="btn btn-outline-dark w-100">Authenticate</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Cashier cashupModal -->
+<div class="modal fade" id="cashiercashupModal" tabindex="-1" aria-labelledby="cashiercashupModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cashiercashupModalLabel">Cash Declaration & Leftovers</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="cashDeclarationForm" method="POST" autocomplete="off">
+                    <div class="mb-3">
+                        <label for="cash_on_hand" class="form-label">Cash on Hand</label>
+                        <input type="number" id="cash_on_hand" name="cash_on_hand" class="form-control" placeholder="Enter amount of cash on hand" required>
+                    </div>
+                    <div class="mb-3">
+                        <h6>Enter Leftover Portions for Each Dish</h6>
+                        <div id="dishesList">
+                            <!-- Dynamically populated list of dishes with input fields for leftovers -->
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-primary w-100" onclick="submitCashDeclaration()">Submit Declaration</button>
+                </form>
             </div>
         </div>
-
+    </div>
+</div>
     
         <!-- Modal -->
         <div class="modal fade" id="chargeModal" tabindex="-1" aria-labelledby="chargeModalLabel" aria-hidden="true">
@@ -418,8 +426,9 @@
         const proceedBtn = document.getElementById('btn_proceed');
         const changeEl = document.getElementById('id_change');
         const backButton = document.getElementById('btn_back');
+        const cashupButton = document.getElementById('cashup')
         const authenticateBtn = document.getElementById('void')
-        const authenticateModal = new bootstrap.Modal(document.getElementById('authModal'));
+        const authenticateModal = new bootstrap.Modal(document.getElementById('cashupModal'));
         const search = document.getElementById('searchInput')
 
         
@@ -460,6 +469,7 @@
                 itemCard.className = 'col-md-3';
                 itemCard.innerHTML = `
                     <div class="card mb-4 box-shadow">
+                        <img src="${ item.image ? '/media/product_images/' + item.image : '{% static "media/product_images/default.jpg" %}' }" class="card-img-top" alt="${ item.name }">
                         <div class="card-body rounded p-3 d-flex align-items-center bg-warning" style='height:50px;' onclick="addToCart(${item.id}, '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
                             <p class="card-text text">${item.name}</p>
                         </div>
@@ -840,12 +850,14 @@
             console.log(itemsToDisplay)
     
             itemsToDisplay.forEach(item => {
+                console.log({here:item.image})
                 console.log(item.meal, item.dish)
                 const itemCard = document.createElement('div');
                 itemCard.className = 'col-md-3';
                 itemCard.innerHTML = `
                     <div class="card mb-4 box-shadow">
-                        <div class="card-body rounded p-3 d-flex align-items-center bg-warning" style='height:50px;' onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
+                        <img src="${ item.image ? '/media/' + item.image : '/media/' + 'placeholder.png' }" class="card-img-top" alt="${ item.name }" onclick="addToCart('${item.id}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})"">
+                        <div class="card-body rounded p-3 d-flex align-items-center bg-warning" style='height:50px;' onclick="addToCart('${item.id}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
                             <p class="card-text text">${item.name}</p>
                         </div>
                     </div>
@@ -1289,498 +1301,121 @@
         const changeAmount = parseFloat(document.getElementById('change_amount').value);
         document.getElementById('balance').value = changeAmount - amountGiven;
     })
-
-    //authenticate function
-    const authenticate = (username, password) => {
-        console.log(username, password);
-        fetch('{% url "pos:void_authenticate" %}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify({ username, password })
+    cashupButton.addEventListener('click', ()=>{
+        
+            authenticateModal.show()
         })
-        .then(response => response.json())
-        .then(data => {
-            console.log(data)
-            if (data.success) {
-                if(data.role !== "cashier")
-                {
-                    {% comment %} Swal.fire({
-                        title: 'Success!',
-                        text: 'Authentication successful!',
-                        icon: 'success',
-                    }).then(() => {
-                        window.location.href =  `/pos/sales/${data.user_id}`;
-                    }); {% endcomment %}
-                    window.location.href =  `/pos/sales/${data.user_id}`;
-                }else{
-                    Swal.fire({
-                    title: 'Authentication Failed',
-                    text: data.message || 'Invalid user role.',
-                    icon: 'error',
-                    confirmButtonText: 'Stop what you are doing!'
-                });
-                }
-            } else {
-                Swal.fire({
-                    title: 'Authentication Failed',
-                    text: data.message || 'Invalid username or password.',
-                    icon: 'error',
-                    confirmButtonText: 'Try Again'
-                });
-            }
-        })
-        .catch(error => {
-            console.error('Error during authentication:', error);
-            Swal.fire({
-                title: 'Oops!',
-                text: 'Something went wrong. Please try again later.',
-                icon: 'error',
-                confirmButtonText: 'OK'
+   /* var cashupButton = document.getElementById('cashupButton')
+        function cashup(){
+            cashupButton.addEventListener('click', function () {
+                var cashupModalEl = document.getElementById('cashupModal');
+                var cashupModal = new bootstrap.Modal(cashupModalEl);
+                cashupModal.show();
             });
-        });
-    };
-
-
-function fetchDishes() {
-    fetch('{% url "pos:cash_up_modified" %}')
-        .then(response => response.json())
-        .then(data => {
-            const dishesList = document.getElementById("dishesList");
-            dishesList.innerHTML = ""; 
-
-            data.dishes.forEach(dish => {
-                let dishEntry = document.createElement("div");
-                dishEntry.classList.add("mb-3");
-                dishEntry.innerHTML = `
-                    <label for="leftover_${dish.id}" class="form-label">${dish.name}</label>
-                    <input type="number" class="form-control leftover-input" id="leftover_${dish.id}" name="leftover_${dish.id}" placeholder="Enter leftover portions for ${dish.name}" value="0">
-                `;
-                dishesList.appendChild(dishEntry);
-            });
-        })
-        .catch(error => {
-            console.error('Error fetching dishes:', error);
-            Swal.fire({ title: 'Error', text: 'Could not load dishes. Please try again.', icon: 'error' });
-        });
-}
-
-function submitLeftovers() {
-    const leftoverData = [];
-
-    document.querySelectorAll('.leftover-input').forEach(input => {
-        const dishId = input.id.split('_')[1];  
-        const leftoverQuantity = input.value;
-
-        leftoverData.push({
-            category: "Dish" || "Product",
-            id: dishId, productId,
-            quantity: leftoverQuantity
-        });
-    });
-
-    const postData = {
-        leftovers: leftoverData
-    };
-
-    fetch("{% url 'pos:cash_up_modified' %}", {
+        }
+    */
+    const authenticate = (c_username, c_password) => {
+    fetch('/pos/void_authenticate/', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken') 
+            'X-CSRFToken': getCookie('csrftoken')
         },
-        body: JSON.stringify(postData)
+        body: JSON.stringify({ c_username, c_password }),
+    
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            Swal.fire({ title: 'Success', text: 'Leftovers have been updated successfully!', icon: 'success' });
+            switch (data.role) {
+                case 'cashier':
+                    // Show modal for cashiers to declare cash on hand and enter leftovers
+                    $('#cashiercashupModal').modal('show');
+                    fetchDishes();
+                    break;
+                case 'admin':
+                    // Generate and print administrator's cash-up report
+                    generateAdminCashUp(data.user_id);
+                    break;
+                case 'accountant':
+                    // Generate and print accountant's cash-up report
+                    generateAccountantCashUp(data.user_id);
+                    break;
+                default:
+                    Swal.fire({
+                        title: 'Authentication Failed',
+                        text: 'Invalid user role.',
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+            }
         } else {
-            Swal.fire({ title: 'Failed', text: data.message || 'An error occurred.', icon: 'error' });
+            Swal.fire({
+                title: 'Authentication Failed',
+                text: data.message || 'Invalid username or password.',
+                icon: 'error',
+                confirmButtonText: 'Try Again'
+            });
         }
     })
     .catch(error => {
-        console.error('Error submitting leftovers:', error);
-        Swal.fire({ title: 'Error', text: 'Could not submit leftovers. Please try again.', icon: 'error' });
+        console.error('Error during authentication:', error);
+        Swal.fire({
+            title: 'Oops!',
+            text: 'Something went wrong. Please try again later.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
     });
-}
-
-    function generateAdminCasUpContent(data) {
-    let content = "<h5>Admin Cash-up</h5>";
-    
-    function generateAdminCashUp() {
-    fetch() // Fetch cash-up data from the Analytics module
-    .then(response => response.json())
-    .then(data => {
-        
-        const leftoversData = [];
-
-        data.dishes.forEach(dish => {
-            leftoversData.push({
-                category: "Dish",
-                id: dish.id,
-                quantity: dish.left 
-            });
-        });
-
-        data.products.forEach(product => {
-            leftoversData.push({
-                category: "Product",
-                id: product.id,
-                quantity: product.leftovers 
-            });
-        });
-
-        fetch("{% url 'pos:cash_up_modified' %}", {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken') 
-            },
-            body: JSON.stringify({ leftovers: leftoversData })
-        })
-        .then(response => response.json())
-        .then(updatedData => {
-            if (updatedData.success) {
-            
-                let cashUpContent = generateAdminCashUpContent(data);
-                
-                Swal.fire({
-                    title: "Processing...",
-                    text: "Generating Administrator's Cash-Up Report...",
-                    allowOutsideClick: false,
-                    allowEscapeKey: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
-
-                setTimeout(() => {
-                    Swal.close();
-                    printCashUpSilently(cashUpContent);
-                }, 2000);
-            } else {
-                Swal.fire({ title: 'Failed', text: updatedData.message || 'An error occurred.', icon: 'error' });
-            }
+};
+// Function to generate and print administrator's cash-up report
+function generateAdminCashUp(userId) {
+    fetch(`/pos/admin_cashup_report/${userId}/`)
+        .then(response => response.text())
+        .then(reportContent => {
+            printReport(reportContent);
         })
         .catch(error => {
-            console.error('Error updating leftovers:', error);
-            Swal.fire({ title: 'Error', text: 'Could not update leftovers. Please try again.', icon: 'error' });
+            console.error('Error generating admin cash-up report:', error);
+            Swal.fire({
+                title: 'Error',
+                text: 'Failed to generate administrator cash-up report.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
         });
-    })
-    .catch(error => {
-        console.error('Error fetching analytics:', error);
-        Swal.fire({ icon: 'error', title: 'Failed to fetch analytics data' });
-    });
 }
 
-function generateAdminCashUpContent(data) {
-    let content = "<h5>Admin Cash-Up</h5>";
-
-    // Cash-Up Table
-    content += "<table cellpadding='5' cellspacing='0' style='width: 100%; border-collapse: collapse;'><tr><th>Dish</th><th>Sold Portions</th><th>S_Amount</th><th>Leftovers</th><th>L_Amount</th><th>Expected</th></tr>";
-
-    let totalSAmount = 0;
-    let totalLAmount = 0;
-    let totalExpected = 0;
-
-    data.dishes.forEach(dish => {
-        let sAmount = dish.sold * dish.price;
-        let lAmount = dish.leftovers * dish.price;
-        let expected = sAmount + lAmount;
-
-        totalSAmount += sAmount;
-        totalLAmount += lAmount;
-        totalExpected += expected;
-
-        content += `
-            <tr>
-                <td>${dish.name}</td>
-                <td>${dish.sold}</td>
-                <td>${sAmount.toFixed(2)}</td>
-                <td>${dish.leftovers}</td>
-                <td>${lAmount.toFixed(2)}</td>
-                <td>${expected.toFixed(2)}</td>
-            </tr>
-        `;
-    });
-
-    content += `
-        <tr style="font-weight: bold;">
-            <td colspan="2">Total</td>
-            <td>${totalSAmount.toFixed(2)}</td>
-            <td>${totalLAmount.toFixed(2)}</td>
-            <td>${totalExpected.toFixed(2)}</td>
-        </tr>
-    `;
-    content += "</table>";
-
-    // Staff Table
-    content += "<h5>Staff Usage</h5>";
-    content += "<table cellpadding='5' cellspacing='0' style='width: 100%; border-collapse: collapse;'><tr><th>Dish</th><th>Portions</th><th>Cost</th><th>Accumulative</th></tr>";
-
-    data.dishes.forEach(dish => {
-        let cost = dish.cost * dish.sold; 
-        content += `
-            <tr>
-                <td>${dish.name}</td>
-                <td>${dish.sold}</td>
-                <td>${cost.toFixed(2)}</td>
-                <td>N/A</td> <!-- Accumulative column is non-functional for now -->
-            </tr>
-        `;
-    });
-
-    content += "</table>";
-
-    let variance = totalExpected - data.declared_cash;
-    
-    content += `
-        <div class="totals">
-            <div class="line"><span>Total Sales:</span> <span>$${totalSAmount.toFixed(2)}</span></div>
-            <div class="line"><span>Total Expenses:</span> <span>$${totalLAmount.toFixed(2)}</span></div>
-            <div class="line"><span>Cash In Hand:</span> <span>$${data.declared_cash.toFixed(2)}</span></div>
-            <div class="line"><span>Variance:</span> <span>$${variance.toFixed(2)}</span></div>
-        </div>
-    `;
-
-    return content;
-}
-
-    
-    // Staff Table 
-    content += "<h5>Staff Table</h5>";
-    content += "<table cellpadding='5' cellspacing='0' style='width: 100%; border-collapse: collapse;'><tr><th>Dish</th><th>Portions</th><th>Cost</th><th>Accumulative</th></tr>";
-
-    let totalChange = 0; 
-    let cashInHand = 0;  
-
-    data.dishes.forEach(dish => {
-        let dishCost = dish.cost * dish.sold;  
-        totalSales += dish.sold * dish.price;  
-        totalExpenses += dishCost;  
-        
-        content += `
-            <tr>
-                <td>${dish.name}</td>
-                <td>${dish.sold}</td> 
-                <td>${dishCost.toFixed(2)}</td> 
-                <td>N/A</td> 
-            </tr>
-        `;
-    });
-
-    // Total row for the Staff Table
-    content += `
-        <tr style="font-weight: bold;">
-            <td colspan="2">Total</td>
-            <td>${totalExpenses.toFixed(2)}</td>
-            <td></td> <!-- Empty cell for Accumulative -->
-        </tr>
-    `;
-    content += "</table>";
-
-    // Totals Section
-    let declaredCash = document.getElementById("cash_on_hand").value || 0;
-    let variance = totalSales - declaredCash;
-
-    content += `
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-                font-size: 14px;
-            }
-
-            .totals {
-                width: 100%;
-                margin-top: 15px;
-                font-size: 16px;
-            }
-
-            .line {
-                display: flex;
-                justify-content: space-between;
-                margin: 5px 0;
-            }
-
-            .line span {
-                display: inline-block;
-            }
-
-            h3, h4 {
-                text-align: center;
-            }
-
-            hr {
-                margin: 10px 0;
-                border: 1px solid #ccc;
-            }
-        </style>
-
-        <div style="width: 80mm; height:120mm; font-family: Arial, sans-serif; font-size: 14px;">
-            <h3>Parsles Investments (Urban Eats)</h3>
-            <h4>Cash Up</h4>
-            <hr>
-            <p>Cashier: {{ request.user.first_name }}</p>
-            <p>Date: ${new Date().toLocaleDateString()}</p>
-            <p>Time: ${new Date().toLocaleTimeString()}</p>
-            <div class="totals">
-                <div class="line">
-                    <span>Total Sales:</span>
-                    <span>$${totalSales.toFixed(2)}</span>
-                </div>
-                <div class="line">
-                    <span>Total Expenses:</span>
-                    <span>$${totalExpenses.toFixed(2)}</span>
-                </div>
-                <div class="line">
-                    <span>Change:</span>
-                    <span>$${(totalSales - totalExpenses).toFixed(2)}</span>
-                </div>
-                <div class="line">
-                    <span>Cash In Hand:</span>
-                    <span>$${(totalSales - totalExpenses).toFixed(2)}</span>
-                </div>
-                <div class="line">
-                    <span>Declared Cash:</span>
-                    <span>$${declaredCash.toFixed(2)}</span>
-                </div>
-                <div class="line">
-                    <span>Variance:</span>
-                    <span>$${variance.toFixed(2)}</span>
-                </div>
-            </div>
-        </div>
-    `;
-
-    return content;
-}
-
-function generateAccountantUpContent(cashUpData) {
-        const { total_sales, total_expenses, total_change, cash_in_hand } = cashUpData;
-
-        return `
-            <style>
-                .totals {
-                    width: 100%;
-                    margin-top:15px;
-                }
-
-                .line {
-                    display: flex;
-                    justify-content: space-between;
-                    margin: 5px 0;
-                }
-
-                .line span {
-                    display: inline-block;
-                }
-            </style>
-
-            <div style="
-                width: 80mm; 
-                height:120mm; 
-                font-family: Arial, 
-                sans-serif; 
-                font-size: 14px;
-                "
-                >
-                <h3 style="text-align: center;">Parsles Investments (Urban Eats)</h3>
-                <h4 style="text-align: center;">Cash Up</h4>
-                <hr>
-                <p>Cashier: {{ request.user.first_name }}</p>
-                <p>Date: ${new Date().toLocaleDateString()}</p>
-                <p>Time: ${new Date().toLocaleTimeString()}</p>
-                <div class="totals">
-                    <div class="line">
-                        <span>Total Sales:</span>
-                        <span>$${total_sales}</span>
-                    </div>
-                    <div class="line">
-                        <span>Total Expenses:</span>
-                        <span>$${total_expenses}</span>
-                    </div>
-                    <div class="line">
-                        <span>Change</span>
-                        <span>$${total_change}</span>
-                    </div>
-                    <div class="line">
-                        <span>Cash In Hand:</span>
-                        <span>$${cash_in_hand}</span>
-                    </div>
-                    <div class="line">
-                    <span>Declared Cash:</span>
-                    <span>$${declaredCash.toFixed(2)}</span>
-                </div>
-                <div class="line">
-                    <span>Variance:</span>
-                    <span>$${variance.toFixed(2)}</span>
-                </div>
-            </div>
-        `;
-    }
-
-    function printCashUpSilently(content) {
-        console.log(content)
-        let printFrame = document.getElementById("print-frame-cash-up");
-
-        if (!printFrame) {
-            printFrame = document.createElement("iframe");
-            printFrame.id = "print-frame-cash-up";
-            printFrame.style.display = "none"
-            document.body.appendChild(printFrame);
-        }
-        const frameDoc = printFrame.contentWindow || 
-                        printFrame.contentDocument.document || 
-                        printFrame.contentDocument;
-
-        frameDoc.document.open();
-        frameDoc.document.write(`
-            <html>
-            <head>
-                <title>Cash Up</title>
-                <style>
-                    body {
-                        font-family: Arial, sans-serif;
-                        font-size: 14px;
-                        margin: 0;
-                        padding: 2px;
-                    }
-                    h3 {
-                        text-align: center;
-                    }
-                    hr {
-                        border: none;
-                        border-top: 1px solid #000;
-                    }
-                    p {
-                        margin: 5px 0;
-                    }
-                </style>
-            </head>
-            <body>
-                ${content}
-            </body>
-            </html>
-        `);
-        frameDoc.document.close();
-        setTimeout(() => {
-            printFrame.contentWindow.print(false);
-        }, 100);
-
-        Swal.fire({
-            title: "Success",
-            text: "Cash Up printed successfully.",
-            icon: "success"
+// Function to generate and print accountant's cash-up report
+function generateAccountantCashUp(userId) {
+    fetch(`/pos/accountant_cashup_report/${userId}/`)
+        .then(response => response.text())
+        .then(reportContent => {
+            printReport(reportContent);
+        })
+        .catch(error => {
+            console.error('Error generating accountant cash-up report:', error);
+            Swal.fire({
+                title: 'Error',
+                text: 'Failed to generate accountant cash-up report.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
         });
-    }
-    
-     authenticate(username, password); 
-    });
+}
 
-    // cahsup
+// Function to print the report content
+function printReport(content) {
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(content);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+}
+
+
+    /*cahsup
 
     const cashupAuth = () =>{
         $(document).ready(function() {
@@ -1788,7 +1423,7 @@ function generateAccountantUpContent(cashUpData) {
         });
     }
 
-    /const cashUp = () => {
+    const cashUp = () => {
         const username = document.querySelector('#c_username').value;
         const password = document.querySelector('#c_password').value;
 
@@ -1979,6 +1614,58 @@ function generateAccountantUpContent(cashUpData) {
         });
     }
 */
+
+// function to filter items displayed on pos based on selected category
+function filterItemsByCategory(categoryName) {
+    fetch("{% url 'inventory:filter_meal_category' %}?category=" + categoryName, { 
+        method: 'GET'
+    })
+    .then(response => response.json())
+    .then(data =>{
+        console.log({filtered:data})
+        const itemsContainer =document.getElementById('itemsContainer');
+        itemsContainer.innerHTML = ''; 
+        data.forEach(item => {
+                const itemCard = document.createElement('div');
+                itemCard.className = 'col-md-3';
+                itemsContainer.innerHTML = `
+                    <div class="card mb-4 box-shadow">
+                        <img src="${ item.image ? '/media/' + item.image : '/media/' + 'placeholder.png' }" class="card-img-top" alt="${ item.name }" onclick="addToCart('${item.id}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
+                        <div class="card-body rounded p-3 d-flex align-items-center bg-warning" style='height:50px;' onclick="addToCart(${item.id}, '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
+                            <p class="card-text text">${item.name}</p>
+                        </div>
+                    </div>
+                `;
+                itemsContainer.appendChild(itemCard);
+        });
+
+    });
+}
+window.addEventListener('load', function () {
+    setTimeout(()=>{
+        //document.getElementById('loader').style.display = 'none';
+    }, 1000)
+}); 
+
+
+populateSidebarCategories();
+
+/*Function to search within category
+function searchItems() {
+    const query = document.getElementById("searchInput").value.toLowerCase();
+    const itemCards = document.querySelectorAll("#itemsContainer .col-2");
+    itemCards.forEach(card => {
+        const titleElement = card.querySelector(".card-title");
+        if (titleElement) {
+            const titleText = titleElement.textContent.toLowerCase();
+            if (titleText.includes(query)) {
+                card.style.display = "";
+            } else {
+                card.style.display = "none";
+            }
+        }
+    });
+}*/
 
     function getCookie(name) {
         let cookieValue = null;

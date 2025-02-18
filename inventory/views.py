@@ -187,6 +187,7 @@ def product(request):
             raw_material = True if data['raw_material'] else False,
             finished_product = True if data['finished_product'] else False,
             unit = unit,
+            #image = 
         )
         product.save()
         logger.info(f'product saved')
@@ -245,9 +246,9 @@ def edit_inventory(request, product_id):
         messages.warning(request, f'Product with ID: {product_id} doesn\'t exists')
         
     form = EditProductForm(instance=product)
-
+    logger.info(request.FILES)
     if request.method == 'POST':
-        form = EditProductForm(request.POST, instance=product)
+        form = EditProductForm(request.POST, request.FILES, instance=product)
         
         if form.is_valid():
             form.save()
@@ -1448,14 +1449,14 @@ def add_dish(request): # didn't change the name of the template, it caters for b
                 meal.dish.set([dish])
                 meal.save()
 
-                for item in cart:
-                    raw_material = Product.objects.get(name=item.get('raw_material'))
-                    Ingredient.objects.create(
-                        dish=dish,
-                        note=item.get('note'),
-                        minor_raw_material=raw_material,
-                        quantity=item.get('quantity'),
-                    )
+                # for item in cart:
+                #     raw_material = Product.objects.get(name=item.get('raw_material'))
+                #     Ingredient.objects.create(
+                #         dish=dish,
+                #         note=item.get('note'),
+                #         minor_raw_material=raw_material,
+                #         quantity=item.get('quantity'),
+                #     )
 
         except Exception as e:
             logger.info(e)
@@ -1657,8 +1658,18 @@ def delete_meal(request, meal_id):
 def create_meal_category(request):
     if request.method == 'GET':
         categories = MealCategory.objects.all().values()
-        logger.info(categories)
-        return JsonResponse(list(categories), safe=False)
+        product_categories = Product.objects.filter(finished_product=True).values('category__name', 'category__id')
+
+        meal_category_list = []
+        product_category_list = []
+
+        for items in categories:
+            meal_category_list.append(items)
+
+        for items in product_categories:
+            product_category_list.append(items)
+        
+        return JsonResponse({'product':product_category_list, 'meal':meal_category_list}, safe=False)
     
     if request.method == 'POST':
         try:
@@ -1676,6 +1687,19 @@ def create_meal_category(request):
         except Exception as e:
             return JsonResponse({'success': False, 'message': f'{e}'}, status=400)
 
+@login_required
+def CategoryMeal(request):
+    if request.method == 'GET':
+        category_name = request.GET.get('category')
+        
+        meal_filter = Meal.objects.filter(category__name = category_name).values('name', 'price', 'image')
+        if not meal_filter:
+            product_filter = Product.objects.filter(category__name = category_name, finished_product=True).values('name', 'quantity', 'price', 'image')
+            logger.info(product_filter)
+            return JsonResponse(list(product_filter), safe=False, status = 200)
+        logger.info(meal_filter)
+        return JsonResponse(list(meal_filter), safe=False, status = 200)
+    
 @login_required
 def end_of_day_view(request):
     if request.method == 'GET':

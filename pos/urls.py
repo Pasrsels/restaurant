@@ -24,6 +24,10 @@ urlpatterns = [
 
     # cash up
     path('cash_up/<int:cashier_id>/', cash_up, name='cash_up'),
-    path('cash_up_modified/', cashUpModified, name='cash_up_modified'),
     path('update-cashed-amount/<int:cashup_id>/', update_cashed_amount, name='update_cashed_amount'),
+    path('cash_up_modified/', cashUpModified, name='cash_up_modified'),
+
+    #report
+    path('cash_up_accountant_report/', accountantreport, name='cash_up_accountant_report'),
+    path('cash_up_admin_report/', adminreport, name='cash_up_admin_report'),
 ]

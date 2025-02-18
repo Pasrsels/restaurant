@@ -75,6 +75,7 @@ urlpatterns = [
     path('meals/<int:meal_id>/edit/', edit_meal, name='edit_meal'),
     path('meals/delete/<int:meal_id>/', delete_meal, name='delete_meal'),
     path('create/meal/category/', create_meal_category, name='create_meal_category'),
+    path('filter/meal/category/', CategoryMeal, name='filter_meal_category'),
     
     # end of day
     path('end-of-day/', end_of_day_view, name='end_of_day_view'),
