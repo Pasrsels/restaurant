@@ -17,21 +17,21 @@ django-select2==8.1.2
 django-stubs==4.2.4
 djangochannelsrestframework==1.2.0
 djangorestframework-simplejwt==5.3.1
-# djlint==1.34.0
+djlint==1.34.0
 loguru==0.7.0
 factory-boy==3.3.0
 flake8-isort==6.1.0
 fqdn==1.5.1
 gunicorn==23.0.0
-# httptools==0.6.1
+httptools==0.6.1
 ipdb==0.13.13
 isoduration==20.11.0
 jsonpointer==2.4
 jupyter==1.0.0
 pip-chill==1.0.3
 pre-commit==3.4.0
-# psycopg==3.1.12
-# psycopg-binary==3.1.12
+psycopg==3.1.12
+psycopg-binary==3.1.12
 pylint-celery==0.3
 pylint-django==2.5.3
 pyopenssl==24.0.0

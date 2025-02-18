@@ -1449,14 +1449,14 @@ def add_dish(request): # didn't change the name of the template, it caters for b
                 meal.dish.set([dish])
                 meal.save()
 
-                # for item in cart:
-                #     raw_material = Product.objects.get(name=item.get('raw_material'))
-                #     Ingredient.objects.create(
-                #         dish=dish,
-                #         note=item.get('note'),
-                #         minor_raw_material=raw_material,
-                #         quantity=item.get('quantity'),
-                #     )
+                for item in cart:
+                    raw_material = Product.objects.get(name=item.get('raw_material'))
+                    Ingredient.objects.create(
+                        dish=dish,
+                        note=item.get('note'),
+                        minor_raw_material=raw_material,
+                        quantity=item.get('quantity'),
+                    )
 
         except Exception as e:
             logger.info(e)
