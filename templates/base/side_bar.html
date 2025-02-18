@@ -149,31 +149,3 @@
 </div>
 
 {% endblock content %}
-/*for (let i = 0; i < data.length; i++) {
-    const category = data[i];
-    const link = document.createElement('a');
-    link.href = "#";
-    link.classList.add('card');
-    link.addEventListener('click', function(e) {
-        e.preventDefault();
-        if (item === 'item.finished_product') {
-            filterFinishedProductsByCategory(category.category_id);
-        } else {
-            filterItemsByCategory(category.id);
-        }
-    });
-    const cardBody = document.createElement('div');
-    cardBody.classList.add('card-body');
-    if (item === 'item.finished_product') {
-        cardBody.textContent = category.category_name;
-    } else {
-        cardBody.textContent = category.name;
-    }
-
-    link.appendChild(cardBody);
-    sidebarContainer.appendChild(link);
-}
-})
-.catch(error => console.error('Error populating sidebar:', error));
-}*/
-
