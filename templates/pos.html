@@ -214,6 +214,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form action="" method="POST" autocomplete="off" >
+                {% csrf_token %}
                 <div class="mb-3">
                     <label for="username" class="form-label">Username</label>
                     <input 
@@ -1302,9 +1303,8 @@
         document.getElementById('balance').value = changeAmount - amountGiven;
     })
     cashupButton.addEventListener('click', ()=>{
-        
-            authenticateModal.show()
-        })
+        authenticateModal.show()
+    })
    /* var cashupButton = document.getElementById('cashupButton')
         function cashup(){
             cashupButton.addEventListener('click', function () {
@@ -1368,6 +1368,38 @@
         });
     });
 };
+
+const processsCashUp = () => {
+    fetch(`/pos/cash_up/{{ request.user.id }}/`, {
+        method: 'GET'
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log(data)
+        if (data.success) {
+            let cashupContent = generateCashUpContent(data.data);
+            Swal.fire({
+                title: "Processing...",
+                text: "Please wait while printing the cash up.",
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            setTimeout(() => {
+                Swal.close();
+                printCashUpSilently(cashupContent);
+            }, 2000); 
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Failed to process Cash Up'
+            });
+        }
+    })
+}
+
 // Function to generate and print administrator's cash-up report
 function generateAdminCashUp(userId) {
     fetch(`/pos/admin_cashup_report/${userId}/`)
