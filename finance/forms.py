@@ -28,5 +28,5 @@ class CashierExpenseForm(forms.ModelForm):
 
 class CashierHandoverForm(forms.ModelForm):
     class Meta:
-        model = CashierHandOver
+        model = CashierHandover
         fields = ['cash_float']

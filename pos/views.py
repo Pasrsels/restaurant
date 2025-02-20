@@ -15,7 +15,7 @@ from finance.models import Change, Sale, SaleItem
 from django.db import transaction
 from reportlab.lib.units import cm
 from reportlab.pdfgen import canvas
-from finance.forms import CashUp, ChangeForm, CashierHandOver
+from finance.forms import CashUp, ChangeForm, CashierHandover
 from asgiref.sync import sync_to_async
 from django.utils.timezone import localdate
 from django.http import JsonResponse, HttpResponse
@@ -993,7 +993,7 @@ def accountantreport(request):
 def cashier_handover_shift(request):
     if request.method == 'GET':
         try:
-            handover_records = CashierHandOver.objects.all()
+            handover_records = CashierHandover.objects.all()
             logger.info(handover_records)
             return JsonResponse({'success': True, 'records':handover_records}, status=200)
         except Exception as e:
@@ -1020,7 +1020,7 @@ def cashier_handover_shift(request):
             cash_in_hand = total_sales + total_change - total_expenses
             logger.info(f'cash in hand: {cash_in_hand}')
 
-            CashierHandOver.objects.create(
+            CashierHandover.objects.create(
                 cashier_checking_out = cashier_data,
                 total_sales = total_sales,
                 total_expenses = total_expenses,

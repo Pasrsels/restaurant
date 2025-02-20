@@ -163,7 +163,7 @@ class CashierExpense(models.Model):
     def __str__(self) -> str:
         return f'{self.name} ({self.amount})'
 
-class CashierHandOver(models.Model):
+class CashierHandover(models.Model):
     cashier_checking_out = models.ForeignKey(User, on_delete=models.CASCADE)
     total_sales = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     total_expenses = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)

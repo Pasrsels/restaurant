@@ -163,7 +163,7 @@
                         </div>
                         <div class="d-flex">
                             <li class="mx-2">
-                                <a class="btn btn-danger text-light w-100" id="handover" href='{% url "pos:cashier_handover" %}'>Handover</a>
+                                <a class="btn btn-danger text-light w-100" onclick="handover()">Handover</a>
                             </li>
                             <li>
                                 <a class="btn btn-danger text-light w-100" id="void">Void</a>
@@ -1446,6 +1446,20 @@ function printReport(content) {
     printWindow.close();
 }
 
+function handover(){
+    fetch('{%url "pos:cashier_handover"%}',{
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            
+        }
+    }).then(response => response.json())
+    .then(data =>{
+        if(success){
+            console.log(data)
+        }
+    });
+}
 
     /*cahsup
 
