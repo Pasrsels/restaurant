@@ -29,5 +29,8 @@ urlpatterns = [
 
     #report
     path('cash_up_accountant_report/', accountantreport, name='cash_up_accountant_report'),
-    path('cash_up_admin_report/', adminreport, name='cash_up_admin_report'),
+    # path('cash_up_admin_report/', adminreport, name='cash_up_admin_report'),
+
+    #cashier handover
+    path('handover/', cashier_handover_shift, name='cashier_handover')
 ]

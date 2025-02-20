@@ -15,7 +15,7 @@ from finance.models import Change, Sale, SaleItem
 from django.db import transaction
 from reportlab.lib.units import cm
 from reportlab.pdfgen import canvas
-from finance.forms import ChangeForm, CashUp
+from finance.forms import CashUp, ChangeForm, CashierHandOver
 from asgiref.sync import sync_to_async
 from django.utils.timezone import localdate
 from django.http import JsonResponse, HttpResponse
@@ -493,17 +493,19 @@ def collect_change(request):
             data = json.loads(request.body)
             change_id = data.get('change_id')
             amount = data.get('amount')
+            cashier_id = request.user.id
             
             change = Change.objects.get(id=change_id)
+            cashier = User.objects.get(id = cashier_id)
 
             if amount == change.amount:
                 change.collected = True
-
+                change.cashier_give = cashier
             elif amount < change.amount:
                 change.amount -= amount
+                change.cashier_give = cashier
             else:
                 return JsonResponse({'success':False, 'message':'Amount collected is more than the change amount'}, status=400)
-            
             change.save()
             
             return JsonResponse({'success':True}, status=200)
@@ -838,7 +840,8 @@ def accountantreport(request):
     cashier_id = request.user.id
 
     sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=False).values('total_amount')
-    change = Change.objects.filter(cashier__id=cashier_id, timestamp__date=datetime.datetime.today(), collected=False).values('amount')
+    change = Change.objects.filter(cashier__id=cashier_id, cashier_give__id=cashier_id, timestamp__date=datetime.datetime.today(), collected=False).values('amount')
+    other_cashiers_change_given = Change.objects.filter(cashier_give__id=cashier_id, collected=True).exclude(cashier__id=cashier_id).values('amount')
     accumulated_change = Change.objects.filter(cashier__id=cashier_id, collected=False).values('amount')
     accumulated_change_given = Change.objects.filter(cashier__id=cashier_id,collected=True).values('amount')
     expenses = CashierExpense.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today()).values('amount')
@@ -852,7 +855,8 @@ def accountantreport(request):
 
     total_sales = sales.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
     total_expenses = expenses.aggregate(Sum('amount'))['amount__sum'] or 0
-    total_change = change.aggregate(Sum('amount'))['amount__sum'] or 0 
+    total_change = change.aggregate(Sum('amount'))['amount__sum'] or 0
+    other_cashiers_total_change_given = other_cashiers_change_given.aggregate(Sum('amount'))['amount__sum'] or 0 
     total_accumulated_change = accumulated_change.aggregate(Sum('amount'))['amount__sum'] or 0
     total_accumulated_change_given = accumulated_change_given.aggregate(Sum('amount'))['amount__sum'] or 0
     total_void_sales = void_sales.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
@@ -873,113 +877,162 @@ def accountantreport(request):
             'cash_in_hand':cash_in_hand,
             'declared_cash': cashier_cash,
             'variance': cash_in_hand - cashier_cash,
+            'other_cashier_change': other_cashiers_total_change_given
         }
     })
 
+# @login_required
+# def adminreport(request):
+
+#     cashier_id = request.user.id
+#     cash_in_hand = 0
+
+#     sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=False).values('total_amount')
+#     total_sales = sales.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+
+#     leftover_stuff = LeftOvers.objects.filter(date = datetime.datetime.today()).values('total_amount')
+#     total_leftovers = leftover_stuff.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+
+#     try:
+#         declared_cash = LeftOvers.objects.get(cashier__id = cashier_id, date = datetime.datetime.today())
+#         cashier_cash = declared_cash.cash
+#     except Exception as e:
+#         cashier_cash = 0
+
+#     change = Change.objects.filter(cashier__id=cashier_id, timestamp__date=datetime.datetime.today(), collected=False).values('amount')
+#     total_change = change.aggregate(Sum('amount'))['amount__sum'] or 0
+
+#     expenses = CashierExpense.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today()).values('amount')
+#     total_expenses = expenses.aggregate(Sum('amount'))['amount__sum'] or 0
+
+
+#     sale_items_list = []
+#     sale_items = SaleItem.objects.filter(sale__void = False, time = datetime.datetime.today()).values('dish__name', 'dish__price', 'product__name', 'product__price', 'quantity')
+
+#     for items in sale_items:
+#         sale_items_list.append(
+#             items
+#         )
+    
+#     sale_items_dict = {}
+#     for items in sale_items_list:
+#         item_name = items['dish_name'] or items['product__name']
+
+#         if item_name in sale_items_dict:
+#             sale_items_dict[item_name]['quantity'] += items['quantity']
+#             sale_items_dict[item_name]['price'] += items['price']
+#         else:
+#             sale_items_dict[item_name] = item_name
+#             sale_items_dict[item_name]['quantity'] = items['quantity']
+#             sale_items_dict[item_name]['price'] = items['dish_price'] or items['product_price']
+    
+#     leftover_list = []
+#     leftover_items = LeftOvers.objects.filter(date = datetime.datetime.today()).values('dish__name', 'dish__price', 'product__name', 'product__price', 'quantity')
+
+#     for items in leftover_items:
+#         leftover_list.append(
+#             items
+#         )
+    
+#     leftover_items_dict = {}
+#     for items in leftover_list:
+#         item_name = items['dish_name'] or items['product__name']
+
+#         if item_name in leftover_items_dict:
+#             leftover_items_dict[item_name]['quantity'] += items['quantity']
+#             leftover_items_dict[item_name]['price'] += items['price']
+#         else:
+#             leftover_items_dict[item_name] = item_name
+#             leftover_items_dict[item_name]['quantity'] = items['quantity']
+#             leftover_items_dict[item_name]['price'] = items['dish_price'] or items['product_price']
+    
+
+#     sale_staff_items_list = []
+#     sale_staff_items = SaleItem.objects.filter(sale__void = False, sale__staff = True , time = datetime.datetime.today()).values('dish__name', 'dish__price', 'product__name', 'product__price', 'quantity')
+
+#     for items in sale_staff_items:
+#         sale_staff_items_list.append(
+#             items
+#         )
+    
+#     sale_staff_items_dict = {}
+#     for items in sale_staff_items_list:
+#         item_name = items['dish_name'] or items['product__name']
+
+#         if item_name in sale_staff_items_dict:
+#             sale_staff_items_dict[item_name]['quantity'] += items['quantity']
+#             sale_staff_items_dict[item_name]['price'] += items['price']
+#         else:
+#             sale_staff_items_dict[item_name] = item_name
+#             sale_staff_items_dict[item_name]['quantity'] = items['quantity']
+#             sale_staff_items_dict[item_name]['price'] = items['dish_price'] or items['product_price']
+
+
+#     cash_in_hand = total_sales + total_change - total_expenses
+
+#     logger.info(cash_in_hand)
+#     logger.info(sale_items_dict)
+#     logger.info(leftover_items_dict)
+#     logger.info(sale_staff_items_dict)
+#     logger.info(total_sales)
+#     logger.info(total_leftovers)
+
+#     return render(request, 'admin_cashup_report.html',{
+#         'now': datetime.datetime.today(),
+#         'sales': sale_items_dict,
+#         'leftovers': leftover_items_dict,
+#         'staff': sale_staff_items_dict,
+#         'total_sales': total_sales,
+#         'total_leftovers': total_leftovers,
+#         'declared_cash': cashier_cash,
+#         'variance': cash_in_hand - cashier_cash,
+#         }, 
+#         status = 200)
+
 @login_required
-def adminreport(request):
+def cashier_handover_shift(request):
+    if request.method == 'GET':
+        try:
+            handover_records = CashierHandOver.objects.all()
+            logger.info(handover_records)
+            return JsonResponse({'success': True, 'records':handover_records}, status=200)
+        except Exception as e:
+            logger.info(e)
+            return JsonResponse({'success': False}, status=400)
+    elif request.method == 'POST':
+        try:
+            cash_in_hand = 0
+            cashier_id = request.user.id
 
-    cashier_id = request.user.id
-    cash_in_hand = 0
+            data = json.loads(request.body)
+            float_cash = data.get('float')
 
-    sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=False).values('total_amount')
-    total_sales = sales.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+            cashier_data = User.objects.get(id = cashier_id)
+            sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=False).values('total_amount')
+            change = Change.objects.filter(cashier__id=cashier_id, cashier_give__id=cashier_id, timestamp__date=datetime.datetime.today(), collected=False).values('amount')
+            expenses = CashierExpense.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today()).values('amount')
+            
 
-    leftover_stuff = LeftOvers.objects.filter(date = datetime.datetime.today()).values('total_amount')
-    total_leftovers = leftover_stuff.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+            total_sales = sales.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+            total_expenses = expenses.aggregate(Sum('amount'))['amount__sum'] or 0
+            total_change = change.aggregate(Sum('amount'))['amount__sum'] or 0
+            
+            cash_in_hand = total_sales + total_change - total_expenses
+            logger.info(f'cash in hand: {cash_in_hand}')
 
-    try:
-        declared_cash = LeftOvers.objects.get(cashier__id = cashier_id, date = datetime.datetime.today())
-        cashier_cash = declared_cash.cash
-    except Exception as e:
-        cashier_cash = 0
-
-    change = Change.objects.filter(cashier__id=cashier_id, timestamp__date=datetime.datetime.today(), collected=False).values('amount')
-    total_change = change.aggregate(Sum('amount'))['amount__sum'] or 0
-
-    expenses = CashierExpense.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today()).values('amount')
-    total_expenses = expenses.aggregate(Sum('amount'))['amount__sum'] or 0
-
-
-    sale_items_list = []
-    sale_items = SaleItem.objects.filter(sale__void = False, time = datetime.datetime.today()).values('dish__name', 'dish__price', 'product__name', 'product__price', 'quantity')
-
-    for items in sale_items:
-        sale_items_list.append(
-            items
-        )
-    
-    sale_items_dict = {}
-    for items in sale_items_list:
-        item_name = items['dish_name'] or items['product__name']
-
-        if item_name in sale_items_dict:
-            sale_items_dict[item_name]['quantity'] += items['quantity']
-            sale_items_dict[item_name]['price'] += items['price']
-        else:
-            sale_items_dict[item_name] = item_name
-            sale_items_dict[item_name]['quantity'] = items['quantity']
-            sale_items_dict[item_name]['price'] = items['dish_price'] or items['product_price']
-    
-    leftover_list = []
-    leftover_items = LeftOvers.objects.filter(date = datetime.datetime.today()).values('dish__name', 'dish__price', 'product__name', 'product__price', 'quantity')
-
-    for items in leftover_items:
-        leftover_list.append(
-            items
-        )
-    
-    leftover_items_dict = {}
-    for items in leftover_list:
-        item_name = items['dish_name'] or items['product__name']
-
-        if item_name in leftover_items_dict:
-            leftover_items_dict[item_name]['quantity'] += items['quantity']
-            leftover_items_dict[item_name]['price'] += items['price']
-        else:
-            leftover_items_dict[item_name] = item_name
-            leftover_items_dict[item_name]['quantity'] = items['quantity']
-            leftover_items_dict[item_name]['price'] = items['dish_price'] or items['product_price']
+            CashierHandOver.objects.create(
+                cashier_checking_out = cashier_data,
+                total_sales = total_sales,
+                total_expenses = total_expenses,
+                cash_in_hand = cash_in_hand,
+                cash_float = float_cash
+            )
+            return JsonResponse({'success': True}, status=200)
+        except Exception as e:
+            logger.info(e)
+            return JsonResponse({'success': False, 'message':f'{e}'}, status=400)
+    return JsonResponse({'success': False , 'message': 'Invalid request'}, status=500)
     
 
-    sale_staff_items_list = []
-    sale_staff_items = SaleItem.objects.filter(sale__void = False, sale__staff = True , time = datetime.datetime.today()).values('dish__name', 'dish__price', 'product__name', 'product__price', 'quantity')
 
-    for items in sale_staff_items:
-        sale_staff_items_list.append(
-            items
-        )
     
-    sale_staff_items_dict = {}
-    for items in sale_staff_items_list:
-        item_name = items['dish_name'] or items['product__name']
-
-        if item_name in sale_staff_items_dict:
-            sale_staff_items_dict[item_name]['quantity'] += items['quantity']
-            sale_staff_items_dict[item_name]['price'] += items['price']
-        else:
-            sale_staff_items_dict[item_name] = item_name
-            sale_staff_items_dict[item_name]['quantity'] = items['quantity']
-            sale_staff_items_dict[item_name]['price'] = items['dish_price'] or items['product_price']
-
-
-    cash_in_hand = total_sales + total_change - total_expenses
-
-    logger.info(cash_in_hand)
-    logger.info(sale_items_dict)
-    logger.info(leftover_items_dict)
-    logger.info(sale_staff_items_dict)
-    logger.info(total_sales)
-    logger.info(total_leftovers)
-
-    return render(request, 'admin_cashup_report.html',{
-        'now': datetime.datetime.today(),
-        'sales': sale_items_dict,
-        'leftovers': leftover_items_dict,
-        'staff': sale_staff_items_dict,
-        'total_sales': total_sales,
-        'total_leftovers': total_leftovers,
-        'declared_cash': cashier_cash,
-        'variance': cash_in_hand - cashier_cash,
-        }, 
-        status = 200)

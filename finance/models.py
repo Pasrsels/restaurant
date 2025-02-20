@@ -144,7 +144,8 @@ class Change(models.Model):
     receipt_number = models.CharField(max_length=100)
     collected = models.BooleanField(default=False)
     timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
-    cashier = models.ForeignKey(User, on_delete=models.CASCADE)
+    cashier = models.ForeignKey(User, on_delete=models.CASCADE, related_name="users")
+    cashier_give = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name="cashiers")
     claimed = models.BooleanField(default=False)
     
     def __str__(self) -> str:
@@ -162,3 +163,13 @@ class CashierExpense(models.Model):
     def __str__(self) -> str:
         return f'{self.name} ({self.amount})'
 
+class CashierHandOver(models.Model):
+    cashier_checking_out = models.ForeignKey(User, on_delete=models.CASCADE)
+    total_sales = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    total_expenses = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    cash_in_hand = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    cash_float = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    checkout_timestamp = models.DateTimeField(auto_now_add= True)
+
+    def __str__(self):
+        return f'{self.cashier_checking_out.username}'

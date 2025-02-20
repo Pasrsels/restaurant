@@ -25,3 +25,8 @@ class CashierExpenseForm(forms.ModelForm):
     class Meta:
         model = CashierExpense
         exclude = ['cashier', 'date']
+
+class CashierHandoverForm(forms.ModelForm):
+    class Meta:
+        model = CashierHandOver
+        fields = ['cash_float']
