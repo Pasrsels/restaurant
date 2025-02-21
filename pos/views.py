@@ -1020,14 +1020,22 @@ def cashier_handover_shift(request):
             cash_in_hand = total_sales + total_change - total_expenses
             logger.info(f'cash in hand: {cash_in_hand}')
 
-            CashierHandover.objects.create(
+            cashier_handover_data = CashierHandover.objects.create(
                 cashier_checking_out = cashier_data,
                 total_sales = total_sales,
                 total_expenses = total_expenses,
                 cash_in_hand = cash_in_hand,
                 cash_float = float_cash
             )
-            return JsonResponse({'success': True}, status=200)
+            return JsonResponse({'success': True, 'cashier_data':
+                {
+                    'cashier_name': cashier_handover_data.cashier_checking_out.username,
+                    'total_sales': cashier_handover_data.total_sales,
+                    'total_expenses': cashier_handover_data.total_expenses,
+                    'cash_in_hand': cashier_handover_data.cash_in_hand,
+                    'cash_float': cashier_handover_data.cash_float
+                }
+            }, status=200)
         except Exception as e:
             logger.info(e)
             return JsonResponse({'success': False, 'message':f'{e}'}, status=400)
