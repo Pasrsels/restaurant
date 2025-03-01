@@ -8,6 +8,25 @@ from loguru import logger
 from django.contrib.auth.decorators import login_required
 
 
+def connection_error_view(request):
+    status = getattr(request, 'connection_time_status', None)
+    if not status:
+        from . middleware import ConnectionTimeMiddleware
+        middleware = ConnectionTimeMiddleware(lambda r: None)
+        status = middleware.verify()
+    
+    context = {
+        'status': status,
+        'internet_connected': status['internet']['connected'],
+        'internet_message': status['internet']['message'],
+        'time_accurate': status['time']['accurate'],
+        'time_message': status['time']['message'],
+        'time_difference': status['time']['difference_seconds']
+    }
+    
+    return render(request, 'connection_error.html', context)
+
+
 @login_required
 def settings(request):
     return render(request, 'settings/settings.html')

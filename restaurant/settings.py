@@ -117,9 +117,9 @@ DATABASES = {
     # )
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'urban-eats',  
+        'NAME': 'urban_eats',  
         'USER': 'postgres',
-        'PASSWORD': '5052',
+        'PASSWORD': 'neverfail',
         'PORT': '5432',
     }
     # 'default': {
@@ -238,12 +238,12 @@ CELERY_RESULT_SERIALIZER = os.environ.get('CELERY_RESULT_SERIALIZER', 'json')
 CELERY_TIMEZONE = os.environ.get('CELERY_TIMEZONE', 'Africa/Johannesburg')
 
 # Email Backend Configuration
-EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
-EMAIL_HOST = os.environ.get('EMAIL_HOST', 'localhost')
-EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 25)) 
-EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', 'False').lower() == 'true'  
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'mail.techcity.co.zw'
+EMAIL_PORT = 465
+EMAIL_USE_SSL = True 
+EMAIL_HOST_USER = 'admin@techcity.co.zw'
+EMAIL_HOST_PASSWORD = 'neverfail'
 
 
 
@@ -304,4 +304,20 @@ SESSION_COOKIE_AGE = 86400 #1day
 #         },
 #     },
 # }
+
+# Internet connection and time check
+IME_THRESHOLD_SECONDS = 60  
+CONNECTIVITY_TIMEOUT = 5    
+CONNECTION_TIME_CHECK_INTERVAL = 60  
+
+REDIRECT_ON_FAILURE = True
+CONNECTION_FAILURE_URL = '/connection-error/'
+
+# Paths to exclude from checks
+CONNECTION_TIME_EXEMPT_URLS = [
+    '/admin/',
+    '/static/',
+    '/media/',
+    '/connection-error/',
+]
 

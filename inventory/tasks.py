@@ -41,7 +41,6 @@ def send_production_creation_notification(production_id):
     )
     
     EmailThread(email).start()
-    
     logger.info(f'Production confirmation ({production.production_plan_number}) sent.')
     
 
