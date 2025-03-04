@@ -1692,13 +1692,15 @@ def CategoryMeal(request):
     if request.method == 'GET':
         category_name = request.GET.get('category')
         
-        meal_filter = Meal.objects.filter(category__name = category_name).values('name', 'price', 'image')
+        meal_filter = Meal.objects.filter(category__name = category_name).values('id', 'name', 'price', 'image', 'meal')
+        dish_filter = Dish.objects.all().values('id', 'name', 'price', 'dish')
         if not meal_filter:
-            product_filter = Product.objects.filter(category__name = category_name, finished_product=True).values('name', 'quantity', 'price', 'image')
+            product_filter = Product.objects.filter(category__name = category_name, finished_product=True).values('id', 'name', 'quantity', 'price', 'finished_product', 'image')
             logger.info(product_filter)
             return JsonResponse(list(product_filter), safe=False, status = 200)
-        logger.info(meal_filter)
-        return JsonResponse(list(meal_filter), safe=False, status = 200)
+        combined_list = list(meal_filter) + list(dish_filter)
+        logger.info(combined_list)
+        return JsonResponse(list(combined_list), safe=False, status = 200)
     
 @login_required
 def end_of_day_view(request):

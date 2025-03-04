@@ -97,6 +97,7 @@
             
             // Create meal category cards
             data.meal.forEach(category => {
+                console.log({categories:category.name})
                 const link = document.createElement('a');
                 link.href = "#";
                 link.classList.add('card');
@@ -116,6 +117,7 @@
             // Create product category cards
             data.product.forEach(category => {
                 const link = document.createElement('a');
+                console.log({categories:category.category__name})
                 link.href = "#";
                 link.classList.add('card');
                 link.addEventListener('click', function(e) {
