@@ -124,7 +124,7 @@
                 </nav>
                     <div class="row">
                         {% if request.resolver_match.url_name == 'pos' %}
-                        <div class="col-2" style="background:#f8f9fa;">
+                        <div class="col-2 d-flex justify-content-center">
                             {% include 'base/Possidebar.html' %}
                         </div>
                     {% elif request.resolver_match.url_name != 'production_plans' %}

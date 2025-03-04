@@ -171,6 +171,7 @@ class Meal(models.Model):
     deactivate = models.BooleanField(default=False)
     meal = models.BooleanField(default=True)
     image = models.ImageField(upload_to='meal_images/', default='placeholder.png', null=True)
+
     def __str__(self) -> str:
         return self.name
 

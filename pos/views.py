@@ -15,7 +15,7 @@ from finance.models import Change, Sale, SaleItem
 from django.db import transaction
 from reportlab.lib.units import cm
 from reportlab.pdfgen import canvas
-from finance.forms import CashUp, ChangeForm, CashierHandover
+from finance.forms import CashUp, ChangeForm
 from asgiref.sync import sync_to_async
 from django.utils.timezone import localdate
 from django.http import JsonResponse, HttpResponse
@@ -44,6 +44,16 @@ from users.models import User
 from django.core.mail import send_mail
 from django.conf import settings
 import threading
+from django.core.mail import EmailMessage
+from utils.email import EmailThread
+import io
+from django.http import HttpResponse
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
+from django.db.models import Sum
 # logger = logging.getLogger('restaurant')  
 
 # @cache_page(60*50)
@@ -162,9 +172,10 @@ def process_sale(request):
                 product = None
 
                 if staff:
+                    logger.info(f'sale is staff: {staff} : {total_amount}')
                     sale = Sale.objects.create(
-                        total_amount=0.00,
-                        tax=0.00,
+                        total_amount=total_amount,
+                        tax=tax,
                         sub_total=sub_total,
                         cashier=request.user,
                         staff=True,
@@ -211,12 +222,11 @@ def process_sale(request):
                         else:
                             raise ValueError('Invalid item type: Neither meal nor dish specified.')
                         
-
                         if staff:
                             sale_item = SaleItem.objects.create(
                                 sale=sale,
                                 quantity=item['quantity'],
-                                price=0.00
+                                price=meal.price if meal else dish.price,
                             )
                         else:
                              sale_item = SaleItem.objects.create(
@@ -224,9 +234,7 @@ def process_sale(request):
                                 quantity=item['quantity'],
                                 price=meal.price if meal else dish.price,
                             )
-
                         if meal:
-                            
                             sale_item.meal=meal
 
                         elif dish:
@@ -334,6 +342,7 @@ def process_sale(request):
                 #         "data": {"total_sales": str(total_sales)},
                 #     }
                 # )
+
                 return JsonResponse({'success': True, 'data': data}, status=201)
         except Exception as e:
             logger.error(f'Error processing sale: {str(e)}')
@@ -389,7 +398,6 @@ def change_list(request):
             'total': total_change_amount,
         }
     )
-
 
 @login_required
 def download_change_report(request):
@@ -639,7 +647,9 @@ def cash_up(request, cashier_id):
         expenses = CashierExpense.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today()).values('amount')
         void_sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=True).values('total_amount')
 
-        total_sales = sales.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+        total_sales = sales.filter(staff=False).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+        total_staff_sales = sales.filter(staff=True).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+
         total_expenses = expenses.aggregate(Sum('amount'))['amount__sum'] or 0
         total_change = change.aggregate(Sum('amount'))['amount__sum'] or 0 
         total_accumulated_change = accumulated_change.aggregate(Sum('amount'))['amount__sum'] or 0
@@ -650,6 +660,10 @@ def cash_up(request, cashier_id):
         logger.info(f'cash in hand: {cash_in_hand}')
 
         cashier = User.objects.get(id=cashier_id)
+
+
+        logger.info(f'Sales totals: total: {total_sales}, staff_sales: {total_staff_sales}')
+
 
         try:
 
@@ -662,7 +676,8 @@ def cash_up(request, cashier_id):
                 user = request.user, 
                 expenses = total_expenses,
                 status = False,
-                cashed = False
+                cashed = False,
+                # staff_meal_total = 
             )
 
             data = {
@@ -673,134 +688,14 @@ def cash_up(request, cashier_id):
                 'cash_in_hand':cash_in_hand
             }
 
+            accountantreport(request)
 
-            # Send email notification in a separate thread
-            # def send_email():
-            #     subject = 'Cash Up Report'
-            #     from_email = "admin@techcity.co.zw",
-            #     message = f"""
-            #     Cash Up Report for Cashier: {cashier.first_name}
-            
-            #     Total Sales: {total_sales}
-            #     Total Expenses: {total_expenses}
-            #     Total Change: {total_change}
-            #     Cash in Hand: {cash_in_hand}
-
-            #     """
-            #     send_mail(
-            #         subject,
-            #         message,
-            #         from_email,
-            #         ['cassymyo@gmail.com'],
-            #         fail_silently=False,
-            #     )
-        
-            # email_thread = threading.Thread(target=send_email)
-            # email_thread.start()
-
-            return JsonResponse({'success':True})
+            return JsonResponse({'success':True, "data":data})
         except Exception as e:
             logger.info(e)
             JsonResponse({'success':False, 'message':f'{e}'})
 
     return JsonResponse({'success':False,'message':'Invalid request'}, status=500)
-
-@login_required
-def cashUpModified(request):
-    if request.method == 'GET':
-        cashier_id = request.user.id
-        dish_names = SaleItem.objects.filter(sale__cashier__id = cashier_id).values('dish__id', 'dish__name', 'product__id', 'product__name')
-        return JsonResponse({'success': True, 'names': list(dish_names)}, status = 200)
-    elif request.method == 'POST':
-        data = json.loads(request.body)
-        logger.info(data)
-        dish_names_ids = data.get('info')
-        amount = 0
-        bulk_create_list = []
-        for item in dish_names_ids:
-            amount = 0
-            if item.category == 'dish':
-                dish_instance = Dish.objects.get(id = item.id)
-                amount = dish_instance.price
-            else:
-                product_instance = Product.objects.get(id = item.id)
-                amount = product_instance.price
-            bulk_create_list.append(
-                LeftOvers(
-                    dish = dish_instance or None,
-                    product = product_instance or None,
-                    quantity = item.quantity or 0,
-                    total_amount = Decimal(item.quantity * amount),
-                    cash = item.declared_cash
-                )
-            )
-        logger.info(bulk_create_list)
-        LeftOvers.objects.bulk_create(bulk_create_list)
-
-        return JsonResponse({'success': True}, status = 200)
-    elif request.method == 'PUT':
-        cashier_id = request.user.id
-        sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=False).values('total_amount')
-        total_sales = sales.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-
-        leftover_stuff = LeftOvers.objects.filter(date = datetime.datetime.today()).values('total_amount')
-        total_leftovers = leftover_stuff.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-
-        sale_items_list = []
-        sale_items = SaleItem.objects.filter(sale__void = False, time = datetime.datetime.today()).values('dish__name', 'dish__price', 'product__name', 'product__price', 'quantity')
-
-        for items in sale_items:
-            sale_items_list.append(
-                items
-            )
-        
-        sale_items_dict = {}
-        for items in sale_items_list:
-            item_name = items['dish_name'] or items['product__name']
-
-            if item_name in sale_items_dict:
-                sale_items_dict[item_name]['quantity'] += items['quantity']
-                sale_items_dict[item_name]['price'] += items['price']
-            else:
-                sale_items_dict[item_name] = item_name
-                sale_items_dict[item_name]['quantity'] = items['quantity']
-                sale_items_dict[item_name]['price'] = items['dish_price'] or items['product_price']
-        
-        leftover_list = []
-        leftover_items = LeftOvers.objects.filter(date = datetime.datetime.today()).values('dish__name', 'dish__price', 'product__name', 'product__price', 'quantity')
-
-        for items in leftover_items:
-            leftover_list.append(
-                items
-            )
-        
-        leftover_items_dict = {}
-        for items in leftover_list:
-            item_name = items['dish_name'] or items['product__name']
-
-            if item_name in sale_items_dict:
-                leftover_items_dict[item_name]['quantity'] += items['quantity']
-                leftover_items_dict[item_name]['price'] += items['price']
-            else:
-                leftover_items_dict[item_name] = item_name
-                leftover_items_dict[item_name]['quantity'] = items['quantity']
-                leftover_items_dict[item_name]['price'] = items['dish_price'] or items['product_price']
-        
-        logger.info(sale_items_dict)
-        logger.info(leftover_items_dict)
-        logger.info(total_sales)
-        logger.info(total_leftovers)
-
-        return JsonResponse({'sucess': True , 'data':{
-            'sales': sale_items_dict,
-            'leftovers': leftover_items_dict,
-            'sales_total': total_sales,
-            'leftover_totals': total_leftovers
-            }}, 
-            status = 200)
-    else:
-        return JsonResponse({'success': False, 'message': 'Invalid request'} , status = 500)
-
 
 @login_required
 def update_cashed_amount(request, cashup_id):
@@ -832,10 +727,9 @@ def update_cashed_amount(request, cashup_id):
             return JsonResponse({'success':False,'message':f'{e}'}, status=400)
         
     return JsonResponse({'success':False,'message':'Invalid request'}, status=500)
-        
+
 @login_required
 def accountantreport(request):
-
     cash_in_hand = 0
     cashier_id = request.user.id
 
@@ -843,12 +737,14 @@ def accountantreport(request):
     change = Change.objects.filter(cashier__id=cashier_id, cashier_give__id=cashier_id, timestamp__date=datetime.datetime.today(), collected=False).values('amount')
     other_cashiers_change_given = Change.objects.filter(cashier_give__id=cashier_id, collected=True).exclude(cashier__id=cashier_id).values('amount')
     accumulated_change = Change.objects.filter(cashier__id=cashier_id, collected=False).values('amount')
-    accumulated_change_given = Change.objects.filter(cashier__id=cashier_id,collected=True).values('amount')
+    accumulated_change_given = Change.objects.filter(cashier__id=cashier_id, cashier_give__id=cashier_id, collected=True).values('amount')
     expenses = CashierExpense.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today()).values('amount')
     void_sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=True).values('total_amount')
 
+    total_staff_sales = sales.filter(staff=True).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+
     try:
-        declared_cash = LeftOvers.objects.get(cashier__id = cashier_id, date = datetime.datetime.today())
+        declared_cash = LeftOvers.objects.get(cashier__id=cashier_id, date=datetime.datetime.today())
         cashier_cash = declared_cash.cash
     except Exception as e:
         cashier_cash = 0
@@ -865,23 +761,158 @@ def accountantreport(request):
 
     logger.info(f'cash in hand: {cash_in_hand}')
     logger.info(cashier_cash)
-    return render(request, 'accountant_cashup_report.html',{
-        'cash_up_data':
-        {   
+    
+    cashier = User.objects.get(id=cashier_id)
+    
+    buffer = io.BytesIO()
+    
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    elements = []
+    
+    styles = getSampleStyleSheet()
+    title_style = styles['Heading1']
+    subtitle_style = styles['Heading2']
+    normal_style = styles['Normal']
+    
+    title = Paragraph(f"Cash Up Report - {datetime.datetime.today().strftime('%Y-%m-%d')}", title_style)
+    elements.append(title)
+    elements.append(Spacer(1, 12))
+    
+    cashier_info = Paragraph(f"Cashier: {cashier.first_name} {cashier.last_name}", subtitle_style)
+    elements.append(cashier_info)
+    elements.append(Spacer(1, 12))
+    
+
+    sales_info = Paragraph("Sales and Cash in hand Information")
+    elements.append(sales_info)
+    elements.append(Spacer(1, 12))
+
+    change_for_customers = total_accumulated_change - total_accumulated_change_given
+
+    first_data = [
+        ["Item", "Amount"],
+        ["Total Sales", f"${total_sales:.2f}"],
+        ["Total Expenses", f"(${total_expenses:.2f})"],
+        ["Total Change", f"${total_change:.2f}"],
+        ["Cash in Hand", f"${cash_in_hand:.2f}"],
+        ["Staff Sales", f"${total_staff_sales:.2f}"]
+    ]
+
+    second_data = [
+        ['Item', 'Amount'],
+        ["Accumulated Change", f"${total_accumulated_change:.2f}"],
+        ["Previous Change Given", f"${total_accumulated_change_given:.2f}"],
+        ["Change to be given to Customers", f'${change_for_customers:.2f} ']
+        ["Other Cashier Change", f"${other_cashiers_total_change_given:.2f}"],
+    ]
+    
+    table = Table(first_data, colWidths=[300, 100])
+    change_table = Table(second_data, colWidths=[300, 100])
+    
+    table_style = TableStyle([
+        ('BACKGROUND', (0, 0), (1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (1, 0), colors.whitesmoke),
+        # ('ALIGN', (0, 1), (1, 0), 'LEFT'),
+        # ('ALIGN', (0, 1), (1, -1), 'RIGHT'),
+        ('FONTNAME', (0, 0), (1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (1, 0), 12),
+        ('BOTTOMPADDING', (0, 0), (1, 0), 12),
+        ('BACKGROUND', (0, 1), (1, -1), colors.white),
+        ('TEXTCOLOR', (0, 1), (1, -1), colors.black),
+        ('ALIGN', (0, 1), (0, -1), 'LEFT'),
+        ('ALIGN', (1, 1), (1, -1), 'RIGHT'),
+        ('FONTNAME', (0, 1), (1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (1, -1), 10),
+        ('GRID', (0, 0), (1, -1), 1, colors.black),
+        ('BOTTOMPADDING', (0, 1), (1, -1), 8),
+    ])
+
+    change_table_style = TableStyle([
+        ('BACKGROUND', (0, 0), (1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (1, 0), colors.whitesmoke),
+        # ('ALIGN', (0, 1), (1, 0), 'LEFT'),
+        # ('ALIGN', (0, 1), (1, -1), 'RIGHT'),
+        ('FONTNAME', (0, 0), (1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (1, 0), 12),
+        ('BOTTOMPADDING', (0, 0), (1, 0), 12),
+        ('BACKGROUND', (0, 1), (1, -1), colors.white),
+        ('TEXTCOLOR', (0, 1), (1, -1), colors.black),
+        ('ALIGN', (0, 1), (0, -1), 'LEFT'),
+        ('ALIGN', (1, 1), (1, -1), 'RIGHT'),
+        ('FONTNAME', (0, 1), (1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (1, -1), 10),
+        ('GRID', (0, 0), (1, -1), 1, colors.black),
+        ('BOTTOMPADDING', (0, 1), (1, -1), 8),
+    ])
+    
+    
+    table.setStyle(table_style)
+    elements.append(table)
+    
+    elements.append(Spacer(1, 20))
+
+    change_info = Paragraph("Change Information")
+    elements.append(change_info)
+    elements.append(Spacer(1, 12))
+
+    change_table.setStyle(change_table_style)
+    elements.append(change_table)
+
+    elements.append(Spacer(1, 20))
+    notes = Paragraph("Notes: This report was automatically generated. Please contact the finance department if you have any questions.", normal_style)
+    elements.append(notes)
+    
+    doc.build(elements)
+    
+    pdf = buffer.getvalue()
+    buffer.close()
+    
+    def send_email_with_pdf():
+        cashier = User.objects.get(id=cashier_id)
+        subject = 'Accountant Report'
+        from_email = "admin@techcity.co.zw"
+        body = f"""
+        Cash Up Report for Cashier: {cashier.first_name}
+        
+        Please find the detailed cash up report attached as a PDF.
+        """
+        email = EmailMessage(
+            subject,
+            body,
+            from_email,
+            ['castinamoyo@gmail.com', 'teddychinomona@gmail.com', 'mirackletec@gmail.com'],
+        )
+        
+        email.attach(f'cashup_report_{datetime.datetime.today().strftime("%Y%m%d")}_{cashier.username}.pdf', pdf, 'application/pdf')
+        
+        EmailThread(email).start()
+        logger.info(f'Accountant Detailed CashUp email sent with PDF attachment.')
+    
+    send_email_with_pdf()
+    
+    if request.GET.get('download', False):
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename=cashup_report_{datetime.datetime.today().strftime("%Y%m%d")}_{cashier.username}.pdf'
+        response.write(pdf)
+        return response
+    
+    return render(request, 'accountant_cashup_report.html', {
+        'cash_up_data': {   
             'date': datetime.datetime.today(),
-            "total_sales":total_sales,
-            'total_expenses':total_expenses,
-            'total_change':total_change,
+            "total_sales": total_sales,
+            'staff_sales': total_staff_sales,
+            'total_expenses': total_expenses,
+            'total_change': total_change,
             'accumulative_change': total_accumulated_change,
             'previous_change_given': total_accumulated_change_given,
-            'cash_in_hand':cash_in_hand,
+            'cash_in_hand': cash_in_hand,
             'declared_cash': cashier_cash,
             'variance': cash_in_hand - cashier_cash,
-            'other_cashier_change': other_cashiers_total_change_given
-        }
+            'other_cashier_change': other_cashiers_total_change_given,
+        },
+        'pdf_available': True
     })
 
-# @login_required
 # def adminreport(request):
 
 #     cashier_id = request.user.id
@@ -993,7 +1024,7 @@ def accountantreport(request):
 def cashier_handover_shift(request):
     if request.method == 'GET':
         try:
-            handover_records = CashierHandover.objects.all()
+            handover_records = []
             logger.info(handover_records)
             return JsonResponse({'success': True, 'records':handover_records}, status=200)
         except Exception as e:
@@ -1020,22 +1051,14 @@ def cashier_handover_shift(request):
             cash_in_hand = total_sales + total_change - total_expenses
             logger.info(f'cash in hand: {cash_in_hand}')
 
-            cashier_handover_data = CashierHandover.objects.create(
-                cashier_checking_out = cashier_data,
-                total_sales = total_sales,
-                total_expenses = total_expenses,
-                cash_in_hand = cash_in_hand,
-                cash_float = float_cash
-            )
-            return JsonResponse({'success': True, 'cashier_data':
-                {
-                    'cashier_name': cashier_handover_data.cashier_checking_out.username,
-                    'total_sales': cashier_handover_data.total_sales,
-                    'total_expenses': cashier_handover_data.total_expenses,
-                    'cash_in_hand': cashier_handover_data.cash_in_hand,
-                    'cash_float': cashier_handover_data.cash_float
-                }
-            }, status=200)
+            # CashierHandover.objects.create(
+            #     cashier_checking_out = cashier_data,
+            #     total_sales = total_sales,
+            #     total_expenses = total_expenses,
+            #     cash_in_hand = cash_in_hand,
+            #     cash_float = float_cash
+            # )
+            return JsonResponse({'success': True}, status=200)
         except Exception as e:
             logger.info(e)
             return JsonResponse({'success': False, 'message':f'{e}'}, status=400)
