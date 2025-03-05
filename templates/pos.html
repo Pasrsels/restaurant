@@ -1527,6 +1527,7 @@ function generateAccountantCashUp(userId) {
             console.log(data)
             if (data.success) {
                 let cashupContent = generateCashUpContent(data.data);
+                console.log(data.data);
                 Swal.fire({
                     title: "Processing...",
                     text: "Please wait while printing the cash up.",

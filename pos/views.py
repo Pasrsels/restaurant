@@ -642,10 +642,30 @@ def cash_up(request, cashier_id):
         cash_in_hand = 0
 
         sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=False).values('total_amount')
+        sales_items = SaleItem.objects.filter(sale__staff=False)
+        void_sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=True).values('total_amount')
+
+        sales_portions_dict = []
+
+        for items in sales_items:
+            name = items.dish.name if items.dish else items.product.name if items.product else items.meal.dish.name if items.meal else None
+            if name:
+                found = False
+                for entry in sales_portions_dict:
+                    if entry['Name'] == name:
+                        entry['Quantity'] += items.quantity
+                        found = True
+                        break
+                
+                if not found:
+                    sales_portions_dict.append({'Name': name, 'Quantity': items.quantity})
+
+        logger.info(sales_portions_dict)
+
         change = Change.objects.filter(cashier__id=cashier_id, timestamp__date=datetime.datetime.today(), collected=False).values('amount')
         accumulated_change = Change.objects.filter(cashier__id=cashier_id, collected=False).values('amount')
+
         expenses = CashierExpense.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today()).values('amount')
-        void_sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=True).values('total_amount')
 
         total_sales = sales.filter(staff=False).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
         total_staff_sales = sales.filter(staff=True).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
@@ -682,6 +702,7 @@ def cash_up(request, cashier_id):
 
             data = {
                 "total_sales":total_sales,
+                'portions': sales_portions_dict,
                 'total_expenses':total_expenses,
                 'total_change':total_change,
                 'total_accumulated_change': total_accumulated_change,
@@ -802,7 +823,7 @@ def accountantreport(request):
         ['Item', 'Amount'],
         ["Accumulated Change", f"${total_accumulated_change:.2f}"],
         ["Previous Change Given", f"${total_accumulated_change_given:.2f}"],
-        ["Change to be given to Customers", f'${change_for_customers:.2f} ']
+        ["Change to be given to Customers", f'${change_for_customers:.2f} '],
         ["Other Cashier Change", f"${other_cashiers_total_change_given:.2f}"],
     ]
     
