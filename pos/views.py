@@ -645,22 +645,22 @@ def cash_up(request, cashier_id):
         sales_items = SaleItem.objects.filter(sale__staff=False)
         void_sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=True).values('total_amount')
 
-        sales_portions_dict = []
+        sales_portions_list = []
 
         for items in sales_items:
             name = items.dish.name if items.dish else items.product.name if items.product else items.meal.dish.name if items.meal else None
             if name:
                 found = False
-                for entry in sales_portions_dict:
+                for entry in sales_portions_list:
                     if entry['Name'] == name:
                         entry['Quantity'] += items.quantity
                         found = True
                         break
                 
                 if not found:
-                    sales_portions_dict.append({'Name': name, 'Quantity': items.quantity})
+                    sales_portions_list.append({'Name': name, 'Quantity': items.quantity})
 
-        logger.info(sales_portions_dict)
+        logger.info(sales_portions_list)
 
         change = Change.objects.filter(cashier__id=cashier_id, timestamp__date=datetime.datetime.today(), collected=False).values('amount')
         accumulated_change = Change.objects.filter(cashier__id=cashier_id, collected=False).values('amount')
@@ -702,7 +702,7 @@ def cash_up(request, cashier_id):
 
             data = {
                 "total_sales":total_sales,
-                'portions': sales_portions_dict,
+                'portions': sales_portions_list,
                 'total_expenses':total_expenses,
                 'total_change':total_change,
                 'total_accumulated_change': total_accumulated_change,
