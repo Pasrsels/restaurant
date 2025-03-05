@@ -1659,9 +1659,11 @@ def create_meal_category(request):
     if request.method == 'GET':
         categories = MealCategory.objects.all().values()
         product_categories = Product.objects.filter(finished_product=True).values('category__name', 'category__id')
+        dish_categories = Dish.objects.filter(dish=True).values()
 
         meal_category_list = []
         product_category_list = []
+        dish_category_list = []
 
         for items in categories:
             meal_category_list.append(items)
@@ -1669,7 +1671,11 @@ def create_meal_category(request):
         for items in product_categories:
             product_category_list.append(items)
         
-        return JsonResponse({'product':product_category_list, 'meal':meal_category_list}, safe=False)
+        for items in dish_categories:
+            dish_category_list.append(items)
+
+        logger.info({'Meal': categories, 'Product': product_categories, 'Dish': dish_categories})
+        return JsonResponse({'product':product_category_list, 'meal':meal_category_list, 'dish': dish_category_list}, safe=False, status = 200)
     
     if request.method == 'POST':
         try:
@@ -1693,14 +1699,27 @@ def CategoryMeal(request):
         category_name = request.GET.get('category')
         
         meal_filter = Meal.objects.filter(category__name = category_name).values('id', 'name', 'price', 'image', 'meal')
-        dish_filter = Dish.objects.all().values('id', 'name', 'price', 'dish')
-        if not meal_filter:
-            product_filter = Product.objects.filter(category__name = category_name, finished_product=True).values('id', 'name', 'quantity', 'price', 'finished_product', 'image')
+        product_filter = Product.objects.filter(category__name = category_name, finished_product=True).values('id', 'name', 'quantity', 'price', 'finished_product', 'image')
+        dish_filter = Dish.objects.filter(category = category_name).values('id', 'name', 'price', 'dish')
+        
+        logger.info(meal_filter)
+        logger.info(product_filter)
+        logger.info(dish_filter)
+
+        if not meal_filter and not dish_filter:
+            product_filter_list = list(product_filter)
             logger.info(product_filter)
-            return JsonResponse(list(product_filter), safe=False, status = 200)
-        combined_list = list(meal_filter) + list(dish_filter)
-        logger.info(combined_list)
-        return JsonResponse(list(combined_list), safe=False, status = 200)
+            return JsonResponse(product_filter_list, safe=False, status = 200)
+        elif not product_filter and not meal_filter:
+            dish_filter_list = list(dish_filter)
+            logger.info(dish_filter_list)
+            return JsonResponse(dish_filter_list, safe=False, status = 200)
+        else:
+            meal_filter_list = list(meal_filter) 
+            logger.info(meal_filter_list)
+            return JsonResponse(meal_filter_list, safe=False, status = 200)
+    else:
+        return JsonResponse({'sucess': False, 'message': 'Invalid request'}, status = 500)
     
 @login_required
 def end_of_day_view(request):

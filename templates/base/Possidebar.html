@@ -67,7 +67,7 @@
         })
         .then(response => response.json())
         .then(data => {
-            console.log({ category_list_meal: data.meal, category_list_product: data.product });
+            console.log({ category_list_meal: data.meal, category_list_product: data.product, category_list_dish: data.dish});
             const sidebarContainer = document.querySelector('.sidebar');
             sidebarContainer.innerHTML = '';
             
@@ -96,41 +96,86 @@
             document.head.appendChild(style);
             
             // Create meal category cards
+            // Create a set to store the names of categories that have already been added
+            const createdMealCategories = new Set();
+            const createdProductCategories = new Set();
+            const createdDishCategories = new Set();
+
             data.meal.forEach(category => {
-                console.log({categories:category.name})
-                const link = document.createElement('a');
-                link.href = "#";
-                link.classList.add('card');
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    filterItemsByCategory(category.name);
-                });
-                
-                const cardBody = document.createElement('div');
-                cardBody.classList.add('card-body');
-                cardBody.textContent = category.name;
-                
-                link.appendChild(cardBody);
-                sidebarContainer.appendChild(link);
+                // Check if the category has already been added
+                if (!createdCategories.has(category.name)) {
+                    console.log({categories: category.name});
+                    
+                    const link = document.createElement('a');
+                    link.href = "#";
+                    link.classList.add('card');
+                    
+                    link.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        filterItemsByCategory(category.name);
+                    });
+
+                    const cardBody = document.createElement('div');
+                    cardBody.classList.add('card-body');
+                    cardBody.textContent = category.name;
+                    
+                    link.appendChild(cardBody);
+                    sidebarContainer.appendChild(link);
+                    
+                    createdMealCategories.add(category.name);
+                }
             });
+
             
             // Create product category cards
             data.product.forEach(category => {
-                const link = document.createElement('a');
-                console.log({categories:category.category__name})
-                link.href = "#";
-                link.classList.add('card');
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    filterItemsByCategory(category.category__name);
-                });
-                
-                const cardBody = document.createElement('div');
-                cardBody.classList.add('card-body');
-                cardBody.textContent = category.category__name;
-                
-                link.appendChild(cardBody);
-                sidebarContainer.appendChild(link);
+                if(!createdProductCategories.has(category.category__name)){
+                    console.log({categories:category.category__name})
+
+                    const link = document.createElement('a');
+                    link.href = "#";
+                    link.classList.add('card');
+
+                    link.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        filterItemsByCategory(category.category__name);
+                    });
+                    
+                    const cardBody = document.createElement('div');
+                    cardBody.classList.add('card-body');
+                    cardBody.textContent = category.category__name;
+                    
+                    link.appendChild(cardBody);
+                    sidebarContainer.appendChild(link);
+
+                    createdProductCategories.add(category.category__name);
+                }
+            });
+
+            data.dish.forEach(category => {
+                if(!createdDishCategories.has(category.category)){
+                    console.log({dish_categories: category})
+
+                    const link = document.createElement('a');
+                    
+                    console.log({dish_categories: category})
+                    link.href = "#";
+                    link.classList.add('card');
+
+                    link.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        filterItemsByCategory(category.category);
+                    });
+                    
+                    const cardBody = document.createElement('div');
+                    cardBody.classList.add('card-body');
+                    cardBody.textContent = category.category;
+                    
+                    link.appendChild(cardBody);
+                    sidebarContainer.appendChild(link);
+
+                    createdDishCategories.add(category.category);
+                }
             });
         })
         .catch(error => console.error('Error populating sidebar:', error));
