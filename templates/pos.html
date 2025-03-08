@@ -476,8 +476,8 @@
         }
 
         function searchItems() {
-            console.log(mealsData)
-            const query = document.getElementById('searchInput').valuel
+            console.log({search:mealsData})
+            const query = document.getElementById('searchInput').value
             console.log(query)
             const filteredItems = items.filter(item => 
                 item.name.toLowerCase().includes(query) 
@@ -831,19 +831,19 @@
                 staffModal.show()
             }
         })
-
-        // document.getElementById('food_search').addEventListener('input', function () {
-        //     const searchValue = this.value.toLowerCase();
-        //     const filteredItems = items.filter(item => item.name.toLowerCase().includes(searchValue));
+        /*
+        document.getElementById('food_search').addEventListener('input', function () {
+            const searchValue = this.value.toLowerCase();
+            const filteredItems = items.filter(item => item.name.toLowerCase().includes(searchValue));
             
-        //     displayItems(filteredItems);
-        // });
-    
+            displayItems(filteredItems);
+        });
+        */
         function displayItems(itemsToDisplay) {
             const itemsContainer = document.getElementById('itemsContainer');
             itemsContainer.innerHTML = '';
 
-            console.log(itemsToDisplay)
+            console.log({Items:itemsToDisplay})
     
             itemsToDisplay.forEach(item => {
                 console.log({here:item.image})
