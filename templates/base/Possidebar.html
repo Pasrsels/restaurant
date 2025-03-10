@@ -95,15 +95,14 @@
             `;
             document.head.appendChild(style);
             
-            // Create meal category cards
             // Create a set to store the names of categories that have already been added
             const createdMealCategories = new Set();
             const createdProductCategories = new Set();
             const createdDishCategories = new Set();
-
+            
             data.meal.forEach(category => {
                 // Check if the category has already been added
-                if (!createdCategories.has(category.name)) {
+                if (!createdMealCategories.has(category.name)) {
                     console.log({categories: category.name});
                     
                     const link = document.createElement('a');
