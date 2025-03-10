@@ -1527,7 +1527,7 @@ function generateAccountantCashUp(userId) {
             console.log(data)
             if (data.success) {
                 let cashupContent = generateCashUpContent(data.data);
-                console.log(data.data);
+                console.log({CashUp:data.data});
                 Swal.fire({
                     title: "Processing...",
                     text: "Please wait while printing the cash up.",
@@ -1551,7 +1551,33 @@ function generateAccountantCashUp(userId) {
     }
 
     function generateCashUpContent(cashUpData) {
-        const { total_sales, total_expenses, total_change, cash_in_hand } = cashUpData;
+        console.log({CashUpData: cashUpData})
+        const { total_sales, total_expenses, total_change, cash_in_hand, sales_portions, total_accumulated_change, void_sales_portions } = cashUpData;
+        
+        // Generate table rows for sales portions
+        const salesRows = sales_portions.map(portion => {
+            return `
+                <tr>
+                    <td>${portion.name}</td>
+                    <td>${portion.portion}</td>
+                    <td>$${portion.price.toFixed(2)}</td>
+                    <td>$${(portion.portion * portion.price).toFixed(2)}</td>
+                </tr>
+            `;
+        }).join('');
+
+        // Generate table rows for void sales portions
+        const voidSalesRows = void_sales_portions.map(portion => {
+            return `
+                <tr>
+                    <td>${portion.name}</td>
+                    <td>${portion.portion}</td>
+                    <td>$${portion.price.toFixed(2)}</td>
+                    <td>$${(portion.portion * portion.price).toFixed(2)}</td>
+                </tr>
+            `;
+        }).join('');
+
 
         return `
             <style>
@@ -1568,6 +1594,21 @@ function generateAccountantCashUp(userId) {
 
                 .line span {
                     display: inline-block;
+                }
+    
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-bottom: 30px;
+                }
+
+                th, td {
+                    padding: 5px;
+                    text-align: left;
+                    border: 1px solid #ddd;
+                }
+                h2{
+                    text-align: center;
                 }
             </style>
 
@@ -1586,6 +1627,36 @@ function generateAccountantCashUp(userId) {
                 <p>Date: ${new Date().toLocaleDateString()}</p>
                 <p>Time: ${new Date().toLocaleTimeString()}</p>
                 <div class="totals">
+                    <h2>Sales Portions</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Portion</th>
+                                <th>Price</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${salesRows}
+                        </tbody>
+                    </table>
+
+                    <h2>Void Sales Portions</h2>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Portion</th>
+                                <th>Price</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${voidSalesRows}
+                        </tbody>
+                    </table>
                     <div class="line">
                         <span>Total Sales:</span>
                         <span>$${total_sales}</span>
@@ -1595,8 +1666,12 @@ function generateAccountantCashUp(userId) {
                         <span>$${total_expenses}</span>
                     </div>
                     <div class="line">
-                        <span>Change</span>
+                        <span>Todays Change:</span>
                         <span>$${total_change}</span>
+                    </div>
+                    <div class="line">
+                        <span>Total Change In System:</span>
+                        <span>$${total_accumulated_change}</span>
                     </div>
                     <div class="line">
                         <span>Chash In Hand:</span>
