@@ -642,7 +642,7 @@ def cash_up(request, cashier_id):
         cash_in_hand = 0
 
         sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=False).values('total_amount')
-        sales_items = SaleItem.objects.filter(sale__cashier__id=cashier_id, sale__date=datetime.datetime.today(), sale__staff=False)
+        sales_items = SaleItem.objects.filter(sale__cashier__id=cashier_id, sale__date=datetime.datetime.today())
         void_sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=True).values('total_amount')
 
         sales_portions_list = []
@@ -692,12 +692,56 @@ def cash_up(request, cashier_id):
         logger.info(sales_portions_list)
         logger.info(void_sales_portions_list)
         logger.info(staff_meals_portions_list)
+        
+        variance_list = []
+
+        for items in sales_items:
+            name = items.meal.dish.name if items.meal else items.dish.name if items.dish else items.product.name if items.product else None
+            if name:
+                Found = False
+                for entry in variance_list:
+                    if entry['Name'] == name:
+                        if items.sale.void == True:
+                            entry['Void'] += items.quantity
+                            entry['Variation'] = int(int(entry['Sold']) - int(entry['Void']))
+                            Found = True
+                            break
+                        else:
+                            entry['Sold'] += items.quantity
+                            entry['Variation'] = int(int(entry['Sold']) - int(entry['Void']))
+                            Found = True
+                            break
+                if not Found:
+                    void = 0
+                    sold = 0
+                    if items.sale.void == True:
+                        void = items.quantity
+                    else:
+                        sold = items.quantity
+                    variance_list.append({'Name': name, 'Void': void, 'Sold': sold, 'Variation': int(sold - void)})
+                
 
         change = Change.objects.filter(cashier__id=cashier_id, timestamp__date=datetime.datetime.today(), collected=False).values('amount')
         accumulated_change = Change.objects.filter(cashier__id=cashier_id, collected=False).values('amount')
+        previous_change = Change.objects.filter(cashier__id=cashier_id, collected=True)
 
-        expenses = CashierExpense.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today()).values('amount')
+        previous_change_given_by_cashier_list = []
 
+        for item in previous_change:
+            name = item.name
+            if name:
+                previous_change_given_by_cashier_list.append({'Name': item.name, 'Amount': item.amount})
+
+        expenses = CashierExpense.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today())
+        logger.info(expenses)
+        expenses_list = []
+        for item in expenses:
+            name = item.name
+            logger.info(name)
+            if name:
+                expenses_list.append({'Name': item.name, 'Amount': item.amount})
+        logger.info(expenses_list)    
+        
         total_sales = sales.filter(staff=False).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
         total_staff_sales = sales.filter(staff=True).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
 
@@ -733,6 +777,10 @@ def cash_up(request, cashier_id):
                 "total_sales":total_sales,
                 'sales_portions': sales_portions_list,
                 'void_sales_portions': void_sales_portions_list,
+                'staff_meal_portions': staff_meals_portions_list,
+                'previous_change_given': previous_change_given_by_cashier_list,
+                'variance': variance_list,
+                'expense': expenses_list,
                 'total_expenses':total_expenses,
                 'total_change':total_change,
                 'total_accumulated_change': total_accumulated_change,

@@ -1552,16 +1552,16 @@ function generateAccountantCashUp(userId) {
 
     function generateCashUpContent(cashUpData) {
         console.log({CashUpData: cashUpData})
-        const { total_sales, total_expenses, total_change, cash_in_hand, sales_portions, total_accumulated_change, void_sales_portions } = cashUpData;
+        const { total_sales, total_expenses, total_change, cash_in_hand, sales_portions, total_accumulated_change, void_sales_portions, staff_meal_portions, expense, previous_change_given, variance} = cashUpData;
         
         // Generate table rows for sales portions
         const salesRows = sales_portions.map(portion => {
             return `
                 <tr>
-                    <td>${portion.name}</td>
-                    <td>${portion.portion}</td>
-                    <td>$${portion.price.toFixed(2)}</td>
-                    <td>$${(portion.portion * portion.price).toFixed(2)}</td>
+                    <td>${portion.Name}</td>
+                    <td>${portion.Quantity}</td>
+                    <td>$${portion.Price}</td>
+                    <td>$${portion.Total}</td>
                 </tr>
             `;
         }).join('');
@@ -1570,14 +1570,53 @@ function generateAccountantCashUp(userId) {
         const voidSalesRows = void_sales_portions.map(portion => {
             return `
                 <tr>
-                    <td>${portion.name}</td>
-                    <td>${portion.portion}</td>
-                    <td>$${portion.price.toFixed(2)}</td>
-                    <td>$${(portion.portion * portion.price).toFixed(2)}</td>
+                    <td>${portion.Name}</td>
+                    <td>${portion.Quantity}</td>
+                    <td>$${portion.Price}</td>
+                    <td>$${portion.Total}</td>
                 </tr>
             `;
         }).join('');
 
+        const staffMealRows = staff_meal_portions.map(portion => {
+            return `
+                <tr>
+                    <td>${portion.Name}</td>
+                    <td>${portion.Quantity}</td>
+                    <td>$${portion.Price}</td>
+                    <td>$${portion.Total}</td>
+                </tr>
+            `
+        }).join('');
+
+        const expenseDetail = expense.map(item => {
+            return `
+                <tr>
+                    <td>${item.Name}</td>
+                    <td>${item.Amount}</td>
+                </tr>
+            `
+        }).join('');
+
+        const changeDetail = previous_change_given.map(change_given => {
+            return `
+                <tr>
+                    <td>${change_given.Name}</td>
+                    <td>$${change_given.Amount}</td>
+                </tr>
+            `
+        }).join('');
+
+        const varianceDetail = variance.map(portions => {
+            return `
+                <tr>
+                    <td>${portions.Name}</td>
+                    <td>${portions.Sold}</td>
+                    <td>${portions.Void}</td>
+                    <td>${portions.Variation}</td>
+                </tr>
+            `
+        }).join('');
 
         return `
             <style>
@@ -1589,7 +1628,7 @@ function generateAccountantCashUp(userId) {
                 .line {
                     display: flex;
                     justify-content: space-between;
-                    margin: 5px 0;
+                    margin: 10px 0;
                 }
 
                 .line span {
@@ -1599,7 +1638,7 @@ function generateAccountantCashUp(userId) {
                 table {
                     width: 100%;
                     border-collapse: collapse;
-                    margin-bottom: 30px;
+                    margin-bottom: 40px;
                 }
 
                 th, td {
@@ -1627,12 +1666,13 @@ function generateAccountantCashUp(userId) {
                 <p>Date: ${new Date().toLocaleDateString()}</p>
                 <p>Time: ${new Date().toLocaleTimeString()}</p>
                 <div class="totals">
-                    <h2>Sales Portions</h2>
+
+                    <h2>Sales</h2>
                     <table>
                         <thead>
                             <tr>
                                 <th>Name</th>
-                                <th>Portion</th>
+                                <th>Portions</th>
                                 <th>Price</th>
                                 <th>Total</th>
                             </tr>
@@ -1642,13 +1682,12 @@ function generateAccountantCashUp(userId) {
                         </tbody>
                     </table>
 
-                    <h2>Void Sales Portions</h2>
-
+                    <h2>Voided Sales</h2>
                     <table>
                         <thead>
                             <tr>
                                 <th>Name</th>
-                                <th>Portion</th>
+                                <th>Portions</th>
                                 <th>Price</th>
                                 <th>Total</th>
                             </tr>
@@ -1657,6 +1696,63 @@ function generateAccountantCashUp(userId) {
                             ${voidSalesRows}
                         </tbody>
                     </table>
+
+                    <h2>Staff Meal</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Portions</th>
+                                <th>Price</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${staffMealRows}
+                        </tbody>
+                    </table>
+
+                    <h2>variance</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Sold</th>
+                                <th>Void</th>
+                                <th>Variance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${varianceDetail}
+                        </tbody>
+                    </table>
+
+                    <h2>Cashier Expenses</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${expenseDetail}
+                        </tbody>
+                    </table>
+
+                    <h2>Change Given</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${changeDetail}
+                        </tbody>
+                    </table>
+
                     <div class="line">
                         <span>Total Sales:</span>
                         <span>$${total_sales}</span>
