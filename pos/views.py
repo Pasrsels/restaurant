@@ -22,8 +22,16 @@ from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, get_object_or_404
 from finance.models import Sale, SaleItem, CashBook, CashierExpense
 from django.contrib.auth.decorators import login_required
-from inventory.models import ProductionRawMaterials, ProductionLogs, LeftOvers
-from inventory.models import Meal, Production, ProductionItems, Product, Logs, Dish
+from inventory.models import (
+    ProductionLogs, 
+    LeftOvers, 
+    EndOfDayItems,
+    Meal, 
+    Production, 
+    Product, 
+    Logs, 
+    Dish
+)
 from finance.models import SaleItem, Sale
 from permisions.permisions import (
     admin_required,
@@ -664,18 +672,6 @@ def cash_up(request, cashier_id):
                     
                     if not found:
                         sales_portions_list.append({'Name': name, 'Quantity': items.quantity, 'Price': items.price, 'Total': (Decimal(items.quantity) * Decimal(items.price))})
-                elif items.sale.void == True and items.sale.staff == False:
-                    found = False
-                    for entry in void_sales_portions_list:
-                        if entry['Name'] == name:
-                            entry['Quantity'] += items.quantity
-                            entry['Price'] = items.price
-                            entry['Total'] = (Decimal(entry['Quantity']) * Decimal(entry['Price']))
-                            found = True
-                            break
-                    
-                    if not found:
-                        void_sales_portions_list.append({'Name': name, 'Quantity': items.quantity, 'Price': items.price, 'Total': (Decimal(items.quantity) * Decimal(items.price))})
                 else:
                     found = False
                     for entry in staff_meals_portions_list:
@@ -695,12 +691,25 @@ def cash_up(request, cashier_id):
         
         variance_list = []
 
+        eod_list = EndOfDayItems.objects.filter(end_of_day__date=datetime.datetime.today()).values(
+            'dish_name',
+            'wastage',
+            'leftovers',
+            'staff_portions'
+        ) 
+
+        # eod_dict = { name:eod.dish_name for eod in eod_list}
+
         for items in sales_items:
             name = items.meal.dish.name if items.meal else items.dish.name if items.dish else items.product.name if items.product else None
             if name:
                 Found = False
                 for entry in variance_list:
                     if entry['Name'] == name:
+
+                        eod = eod_list.filter(dish_name=name).first()
+                        variance = int(int(entry['Sold']) - int(entry['Void']) - int(eod.staff_portions) - int(eod.wastage) - int(eod.leftovers))
+
                         if items.sale.void == True:
                             entry['Void'] += items.quantity
                             entry['Variation'] = int(int(entry['Sold']) - int(entry['Void']))
@@ -708,7 +717,7 @@ def cash_up(request, cashier_id):
                             break
                         else:
                             entry['Sold'] += items.quantity
-                            entry['Variation'] = int(int(entry['Sold']) - int(entry['Void']))
+                            entry['Variation'] = variance
                             Found = True
                             break
                 if not Found:

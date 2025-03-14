@@ -1478,6 +1478,9 @@ def meal_list(request):
 @login_required  
 def add_meal(request):
     dishes = Dish.objects.all()
+    meal_categories = MealCategory.objects.all()
+
+    logger.info(meal_categories)
     
     if request.method == 'POST':
         form = MealForm(request.POST)
@@ -1503,6 +1506,7 @@ def add_meal(request):
     return render(request, 'inventory/add_meal.html', 
         {
             'dishes':dishes,
+            'meal_categories':meal_categories,
             'form': form
         }
     )
@@ -1740,9 +1744,63 @@ def end_of_day_view(request):
             total_staff_portions=Sum('staff_portions')
         )
 
-        production_data = productions_today
-       
+        
+        # sales_data = SaleItem.objects.filter(sale__date = datetime.datetime.today())
 
+
+        sales_items = SaleItem.objects.filter(sale__void=False, sale__date=datetime.datetime.today())
+        sales_portions_list = []
+        staff_meals_portions_list = []
+
+        for items in sales_items:
+            name = items.dish.name if items.dish else items.product.name if items.product else items.meal.dish.all() if items.meal else None
+            if name:
+                if items.meal:
+                    for dish in name:
+                        found = False
+                        for entry in sales_portions_list:
+                            if entry['Name'] == dish.name:
+                                if entry['Name'] == name:
+                                    entry['Quantity'] += items.quantity if not items.sale.staff else entry['Quantity']
+                                    entry['Price'] = items.price
+                                    entry['Staff_quantity'] += items.quantity if items.sale.staff else entry['Staff_quantity'],
+                                    entry['Total'] = (Decimal(entry['Quantity']) * Decimal(entry['Price']))
+                                    found = True
+                                    break
+
+                        if not found:
+                            sales_portions_list.append({
+                                'Name': dish.name, 
+                                'Quantity': items.quantity if not items.sale.staff else 0,
+                                'Staff_quantity': items.quantity if items.sale.staff else 0,
+                                'Price': items.price, 
+                                'Total': (Decimal(items.quantity) * Decimal(items.price))
+                            })     
+                else:
+                    found = False
+                    for entry in sales_portions_list:
+                        if entry['Name'] == name:
+                            if entry['Name'] == name:
+                                entry['Quantity'] += items.quantity
+                                entry['Staff_quantity'] += items.quantity if items.sale.staff else entry['Staff_quantity']
+                                entry['Price'] = items.price
+                                entry['Total'] = (Decimal(entry['Quantity']) * Decimal(entry['Price']))
+                                found = True
+                                break
+                        
+                    if not found:
+                        sales_portions_list.append({
+                            'Name': name, 
+                            'Quantity': items.quantity if not items.sale.staff else 0,
+                            'Staff_quantity': items.quantity if items.sale.staff else 0,
+                            'Price': items.price, 
+                            'Total': (Decimal(items.quantity) * Decimal(items.price))
+                        })  
+
+        production_data = sales_portions_list
+
+        logger.info(production_data)
+       
         return render(request, 'end_of_day.html', {
             'date': today,
             'production_today': production_data
@@ -1752,18 +1810,17 @@ def end_of_day_view(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            # Get the necessary data
             dish_name = data.get('dish_name')
             total_portions = data.get('total_portions')
-            total_sold = data.get('total_sold')
             staff_portions = data.get('total_staff_portions')
             wastage = data.get('wastage')
             leftovers = data.get('leftovers')
+            total_portions_sold = data.get('sold_portions')
             
             
             # production_item = ProductionItems.objects.get(dish__name=dish_name, date=request.POST.get('date'))
-
-            expected = total_portions - total_sold - staff_portions - wastage - leftovers
+            logger.info(f'{total_portions_sold} {staff_portions}')
+            expected = total_portions - total_portions_sold - staff_portions - wastage - leftovers
             
             e_o_d, _ = EndOfDay.objects.get_or_create(
                 date=datetime.datetime.today(),
@@ -1774,26 +1831,26 @@ def end_of_day_view(request):
                 end_of_day = e_o_d,
                 dish_name = data.get('dish_name'),
                 total_portions = data.get('total_portions'),
-                total_sold = data.get('total_sold'),
                 staff_portions = data.get('total_staff_portions'),
                 wastage = data.get('wastage'),
                 leftovers = data.get('leftovers'),
+                total_sold = total_portions_sold,
                 expected = expected
             )
             
-            dish = Dish.objects.get(name=dish_name)
+            # dish = Dish.objects.get(name=dish_name)
             
-            ingredient_with_max_quantity = Ingredient.objects.all().order_by('-quantity').first()
+            # ingredient_with_max_quantity = Ingredient.objects.all().order_by('-quantity').first()
             
-            if ingredient_with_max_quantity:
-                logger.info(f"The ingredient with the greatest quantity is: {ingredient_with_max_quantity.raw_material}")
-                kgs_left = e_o_d_obj.leftovers / dish.portion_multiplier 
+            # if ingredient_with_max_quantity:
+            #     logger.info(f"The ingredient with the greatest quantity is: {ingredient_with_max_quantity.raw_material}")
+            #     kgs_left = e_o_d_obj.leftovers / dish.portion_multiplier 
                 
-                prod_rm = ProductionRawMaterials.objects.get(product=ingredient_with_max_quantity.raw_material)
-                prod_rm.quantity += kgs_left
-                prod_rm.save()
-            else:
-                return JsonResponse({'success': False, 'message': "No ingredients found."})
+            #     prod_rm = ProductionRawMaterials.objects.get(product=ingredient_with_max_quantity.raw_material)
+            #     prod_rm.quantity += kgs_left
+            #     prod_rm.save()
+            # else:
+            #     return JsonResponse({'success': False, 'message': "No ingredients found."})
         
             return JsonResponse({'success': True})
         except Exception as e:
@@ -1828,10 +1885,8 @@ def confirm_end_of_day(request):
         )
 
         buffer = generate_end_of_day_report(e_o_d, end_of_day_items, total_amount_staff_sold_today)
-        logger.info(f'buffer: {buffer}')
         send_end_of_day_report(request, buffer)
         
-        logger.info('saved')
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)})
     return JsonResponse({'success': True})

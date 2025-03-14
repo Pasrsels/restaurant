@@ -22,28 +22,25 @@
                 <tr>
                     <th>Dish</th>
                     <th>Produced Portions</th>
-                    <th>Sold Portions</th>
-                    <th>Staff Portions</th>
                     <th>Wastage</th>
                     <th>Leftovers</th>
-                    <th>Action</th>
+                    <th class="d-none">Total</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for item in production_today %}
                     <tr>
-                        <td>{{ item.dish__name }}</td>
-                        <td>{{ item.total_portions }}</td>
-                        <td>{{ item.total_sold }}</td>
-                        <td>{{ item.total_staff_portions }}</td>
+                        <td>{{ item.Name }}</td>
                         <td><input type="text" class="form-control"></td>
                         <td><input type="text" class="form-control"></td>
-                        <td class="action-cell"></td> 
+                        <td><input type="text" class="form-control"></td>
+                        <td class="action-cell" data-quantity={{ item.Quantity }} data-staff={{ item.Staff_quantity }}>{{ item.Quantity }}<button class="btn btn-outline-dark btn-sm">Submit</button></td> 
                     </tr>
                 {% endfor %}
             </tbody>
         </table>
-    </form>
+    </form> 
     <div class="d-flex justify-content-end">
         <button class="btn btn-primary" id="confirm">Confirm Report</button>
     </div>
@@ -51,169 +48,72 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const confirmButton = document.getElementById('confirm');
+    const confirmButton = document.getElementById('confirm');
 
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'Enter') {
-                event.preventDefault();
-                
-                const focusedElement = document.activeElement;
-
-                if (focusedElement && focusedElement.tagName === 'INPUT' && focusedElement.closest('tr')) {
-                    const row = focusedElement.closest('tr');
-                    const inputs = row.querySelectorAll('input');
-                    let allFilled = true;
-
-                    inputs.forEach(input => {
-                        if (input.value.trim() === '') {
-                            allFilled = false;
-                            input.classList.add('is-invalid'); 
-                        } else {
-                            input.classList.remove('is-invalid');
-                        }
-                    });
-
-                    if (!allFilled) {
-                        Swal.fire({
-                            title: "Validation Error",
-                            text: "Please fill in all fields before submitting.",
-                            icon: "warning"
-                        });
-                        return;
-                    }
-
-                    const dishName = row.querySelector('td:first-child').innerText;
-                    const totalPortions = parseInt(row.querySelector('td:nth-child(2)').innerText);
-                    const totalSold = parseInt(row.querySelector('td:nth-child(3)').innerText);
-                    const staffPortions = parseInt(row.querySelector('td:nth-child(4)').innerText);
-                    const wastage = parseInt(row.querySelector('td:nth-child(5) input').value);
-                    const leftovers = parseInt(row.querySelector('td:nth-child(6) input').value);
-
-
-                    const data = {
-                        dish_name: dishName,
-                        total_portions: totalPortions,
-                        total_sold: totalSold,
-                        total_staff_portions: staffPortions,
-                        wastage: wastage,
-                        leftovers: leftovers,
-                        csrfmiddlewaretoken: '{{ csrf_token }}'
-                    };
-
-                    fetch('{% url "inventory:save_end_of_day" %}', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': data.csrfmiddlewaretoken
-                        },
-                        body: JSON.stringify(data)
-                    })
-                    .then(response => response.json())
-                    .then(result => {
-                        if (result.success) {
-                            const actionCell = row.querySelector('.action-cell');
-                            actionCell.innerHTML = "<span class='badge bg-success'>Done</span>";
-
-                            inputs.forEach(input => {
-                                input.disabled = true;
-                            });
-                        } else {
-                            Swal.fire({
-                                title: "Error",
-                                text: result.message || "An error occurred.",
-                                icon: "error"
-                            });
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        Swal.fire({
-                            title: "Error",
-                            text: "An error occurred while saving the data.",
-                            icon: "error"
-                        });
-                    });
-                }
-            }
-        });
-
-        confirmButton.addEventListener('click', function(event) {
+    const submitButtons = document.querySelectorAll('.action-cell button');
+    submitButtons.forEach(button => {
+        button.addEventListener('click', function(event) {
             event.preventDefault();
+            
+            const row = this.closest('tr');
+            const inputs = row.querySelectorAll('input');
+            let allFilled = true;
 
-            const rows = document.querySelectorAll('#end-of-day-form tbody tr');
-            let allFieldsFilled = true;
-
-            rows.forEach(row => {
-                const inputs = row.querySelectorAll('input');
-                let rowFieldsFilled = true;
-
-                inputs.forEach(input => {
-                    if (input.value.trim() === '') {
-                        rowFieldsFilled = false;
-                        input.classList.add('is-invalid');
-                    } else {
-                        input.classList.remove('is-invalid');
-                    }
-                });
-
-                if (!rowFieldsFilled) {
-                    allFieldsFilled = false;
+            inputs.forEach(input => {
+                if (input.value.trim() === '') {
+                    allFilled = false;
+                    input.classList.add('is-invalid'); 
+                } else {
+                    input.classList.remove('is-invalid');
                 }
             });
 
-            if (!allFieldsFilled) {
+            if (!allFilled) {
                 Swal.fire({
                     title: "Validation Error",
-                    text: "Please fill in all fields before confirming.",
+                    text: "Please fill in all fields before submitting.",
                     icon: "warning"
                 });
                 return;
             }
 
-            cashed_amount = parseFloat(document.getElementById('cashed_amount').value)
-            cashed_amount_el = document.getElementById('cashed_amount')
+            const dishName = row.querySelector('td:first-child').innerText;
+            const totalPortions = parseInt(row.querySelector('td:nth-child(2) input').value);
+            const wastage = parseInt(row.querySelector('td:nth-child(3) input').value);
+            const leftovers = parseInt(row.querySelector('td:nth-child(4) input').value);
+            const soldPortions = parseInt(row.querySelector('.action-cell').dataset.quantity);
+            const staffPortions = parseInt(row.querySelector('.action-cell').dataset.staff);
 
-            if(!cashed_amount){
-                Swal.fire({
-                    title: "Error",
-                    text: "Please Enter Amount To Be Cashed",
-                    icon: "error"
-                }).then(()=>{
-                    cashed_amount_el.focus()
-                });
-                return;
-            }
+            console.log(soldPortions)
 
             const data = {
-                cashed_amount: parseFloat(document.getElementById('cashed_amount').value)
-            }
+                dish_name: dishName,
+                total_portions: totalPortions,
+                wastage: wastage,
+                leftovers: leftovers,
+                sold_portions: soldPortions,
+                total_staff_portions: staffPortions,
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            };
 
-            fetch('{% url "inventory:confirm_end_of_day" %}', {
+            console.info('Data', data);
+
+            fetch('{% url "inventory:save_end_of_day" %}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
+                    'X-CSRFToken': data.csrfmiddlewaretoken
                 },
                 body: JSON.stringify(data)
             })
             .then(response => response.json())
             .then(result => {
                 if (result.success) {
-                    Swal.fire({
-                        title: "Success",
-                        text: "End of Day report confirmed!",
-                        icon: "success"
-                    }).then(() => {
-                        rows.forEach(row => {
-                            const actionCell = row.querySelector('.action-cell');
-                            actionCell.innerHTML = "<span class='badge bg-success'>Done</span>";
-                            
-                            const inputs = row.querySelectorAll('input');
-                            inputs.forEach(input => {
-                                input.disabled = true;
-                            });
-                        });
-                        window.location.href="{% url 'pos:pos'%}"
+                    const actionCell = row.querySelector('.action-cell');
+                    actionCell.innerHTML = "<span class='badge bg-success'>Done</span>";
+
+                    inputs.forEach(input => {
+                        input.disabled = true;
                     });
                 } else {
                     Swal.fire({
@@ -227,11 +127,125 @@
                 console.error('Error:', error);
                 Swal.fire({
                     title: "Error",
-                    text: "An error occurred while confirming the report.",
+                    text: "An error occurred while saving the data.",
                     icon: "error"
                 });
             });
         });
     });
+
+    // Keep the existing Enter key functionality
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            
+            const focusedElement = document.activeElement;
+
+            if (focusedElement && focusedElement.tagName === 'INPUT' && focusedElement.closest('tr')) {
+                const row = focusedElement.closest('tr');
+                const submitButton = row.querySelector('.action-cell button');
+                if (submitButton) {
+                    submitButton.click(); /
+                }
+            }
+        }
+    });
+
+    confirmButton.addEventListener('click', function(event) {
+        event.preventDefault();
+
+        const rows = document.querySelectorAll('#end-of-day-form tbody tr');
+        let allFieldsFilled = true;
+
+        rows.forEach(row => {
+            const inputs = row.querySelectorAll('input');
+            let rowFieldsFilled = true;
+
+            inputs.forEach(input => {
+                if (input.value.trim() === '') {
+                    rowFieldsFilled = false;
+                    input.classList.add('is-invalid');
+                } else {
+                    input.classList.remove('is-invalid');
+                }
+            });
+
+            if (!rowFieldsFilled) {
+                allFieldsFilled = false;
+            }
+        });
+
+        if (!allFieldsFilled) {
+            Swal.fire({
+                title: "Validation Error",
+                text: "Please fill in all fields before confirming.",
+                icon: "warning"
+            });
+            return;
+        }
+
+        const cashed_amount = parseFloat(document.getElementById('cashed_amount').value);
+        const cashed_amount_el = document.getElementById('cashed_amount');
+
+        if(!cashed_amount){
+            Swal.fire({
+                title: "Error",
+                text: "Please Enter Amount To Be Cashed",
+                icon: "error"
+            }).then(()=>{
+                cashed_amount_el.focus();
+            });
+            return;
+        }
+
+        const data = {
+            cashed_amount: parseFloat(document.getElementById('cashed_amount').value)
+        };
+
+        fetch('{% url "inventory:confirm_end_of_day" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                Swal.fire({
+                    title: "Success",
+                    text: "End of Day report confirmed!",
+                    icon: "success"
+                }).then(() => {
+                    rows.forEach(row => {
+                        const actionCell = row.querySelector('.action-cell');
+                        actionCell.innerHTML = "<span class='badge bg-success'>Done</span>";
+                        
+                        const inputs = row.querySelectorAll('input');
+                        inputs.forEach(input => {
+                            input.disabled = true;
+                        });
+                    });
+                    window.location.href="{% url 'pos:pos'%}";
+                });
+            } else {
+                Swal.fire({
+                    title: "Error",
+                    text: result.message || "An error occurred.",
+                    icon: "error"
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                title: "Error",
+                text: "An error occurred while confirming the report.",
+                icon: "error"
+            });
+        });
+    });
+});
 </script>
 {% endblock %}

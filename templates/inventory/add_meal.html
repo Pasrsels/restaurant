@@ -2,7 +2,7 @@
 {% load crispy_forms_tags %}
 {% block content %}
 <div>
-   <div class='d-flex justify-content-between align-items-center border-bottom'>
+    <div class='d-flex justify-content-between align-items-center border-bottom'>
         <div>
             <a href='{% url "inventory:meal_list" %}' class='border btn bx bx-arrow-back fs-5'></a>
             <a href='/' class='bx bx-home btn border fs-5 mx-2'></a>
@@ -19,54 +19,59 @@
 
     <form method="post" class='mt-4'>
         {% csrf_token %}
-    
+
         <div id="div_id_name" class="mb-3">
             <label for="id_name" class="form-label requiredField">
                 Name<span class="asteriskField">*</span>
             </label>
             <input type="text" name="name" maxlength="255" class="textinput form-control" required id="id_name">
         </div>
-    
+
         <div id="div_id_price" class="mb-3">
             <label for="id_price" class="form-label requiredField">
                 Price<span class="asteriskField">*</span>
             </label>
             <input type="text" name="price" maxlength="255" class="textinput form-control" required id="id_price">
         </div>
-    
+
         <div id="div_id_category" class="mb-3">
             <label for="id_category" class="form-label requiredField">
                 Category<span class="asteriskField">*</span>
             </label>
             <div class="input-group">
                 <select name="category" class="select form-select" required="" id="id_category">
-                    <option value="" selected="">---------</option>s
+                    <option value="" selected="">---------</option>
+                    {% for category in meal_categories %}
+                        <option value="{{ category.id }}">{{category}}</option>
+                    {% endfor %}
                 </select>
-                <button type="button" class="btn btn-outline-secondary bx bx-plus" data-bs-toggle="modal" data-bs-target="#addCategoryModal"></button>
+                <button type="button" class="btn btn-outline-secondary bx bx-plus" data-bs-toggle="modal"
+                    data-bs-target="#addCategoryModal"></button>
             </div>
-        </div>    
-  
-    
+        </div>
+
+
         <div id="div_id_dish" class="mb-3">
             <label for="id_dish" class="form-label requiredField">
                 Dish<span class="asteriskField">*</span>
             </label>
             <select name="dish" class="form-control selectmultiple form-select" required id="id_dish" multiple>
                 {% for dish in dishes %}
-                    <option value="{{ dish.id }}">{{ dish.name }} ({{ dish.cost}})</option>
+                <option value="{{ dish.id }}">{{ dish.name }} ({{ dish.cost}})</option>
                 {% endfor %}
             </select>
         </div>
-    
+
         <div class="d-flex justify-content-end">
             <button type="reset" class="btn btn-outline-secondary bx bx-reset mx-2"></button>
             <button type="submit" class="btn btn-primary bx bx-save"></button>
         </div>
     </form>
-    
+
 
     <!-- Add Category Modal -->
-    <div class="modal fade" id="addCategoryModal" tabindex="-1" aria-labelledby="addCategoryModalLabel" aria-hidden="true">
+    <div class="modal fade" id="addCategoryModal" tabindex="-1" aria-labelledby="addCategoryModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
@@ -91,7 +96,7 @@
 </div>
 <script>
 
-     new SlimSelect({
+    new SlimSelect({
         select: '#id_dish',
         placeholder: 'Select Product'
     });
@@ -104,7 +109,6 @@
         .then(data => {
             const categorySelect = document.getElementById('id_category');
             categorySelect.innerHTML = '<option value="">---------</option>';
-            console.log(data)
             data.forEach(category => {
                 const option = document.createElement('option');
                 option.value = category.id;
@@ -114,11 +118,9 @@
         });
     }
 
-    populateCategories()
-
-    document.getElementById("categoryForm").addEventListener('click', function(event) {
+    document.getElementById("categoryForm").addEventListener('click', function (event) {
         const formData = {
-            category:document.getElementById('categoryName').value,
+            category: document.getElementById('categoryName').value,
             csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
         }
         fetch("{% url 'inventory:create_meal_category' %}", {
@@ -129,27 +131,31 @@
             },
             body: JSON.stringify(formData)
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                
-                const categorySelect = document.getElementById('id_category');
-                const option = document.createElement('option');
-                option.value = data.id;
-                option.text = data.name;
-                option.selected = true;
-                categorySelect.add(option);
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const categorySelect = document.getElementById('id_category');
+                    const option = document.createElement('option');
+                    option.value = data.id;
+                    option.text = data.name;
+                    option.selected = true;
+                    categorySelect.add(option);
 
-                const modal = bootstrap.Modal.getInstance(document.getElementById('addCategoryModal'));
-                modal.hide();
-            } else { 
-                Swal.fire({
-                    title: "Error",
-                    text: data.message,
-                    icon: "error"
-                });
-            }
-        });
+                    Swal.fire({
+                        icon: 'succes',
+                        text: 'Meal Category succesfully added.'
+                    })
+
+                    const modal = new bootstrap.Modal(document.getElementById('addCategoryModal'));
+                    modal.hide();
+                } else {
+                    Swal.fire({
+                        title: "Error",
+                        text: data.message,
+                        icon: "error"
+                    });
+                }
+            });
     });
 </script>
 {% endblock %}
