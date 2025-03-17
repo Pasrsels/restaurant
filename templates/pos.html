@@ -1597,7 +1597,7 @@ function generateAccountantCashUp(userId) {
                 </tr>
             `
         }).join('');
-
+        /*
         const changeDetail = previous_change_given.map(change_given => {
             return `
                 <tr>
@@ -1606,14 +1606,14 @@ function generateAccountantCashUp(userId) {
                 </tr>
             `
         }).join('');
-
+        */
         const varianceDetail = variance.map(portions => {
             return `
                 <tr>
-                    <td>${portions.Name}</td>
-                    <td>${portions.Sold}</td>
-                    <td>${portions.Void}</td>
-                    <td>${portions.Variation}</td>
+                    <td>${portions.dish_name}</td>
+                    <td>${portions.total_sold}</td>
+                    <td>${portions.leftovers} | ${portions.wastage}</td>
+                    <td>${portions.expected}</td>
                 </tr>
             `
         }).join('');
@@ -1639,6 +1639,14 @@ function generateAccountantCashUp(userId) {
                     width: 100%;
                     border-collapse: collapse;
                     margin-bottom: 40px;
+                    font-family: Arial, sans-serif;
+                    font-size: 10px;
+                }
+
+                th {
+                    font-family: Arial, sans-serif;
+                    font-size: 10px;
+                    font-weight: bold;
                 }
 
                 th, td {
@@ -1646,6 +1654,7 @@ function generateAccountantCashUp(userId) {
                     text-align: left;
                     border: 1px solid #ddd;
                 }
+                    
                 h2{
                     text-align: center;
                 }
@@ -1681,7 +1690,7 @@ function generateAccountantCashUp(userId) {
                             ${salesRows}
                         </tbody>
                     </table>
-
+                    <hr>
                     <h2>Voided Sales</h2>
                     <table>
                         <thead>
@@ -1696,7 +1705,7 @@ function generateAccountantCashUp(userId) {
                             ${voidSalesRows}
                         </tbody>
                     </table>
-
+                    <hr>
                     <h2>Staff Meal</h2>
                     <table>
                         <thead>
@@ -1711,22 +1720,22 @@ function generateAccountantCashUp(userId) {
                             ${staffMealRows}
                         </tbody>
                     </table>
-
+                    <hr>
                     <h2>variance</h2>
                     <table>
                         <thead>
                             <tr>
                                 <th>Name</th>
                                 <th>Sold</th>
-                                <th>Void</th>
-                                <th>Variance</th>
+                                <th>LO | WA</th>
+                                <th>Expected</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${varianceDetail}
                         </tbody>
                     </table>
-
+                    <hr>
                     <h2>Cashier Expenses</h2>
                     <table>
                         <thead>
@@ -1739,8 +1748,8 @@ function generateAccountantCashUp(userId) {
                             ${expenseDetail}
                         </tbody>
                     </table>
-
-                    <h2>Change Given</h2>
+                    <hr>
+                    {% comment %} <h2>Change Given</h2>
                     <table>
                         <thead>
                             <tr>
@@ -1751,7 +1760,7 @@ function generateAccountantCashUp(userId) {
                         <tbody>
                             ${changeDetail}
                         </tbody>
-                    </table>
+                    </table> {% endcomment %}
 
                     <div class="line">
                         <span>Total Sales:</span>
