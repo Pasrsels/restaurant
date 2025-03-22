@@ -658,32 +658,53 @@ def cash_up(request, cashier_id):
         staff_meals_portions_list = []
 
         for items in sales_items:
-            name = items.dish.name if items.dish else items.product.name if items.product else items.meal.dish.name if items.meal else None
+            # name = items.dish.name if items.dish else items.product.name if items.product else items.meal.dish.all() if items.meal else None
+            if items.dish:
+                name = items.dish.name
+            elif items.product:
+                name = items.product.name
+            elif items.meal:
+                name = [{'Name': dish.name, 'Price': dish.price} for dish in items.meal.dish.all()]
+            else:
+                name = None
+            
             if name:
-                if items.sale.void == False and items.sale.staff == False:
-                    found = False
+                if isinstance(name, list):
                     for entry in sales_portions_list:
-                        if entry['Name'] == name:
-                            entry['Quantity'] += items.quantity
-                            entry['Price'] = items.price
-                            entry['Total'] = (Decimal(entry['Quantity']) * Decimal(entry['Price']))
-                            found = True
-                            break
-                    
-                    if not found:
-                        sales_portions_list.append({'Name': name, 'Quantity': items.quantity, 'Price': items.price, 'Total': (Decimal(items.quantity) * Decimal(items.price))})
+                        found = False
+                        for item in name:
+                            if entry['Name'] == item['Name']:
+                                    entry['Quantity'] += 1
+                                    entry['Price'] = item['Price']
+                                    entry['Total'] = (Decimal(entry['Quantity']) * Decimal(entry['Price']))
+                                    found = True
+                            if not found:
+                                sales_portions_list.append({'Name': item['Name'], 'Quantity': 1, 'Price': item['Price'], 'Total': (Decimal(1) * Decimal(items['price']))})
                 else:
-                    found = False
-                    for entry in staff_meals_portions_list:
-                        if entry['Name'] == name:
-                            entry['Quantity'] += items.quantity
-                            entry['Price'] = items.price
-                            entry['Total'] = (Decimal(entry['Quantity']) * Decimal(entry['Price']))
-                            found = True
-                            break
-                    
-                    if not found:
-                        staff_meals_portions_list.append({'Name': name, 'Quantity': items.quantity, 'Price': items.price, 'Total': (Decimal(items.quantity) * Decimal(items.price))})
+                    if items.sale.void == False and items.sale.staff == False:
+                        found = False
+                        for entry in sales_portions_list:
+                            if entry['Name'] == name:
+                                entry['Quantity'] += items.quantity
+                                entry['Price'] = items.price
+                                entry['Total'] = (Decimal(entry['Quantity']) * Decimal(entry['Price']))
+                                found = True
+                                break
+                        
+                        if not found:
+                            sales_portions_list.append({'Name': name, 'Quantity': items.quantity, 'Price': items.price, 'Total': (Decimal(items.quantity) * Decimal(items.price))})
+                    else:
+                        found = False
+                        for entry in staff_meals_portions_list:
+                            if entry['Name'] == name:
+                                entry['Quantity'] += items.quantity
+                                entry['Price'] = items.price
+                                entry['Total'] = (Decimal(entry['Quantity']) * Decimal(entry['Price']))
+                                found = True
+                                break
+                        
+                        if not found:
+                            staff_meals_portions_list.append({'Name': name, 'Quantity': items.quantity, 'Price': items.price, 'Total': (Decimal(items.quantity) * Decimal(items.price))})
 
         logger.info(sales_portions_list)
         logger.info(void_sales_portions_list)
