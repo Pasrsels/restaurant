@@ -15,7 +15,7 @@
             <input type="number" class="form-control" id="cashed_amount" placeholder="Enter amount to be cashed">
         </div>
     </div>
-    <form method="POST" class="mt-3" id="end-of-day-form">
+    <form method="POST" class="mt-3" id="end-of-day-form" action="">
         {% csrf_token %}
         <table class="table">
             <thead>
@@ -42,7 +42,7 @@
         </table>
     </form> 
     <div class="d-flex justify-content-end">
-        <button class="btn btn-primary" id="confirm">Confirm Report</button>
+        <button class="btn btn-primary" id="confirmreport">Confirm Report</button>
     </div>
 </div>
 
@@ -102,7 +102,7 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': data.csrfmiddlewaretoken
+                    'X-CSRFToken': getCookie('csrftoken')
                 },
                 body: JSON.stringify(data)
             })
@@ -145,7 +145,7 @@
                 const row = focusedElement.closest('tr');
                 const submitButton = row.querySelector('.action-cell button');
                 if (submitButton) {
-                    submitButton.click(); 
+                    submitButton.click();
                 }
             }
         }
@@ -153,7 +153,7 @@
 
     confirmButton.addEventListener('click', function(event) {
         event.preventDefault();
-
+        console.log('i am in')
         const rows = document.querySelectorAll('#end-of-day-form tbody tr');
         let allFieldsFilled = true;
 
@@ -206,7 +206,7 @@
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
+                'X-CSRFToken':  getCookie('csrftoken')
             },
             body: JSON.stringify(data)
         })
@@ -247,5 +247,19 @@
         });
     });
 });
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
 </script>
 {% endblock %}

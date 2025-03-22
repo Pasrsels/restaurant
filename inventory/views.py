@@ -1863,6 +1863,7 @@ def end_of_day_view(request):
 def confirm_end_of_day(request):
     try:
         data = json.loads(request.body)
+        logger.info(data)
         amount = data.get('cashed_amount')
         sales = Sale.objects.filter(date=localdate(), staff=False).aggregate(total_amount=Sum('total_amount'))['total_amount'] or 0
         total_amount_staff_sold_today = Sale.objects.filter(date=localdate(), staff=True).aggregate(total_amount=Sum('total_amount'))['total_amount'] or 0
@@ -1888,7 +1889,7 @@ def confirm_end_of_day(request):
         send_end_of_day_report(request, buffer)
         
     except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)})
+        return JsonResponse({'success': False, 'message': 'invalid'})
     return JsonResponse({'success': True})
 
 
