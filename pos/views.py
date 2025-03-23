@@ -664,22 +664,34 @@ def cash_up(request, cashier_id):
             elif items.product:
                 name = items.product.name
             elif items.meal:
+                logger.info(items.meal.dish.all())
                 name = [{'Name': dish.name, 'Price': dish.price} for dish in items.meal.dish.all()]
             else:
                 name = None
             
             if name:
                 if isinstance(name, list):
-                    for entry in sales_portions_list:
+                    logger.info(name)  # Debugging log
+                    for item in name:  # Iterate over items in name first
+                        logger.info(item['Name'])  # Debugging log
                         found = False
-                        for item in name:
+                        
+                        for entry in sales_portions_list:
                             if entry['Name'] == item['Name']:
-                                    entry['Quantity'] += 1
-                                    entry['Price'] = item['Price']
-                                    entry['Total'] = (Decimal(entry['Quantity']) * Decimal(entry['Price']))
-                                    found = True
-                            if not found:
-                                sales_portions_list.append({'Name': item['Name'], 'Quantity': 1, 'Price': item['Price'], 'Total': (Decimal(1) * Decimal(items['price']))})
+                                entry['Quantity'] += 1
+                                entry['Price'] = item['Price']
+                                entry['Total'] = Decimal(entry['Quantity']) * Decimal(entry['Price'])
+                                found = True
+                                break  # Stop searching once found
+                        
+                        if not found:
+                            # Append to list if no match found
+                            sales_portions_list.append({
+                                'Name': item['Name'],
+                                'Quantity': items.quantity,
+                                'Price': item['Price'],
+                                'Total': Decimal(items.quantity) * Decimal(item['Price'])
+                            })
                 else:
                     if items.sale.void == False and items.sale.staff == False:
                         found = False
@@ -690,7 +702,6 @@ def cash_up(request, cashier_id):
                                 entry['Total'] = (Decimal(entry['Quantity']) * Decimal(entry['Price']))
                                 found = True
                                 break
-                        
                         if not found:
                             sales_portions_list.append({'Name': name, 'Quantity': items.quantity, 'Price': items.price, 'Total': (Decimal(items.quantity) * Decimal(items.price))})
                     else:
