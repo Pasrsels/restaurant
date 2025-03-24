@@ -716,7 +716,11 @@ def cash_up(request, cashier_id):
                         
                         if not found:
                             staff_meals_portions_list.append({'Name': name, 'Quantity': items.quantity, 'Price': items.price, 'Total': (Decimal(items.quantity) * Decimal(items.price))})
+        total = 0
+        for items in sales_portions_list:
+            total += items['Total']
 
+        logger.info(total)
         logger.info(sales_portions_list)
         logger.info(void_sales_portions_list)
         logger.info(staff_meals_portions_list)
@@ -796,7 +800,8 @@ def cash_up(request, cashier_id):
                 'total_expenses':total_expenses,
                 'total_change':total_change,
                 'total_accumulated_change': total_accumulated_change,
-                'cash_in_hand':cash_in_hand
+                'cash_in_hand':cash_in_hand,
+                'sales_total': total
             }
 
             # accountantreport(request)
