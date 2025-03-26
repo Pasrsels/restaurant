@@ -671,9 +671,9 @@ def cash_up(request, cashier_id):
             
             if name:
                 if isinstance(name, list):
-                    logger.info(name)  # Debugging log
-                    for item in name:  # Iterate over items in name first
-                        logger.info(item['Name'])  # Debugging log
+                    logger.info(name)
+                    for item in name:
+                        logger.info(item['Name'])
                         found = False
                         
                         for entry in sales_portions_list:
@@ -682,10 +682,9 @@ def cash_up(request, cashier_id):
                                 entry['Price'] = item['Price']
                                 entry['Total'] = Decimal(entry['Quantity']) * Decimal(entry['Price'])
                                 found = True
-                                break  # Stop searching once found
+                                break
                         
                         if not found:
-                            # Append to list if no match found
                             sales_portions_list.append({
                                 'Name': item['Name'],
                                 'Quantity': items.quantity,
@@ -716,11 +715,11 @@ def cash_up(request, cashier_id):
                         
                         if not found:
                             staff_meals_portions_list.append({'Name': name, 'Quantity': items.quantity, 'Price': items.price, 'Total': (Decimal(items.quantity) * Decimal(items.price))})
+
         total = 0
         for items in sales_portions_list:
             total += items['Total']
-
-        logger.info(total)
+        
         logger.info(sales_portions_list)
         logger.info(void_sales_portions_list)
         logger.info(staff_meals_portions_list)
