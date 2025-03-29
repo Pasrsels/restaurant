@@ -1623,7 +1623,7 @@ def edit_dish(request, dish_id):
 def edit_meal(request, meal_id):
     meal = get_object_or_404(Meal, id=meal_id)
     if request.method == 'POST':
-        form = MealForm(request.POST, instance=meal)
+        form = MealForm(request.POST, request.FILES, instance=meal)
         if form.is_valid():
             name = form.cleaned_data['name']
             price = form.cleaned_data['price']
@@ -1634,6 +1634,7 @@ def edit_meal(request, meal_id):
                 return redirect('inventory:add_meal')
             
             form.save()
+            logger.info('saved')
             return redirect('inventory:meal_list')  
     else:
         form = MealForm(instance=meal)

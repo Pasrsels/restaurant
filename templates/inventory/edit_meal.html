@@ -16,7 +16,7 @@
             </ul>
         </div>
     </div>
-    <form method="post">
+    <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
         {{ form | crispy }}
         <div class="d-flex justify-content-end">
@@ -26,3 +26,4 @@
     </form>
 </div>
 {% endblock %}
+ 

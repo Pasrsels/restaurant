@@ -96,7 +96,7 @@ class IngredientForm(forms.ModelForm):
 class MealForm(forms.ModelForm):
     class Meta:
         model = Meal
-        fields = ['name', 'price', 'category', 'dish']
+        fields = ['name', 'price', 'category', 'dish', 'image']
         widgets = {
             'dish': forms.SelectMultiple(attrs={'class': 'form-control'}),
         }

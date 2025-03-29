@@ -856,6 +856,7 @@
                     <div class="card mb-4 position-relative overflow-hidden">
                         <img src="${item.image ? '/media/' + item.image : '/media/' + 'placeholder.png'}" 
                         class="card-img-top" 
+                        style = "object-fit: center;"
                         alt="${item.name}" 
                         onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
                         
