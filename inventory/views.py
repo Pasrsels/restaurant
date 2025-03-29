@@ -1415,6 +1415,7 @@ def add_dish(request): # didn't change the name of the template, it caters for b
         
         try:
             data = json.loads(request.body)
+            logger.info(data)
             cart = data.get('cart')
         
             dish_name = data.get('name')
@@ -1422,7 +1423,7 @@ def add_dish(request): # didn't change the name of the template, it caters for b
             cost = data.get('dish_cost')
             selling_price = data.get('selling_price')
             category = data.get('category')
-
+            
             if not dish_name or not portion_multiplier or not cost or not selling_price:
                 return JsonResponse({'success': False, 'message': f'Please fill all the missing data'}, status=400)
             
@@ -1433,7 +1434,7 @@ def add_dish(request): # didn't change the name of the template, it caters for b
                     name = dish_name,
                     portion_multiplier = portion_multiplier,
                     price = selling_price,
-                    category=category
+                    category=category,
                 )
                 
                 """if category exists in meal category return else create and assign to the dish"""
@@ -1524,8 +1525,8 @@ def get_dish_data(request, dish_id):
         ingredients =Ingredient.objects.filter(dish__id = dish_id).values(
             'note',
             'quantity',
-            'raw_material__name',
-            'raw_material__cost'
+            'minor_raw_material__name',
+            'minor_raw_material__cost'
         )
 
         return JsonResponse({'success':True, 'dish':list(dish), 'ingridients':list(ingredients)})
@@ -1572,7 +1573,7 @@ def edit_dish(request, dish_id):
             dish.price = selling_price
             dish.category = dish.category
             existing_ingredients = Ingredient.objects.filter(dish=dish)
-            existing_ingredient_names = {ing.raw_material.name for ing in existing_ingredients}
+            existing_ingredient_names = {ing.minor_raw_material.name for ing in existing_ingredients}
             raw_material_map = {rm.name: rm for rm in Product.objects.all()}
 
             ingredient_updates = []
@@ -1586,7 +1587,7 @@ def edit_dish(request, dish_id):
                     return JsonResponse({'success': False, 'message': f'Raw material "{raw_material_name}" not found.'})
 
                 if raw_material_name in existing_ingredient_names:
-                    ing = next(ing for ing in existing_ingredients if ing.raw_material.name == raw_material_name)
+                    ing = next(ing for ing in existing_ingredients if ing.minor_raw_material.name == raw_material_name)
                     ing.quantity = item['quantity']
                     ing.note = item['note']
                     ingredient_updates.append(ing)
@@ -1595,7 +1596,7 @@ def edit_dish(request, dish_id):
                 else:
                     ingr = Ingredient.objects.create(
                         dish=dish,
-                        raw_material=raw_material,
+                        minor_raw_material=raw_material,
                         quantity=item['quantity'],
                         note=item['note'],
                     )

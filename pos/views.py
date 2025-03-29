@@ -75,7 +75,7 @@ def product_meal_json(request):
         
         meals = Meal.objects.filter(deactivate=False)
         products = Product.objects.filter(raw_material=False).values('id', 'name', 'price', 'finished_product', 'image')
-        dishes = Dish.objects.all().values('id', 'name', 'price', 'dish')
+        dishes = Dish.objects.all().values('id', 'name', 'price', 'dish', 'image')
 
         meal_data = [
             {
