@@ -854,11 +854,10 @@
                 itemCard.className = 'col-md-3';
                 itemCard.innerHTML = `
                     <div class="card mb-4 position-relative overflow-hidden">
-                        <img src="${ item.image ? '/media/' + item.image : '{% static "media/product_images/default.jpg" %}' }" 
-                            class="card-img-top w-100 h-100 object-fit-cover" 
-                            alt="${ item.name }"
-                            onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})"    
-                        >
+                        <img src="${item.image ? '/media/' + item.image : '/media/' + 'placeholder.png'}" 
+                        class="card-img-top" 
+                        alt="${item.name}" 
+                        onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
                         
                         <div class="card-body text-center rounded-0 d-flex justify-content-center align-items-center bg-warning position-absolute bottom-0 w-100"
                             style="height: 50px; padding: 0; margin: 0; line-height: 50px; margin-top:-10px;"
