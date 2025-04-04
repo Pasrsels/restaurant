@@ -6,13 +6,80 @@ from . models import (
     PurchaseOrderItem,
     Product,
     Budget,
-    BudgetItem
+    BudgetItem,
+    Dish,
+    Ingredient
 )
 from django.core.mail import EmailMessage
 from utils.supplier_best_price import best_price
 from loguru import logger
 from settings.models import NotificationEmails
 from utils.email_notification import modules_list
+from celery import shared_task
+from decimal import Decimal
+
+@shared_task
+def inventory_task():
+    dish_ingredient_infor = Ingredient.objects.select_related('dish', 'minor_raw_material').all()
+    new_total_dish_cost = 0
+    count = 0
+    current_dish_name = None
+    
+    for items in dish_ingredient_infor:
+        print(items.dish.name)
+        print(items.minor_raw_material)
+        print(current_dish_name)
+        if items.dish.name == current_dish_name or current_dish_name == None:
+            print(f"Name:{items.minor_raw_material.name} Cost:{items.minor_raw_material.cost}")
+            quantity = Decimal(str(items.quantity))
+            portion = Decimal(str(items.dish.portion_multiplier))
+            cost = items.minor_raw_material.cost
+
+            Quantity_of_single = (Decimal(1) / portion) * quantity
+            cost_of_single = Decimal(Quantity_of_single / quantity) * cost
+            
+            new_total_dish_cost += cost_of_single
+            if current_dish_name == None:
+                current_dish_name = items.dish.name
+        else:
+            print("Not current dish anymore")
+            if current_dish_name:
+                print(f"Updating cost for dish: {current_dish_name} with cost: {new_total_dish_cost}")
+                dish_cost_update = Dish.objects.get(id=items.dish.id)
+                dish_cost_update.cost = new_total_dish_cost
+                dish_cost_update.save()
+            current_dish_name = items.dish.name
+            new_total_dish_cost = 0
+            quantity = Decimal(str(items.quantity))
+            portion = Decimal(str(items.dish.portion_multiplier))
+            cost = items.minor_raw_material.cost
+
+            Quantity_of_single = (Decimal(1) / portion) * quantity
+            cost_of_single = Decimal(Quantity_of_single / quantity) * cost
+            
+            new_total_dish_cost += cost_of_single
+            # if current_dish_name is not None:
+            #     print(f"Updating cost for dish: {current_dish_name} with cost: {new_total_dish_cost}")
+            #     dish_cost_update = Dish.objects.get(id=items.dish.id)
+            #     dish_cost_update.cost = new_total_dish_cost
+            #     dish_cost_update.save()
+
+            # Now set for the current dish
+            # current_dish_name = items.dish.name
+            # new_total_dish_cost = 0
+
+    if current_dish_name:
+        print(f"Final update for dish: {current_dish_name} with cost: {new_total_dish_cost}")
+        last_dish = Dish.objects.get(name=current_dish_name)
+        last_dish.cost = new_total_dish_cost
+        last_dish.save()
+
+    
+    #when done
+    print('Task done')
+    
+    return "Done"
+
 
 # def send_end_of_day_report(buffer):
 #     email = EmailMessage(

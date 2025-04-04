@@ -25,7 +25,7 @@ from django.core.mail import EmailMessage
 from finance.models import COGS
 from datetime import timedelta
 import datetime
-
+from .tasks import inventory_task
 from finance.models import (
     Sale,
     SaleItem,
@@ -630,10 +630,14 @@ def process_received_order(request):
              
             purchase_order = order_item.purchase_order
             product = order_item.product
+            
+            average_cost = Decimal(((Decimal(product.cost) * Decimal(product.quantity)) + (Decimal(order_item.unit_cost) * Decimal(quantity)))) / Decimal((quantity + product.quantity))
 
             product.quantity += quantity
-            product.cost = order_item.unit_cost
+            product.cost = average_cost
             product.save()
+
+            inventory_task.delay()         
 
             Logs.objects.create(
                 purchase_order=purchase_order,
@@ -647,7 +651,7 @@ def process_received_order(request):
 
             order_item.receive_items(quantity)
             order_item.check_received()
-
+            
             return JsonResponse({'success': True, 'message': 'Inventory updated successfully'}, status=200)
 
         except json.JSONDecodeError:
