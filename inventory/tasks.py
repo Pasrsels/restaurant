@@ -45,7 +45,7 @@ def inventory_task():
             print("Not current dish anymore")
             if current_dish_name:
                 print(f"Updating cost for dish: {current_dish_name} with cost: {new_total_dish_cost}")
-                dish_cost_update = Dish.objects.get(id=items.dish.id)
+                dish_cost_update = Dish.objects.get(name = current_dish_name)
                 dish_cost_update.cost = new_total_dish_cost
                 dish_cost_update.save()
             current_dish_name = items.dish.name
@@ -77,7 +77,7 @@ def inventory_task():
     
     #when done
     print('Task done')
-    
+
     return "Done"
 
 
