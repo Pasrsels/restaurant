@@ -714,7 +714,7 @@ def create_production_plan(request):
             if dish is None:
                 return JsonResponse({'success': False, 'message': f'Dish {dish_name} does not exist'}, status=404)
 
-            ingredients = Ingredient.objects.filter(dish=dish).select_related('raw_material')
+            ingredients = Ingredient.objects.filter(dish=dish).select_related('minor_raw_material')
 
             # Add production item to the list for bulk creation
             production_items.append(ProductionItems(
@@ -727,7 +727,7 @@ def create_production_plan(request):
 
             # Collect raw materials for checklist creation
             for ingredient in ingredients:
-                raw_materials_to_checklist.add(ingredient.raw_material)
+                raw_materials_to_checklist.add(ingredient.minor_raw_material)
 
         # Bulk create production items to reduce the number of queries
         ProductionItems.objects.bulk_create(production_items)
@@ -769,9 +769,9 @@ def dish_json_detail(request):
             if dish == ingredient.dish:
                 ingredients.append(
                 {
-                    'name' : f'{ingredient.raw_material}',
+                    'name' : f'{ingredient.minor_raw_material}',
                     'quantity':ingredient.quantity,
-                    'cost': ingredient.raw_material.cost
+                    'cost': ingredient.minor_raw_material.cost
                 }
             )
         
@@ -993,18 +993,18 @@ def confirm_production_plan(request, pp_id):
                 for ing in Ingredient.objects.filter(dish=item.dish):
                    
                     p_r_m_bf, created = ProductionRawMaterials.objects.get_or_create(
-                        product=ing.raw_material,
+                        product=ing.minor_raw_material,
                         defaults={'quantity': 0}
                     )
 
                     required_quantity = ing.quantity * (item.portions / item.dish.portion_multiplier)
 
-                    production_inventory = ProductionRawMaterials.objects.filter(product=ing.raw_material).first()
+                    production_inventory = ProductionRawMaterials.objects.filter(product=ing.minor_raw_material).first()
                     current_quantity = production_inventory.quantity if production_inventory else 0
 
                     expected_quantity = required_quantity - current_quantity
 
-                    raw_material_found = next((rm for rm in raw_materials if rm['id'] == ing.raw_material.id), None)
+                    raw_material_found = next((rm for rm in raw_materials if rm['id'] == ing.minor_raw_material.id), None)
                     
                     if raw_material_found:
                         raw_material_found['quantity'] += required_quantity
@@ -1013,8 +1013,8 @@ def confirm_production_plan(request, pp_id):
                     else:
                         raw_materials.append(
                             {
-                                'id': ing.raw_material.id,
-                                'name': ing.raw_material.name,
+                                'id': ing.minor_raw_material.id,
+                                'name': ing.minor_raw_material.name,
                                 'quantity_b_f': float(current_quantity),
                                 'quantity': float(required_quantity),
                                 'expected_quantity': float(expected_quantity),
@@ -1109,7 +1109,7 @@ def declare_production_plan(request, pp_id):
                 for ing in Ingredient.objects.filter(dish=item.dish):
                     
                     p_r_m_bf, created = ProductionRawMaterials.objects.get_or_create(
-                        product=ing.raw_material,
+                        product=ing.minor_raw_material,
                         defaults={
                             'quantity': 0
                         } 
@@ -1117,7 +1117,7 @@ def declare_production_plan(request, pp_id):
                     
                     quantity = ing.quantity * (item.portions / item.dish.portion_multiplier)
                     
-                    raw_material_found = next((rm for rm in raw_materials if rm['id'] == ing.raw_material.id), None)
+                    raw_material_found = next((rm for rm in raw_materials if rm['id'] == ing.minor_raw_material.id), None)
                     
                     if raw_material_found:
                         
@@ -1126,8 +1126,8 @@ def declare_production_plan(request, pp_id):
                         
                         raw_materials.append(
                             {
-                                'id': ing.raw_material.id,
-                                'name': ing.raw_material.name,
+                                'id': ing.minor_raw_material.id,
+                                'name': ing.minor_raw_material.name,
                                 'quantity': float(quantity),
                             }
                         )

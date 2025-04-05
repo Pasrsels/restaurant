@@ -26,37 +26,6 @@
             <div class="">
                 <table class="table" id="minor">
                     <thead class="bg-primary">
-<<<<<<< HEAD
-                        <tr>
-                            <th>Raw Material</th>
-                            <th>Planned Quantity</th>
-                            <th>Allocated Quantity</th>
-                            <th>Used Quantity</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in raw_materials %}
-                        <tr data-id="{{ item.id }}"  data-raw-material="{{ item.id }}">
-                            <td><small>{{ item.name }}</small></td>
-                            <td><small>{{ item.quantity | floatformat:2 }}</small></td>
-                            <td>
-                                <small>
-                                    {% for rm in allocated %}
-                                        {% if item.id == rm.raw_material.id %}
-                                            {{ rm.quantity }}
-                                        {% endif %}
-                                    {% endfor %}
-                                </small>
-                            </td>
-                            <td>
-                                <small>
-                                    <input type="number" class="form-control used-quantity" min="0">
-                                </small>
-                            </td>
-                            <td><small class="status-text"></small></td> 
-                        </tr>
-=======
                         <th>Raw Material</th>
                         <th>Dish</th>
                         <th>Quantity</th>
@@ -78,18 +47,11 @@
                                 <td><small class="remaining-quantity"></small></td>
                                 <td><small id="portions"></small></td>
                             </tr>
->>>>>>> d1c14cc97287c67047ba0ba1f6f8c7790636586a
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
-<<<<<<< HEAD
-        
-        <div class="d-flex justify-content-end mt-2">
-            <button id="id_confirm" class="btn-primary text-light btn">Confirm Declaration</button>
-        </div>
-=======
         <table class="table" id="minor">
                     <thead class="bg-primary">
                         <tr>
@@ -135,7 +97,6 @@
                 <div class="d-flex justify-content-end mt-2">
                     <button id="id_confirm" class="btn-primary text-light btn">Declare</button>
                 </div>
->>>>>>> d1c14cc97287c67047ba0ba1f6f8c7790636586a
     </div>
 </div>
 
@@ -155,17 +116,16 @@
                     const usedQuantity = parseFloat(input.value);
                     
                     // revisit
-                    {% comment %} if (usedQuantity > actualQuantity) {
+                    /*
+                    if (usedQuantity > actualQuantity) {
                         Swal.fire({
                             title: "Error",
                             text: 'Quantity used can\'t be greater than Quantity.',
                             icon: "error"
                         });
                         return;
-<<<<<<< HEAD
-                    }  {% endcomment %}
-=======
                     }
+                    */
                     // revisit
                     if (usedQuantity > actualQuantity) {
                         Swal.fire({
@@ -175,12 +135,11 @@
                         });
                         return;
                     } 
-
+                    
                     const remainingQuantity = actualQuantity - usedQuantity;
                     const portions = usedQuantity * portionMultiplier
                     tr.querySelector('.remaining-quantity').textContent = remainingQuantity + ' kgs';
                     tr.querySelector('#portions').textContent = usedQuantity * portionMultiplier + ' portions'
->>>>>>> d1c14cc97287c67047ba0ba1f6f8c7790636586a
 
                 
                     fetch("{% url 'inventory:declare_production_plan' production_plan.id %}", {
