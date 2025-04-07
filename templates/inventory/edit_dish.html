@@ -168,13 +168,13 @@ $(document).ready(function() {
         // display ingridients
         console.log(ingridients)
         ingridients.forEach((ing)=>{
-            totalProductCost =  totalCost(ing.quantity, ing.raw_material__cost, dish.portion_multiplier)
+            totalProductCost =  totalCost(ing.quantity, ing.minor_raw_material__cost, dish.portion_multiplier)
             const item = {
                 note: ing.note,
-                raw_material: ing.raw_material__name,
+                raw_material: ing.minor_raw_material__name,
                 quantity: ing.quantity,
                 cost: totalProductCost.toFixed(3),
-                r_m_cost:ing.raw_material__cost
+                r_m_cost:ing.minor_raw_material__cost
             };
 
             cart.push(item);

@@ -75,10 +75,11 @@ def product_meal_json(request):
         
         meals = Meal.objects.filter(deactivate=False)
         products = Product.objects.filter(raw_material=False).values('id', 'name', 'price', 'finished_product', 'image')
-        dishes = Dish.objects.all().values('id', 'name', 'price', 'dish')
+        dishes = Dish.objects.all().values('id', 'name', 'price', 'dish', 'image')
 
         meal_data = [
             {
+                'image': meal.image.url.replace('/media/', '', 1),
                 'name':meal.name,
                 'price':meal.price,
                 'category':meal.category.name,
@@ -653,70 +654,74 @@ def cash_up(request, cashier_id):
         sales_items = SaleItem.objects.filter(sale__cashier__id=cashier_id, sale__date=datetime.datetime.today())
         void_sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=True).values('total_amount')
 
-        sales_portions_list = []
-        void_sales_portions_list = []
-        staff_meals_portions_list = []
+        sales_dict = {}
+        staff_meals_dict = {}
+        void_sales_dict = {}
 
         for items in sales_items:
-            # name = items.dish.name if items.dish else items.product.name if items.product else items.meal.dish.all() if items.meal else None
+            # Handle different item types (Dish, Product, Meal)
             if items.dish:
-                name = items.dish.name
+                name = [ {'Name': items.dish.name, 'Price': items.dish.price} ]
             elif items.product:
-                name = items.product.name
+                name = [ {'Name': items.product.name, 'Price': items.product.price} ]
             elif items.meal:
-                logger.info(items.meal.dish.all())
                 name = [{'Name': dish.name, 'Price': dish.price} for dish in items.meal.dish.all()]
             else:
                 name = None
-            
-            if name:
-                if isinstance(name, list):
-                    logger.info(name)  # Debugging log
-                    for item in name:  # Iterate over items in name first
-                        logger.info(item['Name'])  # Debugging log
-                        found = False
-                        
-                        for entry in sales_portions_list:
-                            if entry['Name'] == item['Name']:
-                                entry['Quantity'] += 1
-                                entry['Price'] = item['Price']
-                                entry['Total'] = Decimal(entry['Quantity']) * Decimal(entry['Price'])
-                                found = True
-                                break  # Stop searching once found
-                        
-                        if not found:
-                            # Append to list if no match found
-                            sales_portions_list.append({
-                                'Name': item['Name'],
-                                'Quantity': items.quantity,
-                                'Price': item['Price'],
-                                'Total': Decimal(items.quantity) * Decimal(item['Price'])
-                            })
-                else:
-                    if items.sale.void == False and items.sale.staff == False:
-                        found = False
-                        for entry in sales_portions_list:
-                            if entry['Name'] == name:
-                                entry['Quantity'] += items.quantity
-                                entry['Price'] = items.price
-                                entry['Total'] = (Decimal(entry['Quantity']) * Decimal(entry['Price']))
-                                found = True
-                                break
-                        if not found:
-                            sales_portions_list.append({'Name': name, 'Quantity': items.quantity, 'Price': items.price, 'Total': (Decimal(items.quantity) * Decimal(items.price))})
-                    else:
-                        found = False
-                        for entry in staff_meals_portions_list:
-                            if entry['Name'] == name:
-                                entry['Quantity'] += items.quantity
-                                entry['Price'] = items.price
-                                entry['Total'] = (Decimal(entry['Quantity']) * Decimal(entry['Price']))
-                                found = True
-                                break
-                        
-                        if not found:
-                            staff_meals_portions_list.append({'Name': name, 'Quantity': items.quantity, 'Price': items.price, 'Total': (Decimal(items.quantity) * Decimal(items.price))})
 
+            if name:
+                for item in name:  # Loop through dishes if it's a meal
+                    dish_name = item['Name']
+                    dish_price = item['Price']
+
+                    # Handle Normal Sales (Non-void, Non-staff)
+                    if not items.sale.void and not items.sale.staff:
+                        if dish_name in sales_dict:
+                            sales_dict[dish_name]['Quantity'] += items.quantity
+                            sales_dict[dish_name]['Total'] += items.quantity * dish_price
+                        else:
+                            sales_dict[dish_name] = {
+                                'Name': dish_name,
+                                'Quantity': items.quantity,
+                                'Price': dish_price,
+                                'Total': items.quantity * dish_price
+                            }
+
+                    # 🔹 Handle Staff Meals
+                    elif items.sale.staff:
+                        if dish_name in staff_meals_dict:
+                            staff_meals_dict[dish_name]['Quantity'] += items.quantity
+                            staff_meals_dict[dish_name]['Total'] += items.quantity * dish_price
+                        else:
+                            staff_meals_dict[dish_name] = {
+                                'Name': dish_name,
+                                'Quantity': items.quantity,
+                                'Price': dish_price,
+                                'Total': items.quantity * dish_price
+                            }
+
+                    # 🔹 Handle Void Sales
+                    elif items.sale.void:
+                        if dish_name in void_sales_dict:
+                            void_sales_dict[dish_name]['Quantity'] += items.quantity
+                            void_sales_dict[dish_name]['Total'] += items.quantity * dish_price
+                        else:
+                            void_sales_dict[dish_name] = {
+                                'Name': dish_name,
+                                'Quantity': items.quantity,
+                                'Price': dish_price,
+                                'Total': items.quantity * dish_price
+                            }
+
+        # Convert dictionaries to lists for JSON response
+        sales_portions_list = list(sales_dict.values())
+        staff_meals_portions_list = list(staff_meals_dict.values())
+        void_sales_portions_list = list(void_sales_dict.values())
+        total = 0
+        for items in sales_portions_list:
+            total += items['Total']
+
+        logger.info(total)
         logger.info(sales_portions_list)
         logger.info(void_sales_portions_list)
         logger.info(staff_meals_portions_list)
@@ -796,7 +801,8 @@ def cash_up(request, cashier_id):
                 'total_expenses':total_expenses,
                 'total_change':total_change,
                 'total_accumulated_change': total_accumulated_change,
-                'cash_in_hand':cash_in_hand
+                'cash_in_hand':cash_in_hand,
+                'sales_total': total
             }
 
             # accountantreport(request)
