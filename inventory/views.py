@@ -637,7 +637,7 @@ def process_received_order(request):
             product.cost = average_cost
             product.save()
 
-            inventory_task.delay()         
+            inventory_task.delay(product=product.name)         
 
             Logs.objects.create(
                 purchase_order=purchase_order,

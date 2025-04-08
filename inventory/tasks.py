@@ -19,7 +19,7 @@ from celery import shared_task
 from decimal import Decimal
 
 @shared_task
-def inventory_task():
+def inventory_task(product):
     dish_ingredient_infor = Ingredient.objects.select_related('dish', 'minor_raw_material').all()
     new_total_dish_cost = 0
     count = 0
@@ -77,7 +77,29 @@ def inventory_task():
     
     #when done
     print('Task done')
-
+    print(product)
+    dish_filtered_product = Ingredient.objects.filter(minor_raw_material__name = product).select_related('dish', 'minor_raw_material')
+    print(dish_filtered_product)
+    dishes_changed = []
+    for items in dish_filtered_product:
+        print(items.dish.name)
+        if dishes_changed:
+            for item in dishes_changed:
+                if item['Name'] == items.dish.name:
+                    pass
+                else:
+                    print("here")
+                    dishes_changed.append({'Name': items.dish.name})
+        else:
+            dishes_changed.append({'Name': items.dish.name})
+    print(dishes_changed)
+    email = EmailMessage(
+        subject="Changed dishes",
+        body=f"The list of dishes has been updated: {[dish['Name'] for dish in dishes_changed]}",
+        from_email="noreply@example.com",
+        to=["irferfo@exam.com"],
+    )
+    email.send()
     return "Done"
 
 
