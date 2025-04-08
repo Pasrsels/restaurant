@@ -1,13 +1,3 @@
-from __future__ import absolute_import, unicode_literals
-# os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'restaurant.settings')
-
-# app = Celery('restaurant')
-
-# app.config_from_object('django.conf:settings', namespace='CELERY')
-
-# app.autodiscover_tasks()
-
-
 import os
 from celery import Celery
 

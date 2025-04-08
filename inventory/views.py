@@ -637,8 +637,8 @@ def process_received_order(request):
             product.cost = average_cost
             product.save()
 
-            inventory_task.delay()         
-
+            inventory_task.delay(product.id)
+     
             Logs.objects.create(
                 purchase_order=purchase_order,
                 user=request.user, 
@@ -1427,6 +1427,9 @@ def add_dish(request): # didn't change the name of the template, it caters for b
             cost = data.get('dish_cost')
             selling_price = data.get('selling_price')
             category = data.get('category')
+
+            logger.info(cart)
+            
             
             if not dish_name or not portion_multiplier or not cost or not selling_price:
                 return JsonResponse({'success': False, 'message': f'Please fill all the missing data'}, status=400)
@@ -1461,6 +1464,7 @@ def add_dish(request): # didn't change the name of the template, it caters for b
                         note=item.get('note'),
                         minor_raw_material=raw_material,
                         quantity=item.get('quantity'),
+                        cost=item.get('cost'),  
                     )
 
         except Exception as e:
