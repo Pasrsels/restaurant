@@ -1445,17 +1445,17 @@ def add_dish(request): # didn't change the name of the template, it caters for b
                 )
                 
                 """if category exists in meal category return else create and assign to the dish"""
-                category, _ =  MealCategory.objects.get_or_create(name=dish.name)
+                # category, _ =  MealCategory.objects.get_or_create(name=dish.name)
 
-                meal = Meal.objects.create(
-                    name=dish.name,
-                    price=dish.price,
-                    category=category,
-                    deactivate=False
-                )
+                # meal = Meal.objects.create(
+                #     name=dish.name,
+                #     price=dish.price,
+                #     category=category,
+                #     deactivate=False
+                # )
                 
-                meal.dish.set([dish])
-                meal.save()
+                # meal.dish.set([dish])
+                # meal.save()
 
                 for item in cart:
                     raw_material = Product.objects.get(name=item.get('raw_material'))
