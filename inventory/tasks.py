@@ -118,7 +118,29 @@ def inventory_task(product_id):
     
     #when done
     print('Task done')
-
+    print(product)
+    dish_filtered_product = Ingredient.objects.filter(minor_raw_material__name = product).select_related('dish', 'minor_raw_material')
+    print(dish_filtered_product)
+    dishes_changed = []
+    for items in dish_filtered_product:
+        print(items.dish.name)
+        if dishes_changed:
+            for item in dishes_changed:
+                if item['Name'] == items.dish.name:
+                    pass
+                else:
+                    print("here")
+                    dishes_changed.append({'Name': items.dish.name})
+        else:
+            dishes_changed.append({'Name': items.dish.name})
+    print(dishes_changed)
+    email = EmailMessage(
+        subject="Changed dishes",
+        body=f"The list of dishes has been updated: {[dish['Name'] for dish in dishes_changed]}",
+        from_email="noreply@example.com",
+        to=["irferfo@exam.com"],
+    )
+    email.send()
     return "Done"
 
 @shared_task(bind=True, max_retries=3)
