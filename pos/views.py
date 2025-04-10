@@ -33,6 +33,7 @@ from inventory.models import (
     Dish,
     Ingredient
 )
+from .models import Authorization
 from finance.models import SaleItem, Sale
 from permisions.permisions import (
     admin_required,
@@ -70,6 +71,16 @@ from django.contrib import messages
 @login_required
 def pos(request):
     return render(request, 'pos.html')
+
+@login_required
+def check_authorization(request):
+    try:
+        check_status = Authorization.objects.get(auth_date = datetime.date.today(), auth_granted = True)
+        if check_status:
+            return JsonResponse({'success':True}, status = 200)
+        return JsonResponse({'success':False}, status = 404)
+    except Exception as e:
+        return JsonResponse({'success':False, 'message':f"{e}"}, status = 505)
 
 @login_required
 def product_meal_json(request):
@@ -667,8 +678,10 @@ def void_authenticate(request):
 
             username = data.get("username")
             password = data.get("password")
+            save_data = data.get('save')
 
             logger.info(username)
+            logger.info(save_data)
 
             if not username or not password:
                 return JsonResponse({"success": False, "message": "Username and password are required."}, status=400)
@@ -676,9 +689,12 @@ def void_authenticate(request):
             user = User.objects.get(username=username)
 
             logger.info(user)
-
+            if save_data == "save":
+                    logger.info('saving')
+                    Authorization.objects.create(
+                        auth_granted = True
+                    )
             if user.role in ['admin', 'accountant', 'supervisor', 'manager']:
-
                 return JsonResponse({"success": True, 'role': user.role, "message": "Authentication successful.", "user_id":user.id}, status=200)
             else:
                 if not user.role:

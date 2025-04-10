@@ -31,5 +31,8 @@ urlpatterns = [
     # path('cash_up_admin_report/', adminreport, name='cash_up_admin_report'),
 
     #cashier handover
-    path('handover/', cashier_handover_shift, name='cashier_handover')
+    path('handover/', cashier_handover_shift, name='cashier_handover'),
+
+    #authorization to sell
+    path('authorize/sell/', check_authorization, name='authorizationstatus')
 ]

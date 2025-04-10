@@ -234,6 +234,44 @@
         </div>
     </div>
 
+    <!--Authorization Modal-->
+    <div class="modal fade" id="AuthorizationModal" tabindex="-1" aria-labelledby="AuthorizationModalLabel" aria-hidden="false">
+        <div class="modal-dialog bg modal-dialog-centered">
+            <div class="modal-content p-3 shadow">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="AuthorizationModalLabel">Enter Supervisors Credentials</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="" method="POST" autocomplete="off">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input 
+                            type="text" 
+                            id="s_username" 
+                            name="username" 
+                            class="form-control" 
+                            placeholder="Enter username" 
+                            autocomplete="off"
+                            required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input 
+                            type="password" 
+                            id="s_password" 
+                            name="password" 
+                            class="form-control" 
+                            placeholder="Enter password" 
+                            autocomplete="new-password"
+                            required>
+                    </div>
+                    <button id="cash_upbutton" onclick="authorization()" type="button" class="btn btn-outline-dark w-100">Authenticate</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Cashier cashupModal -->
     <div class="modal fade" id="cashiercashupModal" tabindex="-1" aria-labelledby="cashiercashupModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
@@ -418,6 +456,7 @@
         const cashupButton = document.getElementById('cashup')
         const authenticateBtn = document.getElementById('void')
         const authenticateModal = new bootstrap.Modal(document.getElementById('cashupModal'));
+        const sellAuthorizationModal = new bootstrap.Modal(document.getElementById('AuthorizationModal'));
         const search = document.getElementById('searchInput')
 
         
@@ -1328,7 +1367,7 @@
             'X-CSRFToken': getCookie('csrftoken')
         },
         body: JSON.stringify({ c_username, c_password }),
-    
+
     })
     .then(response => response.json())
     .then(data => {
@@ -1553,6 +1592,54 @@ function generateAccountantCashUp(userId) {
             }
         })
     }
+    
+    function checkAuthorization() {
+        fetch('{% url "pos:authorizationstatus" %}', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                sellAuthorizationModal.show();
+            }
+        });
+    }
+
+    const authorization = () => {
+        const username = document.querySelector('#s_username').value;
+        const password = document.querySelector('#s_password').value;
+        const save = "save";
+        
+        fetch('{% url "pos:void_authenticate" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ username, password, save}) 
+        })
+        .then(response => response.json())
+        .then(authData => {
+            if (authData.success) {
+                Swal.fire({
+                    title: 'Success!',
+                    text: 'Authentication successful!',
+                    icon: 'success',
+                }).then(() => {
+                    window.location.reload();
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Authentication unsuccessful!',
+                    icon: 'error',
+                });
+            }
+        });
+    };
 
     function generateCashUpContent(cashUpData) {
         console.log({CashUpData: cashUpData})
@@ -1906,7 +1993,7 @@ function searchItems() {
         }
     });
 }*/
-
+    checkAuthorization();
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
