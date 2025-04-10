@@ -788,8 +788,15 @@
                             text: data.message,
                             icon: "error"
                         });
-                        const chargeModal = bootstrap.Modal.getInstance(document.getElementById('chargeModal'));
-                        chargeModal.hide();
+                        //const chargeModal = bootstrap.Modal.getInstance(document.getElementById('chargeModal'));
+                        //chargeModal.hide();
+                        const modalElement = document.getElementById('chargeModal');
+                        if (modalElement) {
+                            const chargeModal = bootstrap.Modal.getInstance(modalElement);
+                            if (chargeModal) {
+                                chargeModal.hide();
+                            }
+                        }
                     }
                 })
                 .catch(error => {
