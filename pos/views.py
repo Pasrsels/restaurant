@@ -260,11 +260,19 @@ def process_sale(request):
                                     price=meal.price if meal else dish.price,
                                 )
                             if meal:
-                                deduct_current_production_plan(request, meal=meal.name, dish=None, product=None, quantity=item['quantity'])
-                                sale_item.meal=meal
+                                if staff:
+                                    deduct_current_production_plan(request, meal=meal.name, dish=None, product=None, quantity=item['quantity'], staff=True)
+                                    sale_item.meal=meal
+                                else:
+                                    deduct_current_production_plan(request, meal=meal.name, dish=None, product=None, quantity=item['quantity'], staff=None)
+                                    sale_item.meal=meal
                             elif dish:
-                                deduct_current_production_plan(request=request, meal=None, dish=dish.name, product=None, quantity=item['quantity'])
-                                sale_item.dish=dish
+                                if staff:
+                                    deduct_current_production_plan(request=request, meal=None, dish=dish.name, product=None, quantity=item['quantity'], staff=True)
+                                    sale_item.dish=dish
+                                else:
+                                    deduct_current_production_plan(request=request, meal=None, dish=dish.name, product=None, quantity=item['quantity'], staff=None)
+                                    sale_item.dish=dish
                             
                             sale_item.save()
 
@@ -287,7 +295,6 @@ def process_sale(request):
                             product.quantity -= item['quantity']
 
                             logger.info(f'finished product {product}')
-                            deduct_current_production_plan(request=request, meal=None, dish=dish.name, product=product.name, quantity=item['quantity'])
                             if staff:
                                 sale_item = SaleItem.objects.create(
                                     sale=sale,
@@ -295,6 +302,7 @@ def process_sale(request):
                                     quantity=item['quantity'],
                                     price=0.00,
                                 )
+                                deduct_current_production_plan(request=request, meal=None, dish=dish.name, product=product.name, quantity=item['quantity'], staff=True)
                             else:
                                 sale_item = SaleItem.objects.create(
                                     sale=sale,
@@ -302,7 +310,7 @@ def process_sale(request):
                                     quantity=item['quantity'],
                                     price=product.price,
                                 )
-
+                                deduct_current_production_plan(request=request, meal=None, dish=dish.name, product=product.name, quantity=item['quantity'], staff=None)
                             logger.info(f'Saved sale item: {sale_item}')
                             
                             Logs.objects.create(
@@ -378,7 +386,7 @@ def process_sale(request):
     return JsonResponse({'success': False, 'message': 'Invalid request'}, status=405)
 
 @login_required
-def deduct_current_production_plan(request, meal, dish, product, quantity):
+def deduct_current_production_plan(request, meal, dish, product, quantity, staff):
     logger.info(f"Meal: {meal}, Dish: {dish}")
 
     today_plan = Production.objects.filter(date_created=datetime.date.today(), declared=True, status=True).first()
@@ -388,34 +396,60 @@ def deduct_current_production_plan(request, meal, dish, product, quantity):
         return
 
     try:
-        if meal:
-            meal_info = Meal.objects.filter(name=meal).first()
-            if not meal_info:
-                messages.error(request, f"Meal '{meal}' not found.")
+        if not staff:
+            if meal:
+                meal_info = Meal.objects.filter(name=meal).first()
+                if not meal_info:
+                    messages.error(request, f"Meal '{meal}' not found.")
+                    return
+
+                production_item = ProductionItems.objects.get(production=today_plan, dish=meal_info.dish)
+            elif dish:
+                dish_info = Dish.objects.filter(name=dish).first()
+                if not dish_info:
+                    messages.error(request, f"Dish '{dish}' not found.")
+                    return
+
+                production_item = ProductionItems.objects.get(production=today_plan, dish=dish_info)
+            else:
+                logger.info(f"Finished Product: {product} not a part of production plan.")
                 return
 
-            production_item = ProductionItems.objects.get(production=today_plan, dish=meal_info.dish)
-        elif dish:
-            dish_info = Dish.objects.filter(name=dish).first()
-            if not dish_info:
-                messages.error(request, f"Dish '{dish}' not found.")
-                return
+            total_sold = production_item.portions_sold + quantity
+            production_item.portions_sold = total_sold
+            production_item.remaining_raw_material = production_item.portions - total_sold
+            production_item.save()
 
-            production_item = ProductionItems.objects.get(production=today_plan, dish=dish_info)
+            if production_item.remaining_raw_material < 4:
+                messages.warning(request, f"Dish '{production_item.dish.name}' is running low.")
         else:
-            logger.info(f"Finished Product: {product} not a part of production plan.")
-            return
+            if meal:
+                meal_info = Meal.objects.filter(name=meal).first()
+                if not meal_info:
+                    messages.error(request, f"Meal '{meal}' not found.")
+                    return
 
-        total_sold = production_item.portions_sold + quantity
-        production_item.portions_sold = total_sold
-        production_item.remaining_raw_material = production_item.portions - total_sold
-        production_item.save()
+                production_item = ProductionItems.objects.get(production=today_plan, dish=meal_info.dish)
+            elif dish:
+                dish_info = Dish.objects.filter(name=dish).first()
+                if not dish_info:
+                    messages.error(request, f"Dish '{dish}' not found.")
+                    return
 
-        if production_item.remaining_raw_material < 4:
-            messages.warning(request, f"Dish '{production_item.dish.name}' is running low.")
-        
+                production_item = ProductionItems.objects.get(production=today_plan, dish=dish_info)
+            else:
+                logger.info(f"Finished Product: {product} not a part of production plan.")
+                return
+
+            total_sold = production_item.portions_sold + quantity
+            production_item.portions_sold = total_sold
+            production_item.staff_portions += quantity
+            production_item.remaining_raw_material = production_item.portions - total_sold
+            production_item.save()
+
+            if production_item.remaining_raw_material < 4:
+                messages.warning(request, f"Dish '{production_item.dish.name}' is running low.")
         messages.info(request, "Working production plan found and updated.")
-    
     except ProductionItems.DoesNotExist:
         messages.error(request, "Production item not found for the given meal/dish.")
         logger.error("ProductionItems matching query does not exist.")

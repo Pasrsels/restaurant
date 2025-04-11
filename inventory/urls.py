@@ -83,6 +83,7 @@ urlpatterns = [
     path('confirm_end_of_day/', confirm_end_of_day, name='confirm_end_of_day'),
     path('end_of_day_detail/<int:e_o_d_id>/', end_of_day_detail, name='end_of_day_detail'),
     path('end_of_day_list/', end_of_day_list, name='end_of_day_list'),
+    path('end_of_day_pdf_report', end_of_day_pdf, name='end_of_day_pdf'),
     
     # reorder_lis
     path('order_list', order_list, name='order_list'),

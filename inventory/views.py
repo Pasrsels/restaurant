@@ -58,6 +58,7 @@ from . forms import (
 )
 
 from utils.supplier_best_price import best_price
+from utils.utils import render_to_pdf
 
 @login_required
 def unit_of_measurement(request):
@@ -1734,7 +1735,29 @@ def CategoryMeal(request):
             return JsonResponse(meal_filter_list, safe=False, status = 200)
     else:
         return JsonResponse({'sucess': False, 'message': 'Invalid request'}, status = 500)
-    
+
+@login_required
+def end_of_day_pdf(request):
+    if request.method == "GET":
+        today = localdate()
+
+        productions_today_qs = Production.objects.filter(date_created=today, status=True, declared=True)
+        production_items_today = ProductionItems.objects.filter(production__in=productions_today_qs)
+
+        productions_today = production_items_today.values('dish__name').annotate(
+            total_portions=Sum('portions'),
+            total_sold=Sum('portions_sold'),
+            total_staff_portions=Sum('staff_portions')
+        )
+
+        logger.info(list(productions_today))
+
+        return render_to_pdf(
+            template_src="End_of_day_pdf_report.html",
+            context_data={"productions_today": productions_today}
+        )
+
+
 @login_required
 def end_of_day_view(request):
     if request.method == 'GET':
@@ -1753,8 +1776,7 @@ def end_of_day_view(request):
             total_sold=Sum('portions_sold'),
             total_staff_portions=Sum('staff_portions')
         )
-
-        
+        logger.info(productions_today)
         # sales_data = SaleItem.objects.filter(sale__date = datetime.datetime.today())
 
 
@@ -1813,7 +1835,7 @@ def end_of_day_view(request):
        
         return render(request, 'end_of_day.html', {
             'date': today,
-            'production_today': production_data
+            'production_today': productions_today
         })
 
     

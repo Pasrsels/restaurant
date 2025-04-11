@@ -20,35 +20,39 @@
         <table class="table">
             <thead>
                 <tr>
-                    <th>Dish</th>
-                    <th>Produced Portions</th>
-                    <th>Wastage</th>
-                    <th>Leftovers</th>
-                    <th class="d-none">Total</th>
-                    <th>Actions</th>
+                    <th class="text-center">Dish</th>
+                    <th class="text-center">Auto</th>
+                    <th class="text-center">Produced Portions</th>
+                    <th class="text-center">Wastage</th>
+                    <th class="text-center">Leftovers</th>
+                    <th class="text-center">Total Sold</th>
+                    <th class="text-center">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for item in production_today %}
                     <tr>
-                        <td>{{ item.Name }}</td>
+                        <td class="text-center">{{ item.dish__name }}</td>
+                        <td class="text-center">{{ item.total_portions }}</td>
                         <td><input type="text" class="form-control"></td>
                         <td><input type="text" class="form-control"></td>
                         <td><input type="text" class="form-control"></td>
-                        <td class="action-cell" data-quantity={{ item.Quantity }} data-staff={{ item.Staff_quantity }}>{{ item.Quantity }}<button class="btn btn-outline-dark btn-sm">Submit</button></td> 
+                        <td class="text-center">{{ item.total_sold}}</td>
+                        <td class="action-cell text-center" data-quantity={{ item.Quantity }} data-staff={{ item.Staff_quantity }}>{{ item.Quantity }}<button class="btn btn-outline-dark btn-sm">Submit</button></td> 
                     </tr>
                 {% endfor %}
             </tbody>
         </table>
     </form> 
-    <div class="d-flex justify-content-end">
+    <div class="d-flex justify-content-end gap-2">
         <button class="btn btn-primary" id="confirmreport">Confirm Report</button>
-    </div>
+        <button class="btn btn-primary" onclick="pdfDownload()">Confirm PDF</button>
+    </div>    
 </div>
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-    const confirmButton = document.getElementById('confirm');
+    const confirmButton = document.getElementById('confirmreport');
 
     const submitButtons = document.querySelectorAll('.action-cell button');
     submitButtons.forEach(button => {
@@ -247,6 +251,31 @@
         });
     });
 });
+
+function pdfDownload(){
+    fetch('{% url "inventory:end_of_day_pdf"%}',{
+        method: 'GET',
+        headers:{
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            Swal.fire({
+                title: "Success",
+                text: "End of Day report confirmed!",
+                icon: "success"
+            })
+        } else {
+            Swal.fire({
+                title: "Error",
+                text: result.message || "An error occurred.",
+                icon: "error"
+            });
+        }
+    })
+}
 function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
