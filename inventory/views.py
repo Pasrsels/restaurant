@@ -59,6 +59,7 @@ from . forms import (
 
 from utils.supplier_best_price import best_price
 from utils.utils import render_to_pdf
+from permisions.permisions import admin_required
 
 @login_required
 def unit_of_measurement(request):
