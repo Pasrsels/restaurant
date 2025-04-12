@@ -42,7 +42,7 @@ def inventory_task(product_id):
         message = f"""
         Hello,
 
-        The cost of the dish '{ingr.dish.name}' has been updated.
+        The cost of the dish {ingr.dish.name} has been updated.
 
         New Cost: {ingr.dish.cost:.2f}
         Change triggered by update to ingredient: {product.name}
@@ -54,14 +54,14 @@ def inventory_task(product_id):
 
         # Get recipients configured for dish cost update notifications
         # emails = NotificationEmails.objects.filter(module=modules_list["dish_cost_update"]).values_list("email", flat=True)
-        emails = ['cassymyo@gmail.com']
+        emails = ['teddychinomona@gmail.com']
 
         if emails:
             send_email_task.delay(
                 subject=subject,
                 message=message,
                 recipient_list=emails,
-                from_email='your_from_email@example.com'  
+                from_email='admin@techcity.co.zw'  
             )
             logger.info(f"Email task queued for dish cost update: {ingr.dish.name}")
         else:
@@ -118,29 +118,29 @@ def inventory_task(product_id):
     
     #when done
     print('Task done')
-    print(product)
-    dish_filtered_product = Ingredient.objects.filter(minor_raw_material__name = product).select_related('dish', 'minor_raw_material')
-    print(dish_filtered_product)
-    dishes_changed = []
-    for items in dish_filtered_product:
-        print(items.dish.name)
-        if dishes_changed:
-            for item in dishes_changed:
-                if item['Name'] == items.dish.name:
-                    pass
-                else:
-                    print("here")
-                    dishes_changed.append({'Name': items.dish.name})
-        else:
-            dishes_changed.append({'Name': items.dish.name})
-    print(dishes_changed)
-    email = EmailMessage(
-        subject="Changed dishes",
-        body=f"The list of dishes has been updated: {[dish['Name'] for dish in dishes_changed]}",
-        from_email="noreply@example.com",
-        to=["irferfo@exam.com"],
-    )
-    email.send()
+    # print(product)
+    # dish_filtered_product = Ingredient.objects.filter(minor_raw_material__id = product_id).select_related('dish', 'minor_raw_material')
+    # print(dish_filtered_product)
+    # dishes_changed = []
+    # for items in dish_filtered_product:
+    #     print(items.dish.name)
+    #     if dishes_changed:
+    #         for item in dishes_changed:
+    #             if item['Name'] == items.dish.name:
+    #                 pass
+    #             else:
+    #                 print("here")
+    #                 dishes_changed.append({'Name': items.dish.name})
+    #     else:
+    #         dishes_changed.append({'Name': items.dish.name})
+    #     print(dishes_changed)
+    #     email = EmailMessage(
+    #         subject="Changed dishes",
+    #         body=f"The list of dishes has been updated: {items.minor_raw_material.name}",
+    #         from_email="admin@techcity.co.zw",
+    #         to=["teddychinomona@gmail.com"],
+    #     )
+    #     email.send()
     return "Done"
 
 @shared_task(bind=True, max_retries=3)
@@ -149,7 +149,7 @@ def send_email_task(self, subject, message, recipient_list, from_email=None):
     A separate task for sending emails with retry logic
     """
     try:
-        send_mail(
+        email =send_mail(
             subject=subject,
             message=message,
             from_email=from_email,

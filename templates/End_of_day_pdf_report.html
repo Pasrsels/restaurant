@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: Arial, sans-serif;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            text-align: left;  /* This aligns content from left to right */
+            padding: 8px;
+        }
+
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        tr:hover {
+            background-color: #eaeaea;
+        }
+    </style>
+</head>
+<body>
+
+<h2>End of Day Production Report</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Dish</th>
+      <th>Total Portions</th>
+      <th>Sold</th>
+      <th>Staff</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in productions_today %}
+      <tr>
+        <td>{{ item.dish__name }}</td>
+        <td>{{ item.total_portions }}</td>
+        <td>{{ item.total_sold }}</td>
+        <td>{{ item.total_staff_portions }}</td>
+      </tr>
+    {% empty %}
+      <tr>
+        <td colspan="4">No data for today.</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+</body>
+</html>
