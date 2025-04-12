@@ -58,6 +58,7 @@ from . forms import (
 )
 
 from utils.supplier_best_price import best_price
+from permisions.permisions import admin_required
 
 @login_required
 def unit_of_measurement(request):
@@ -105,7 +106,7 @@ def products(request):
         }
     )
     
-
+@admin_required
 @login_required
 def inventory(request):
     product_name = request.GET.get('name', '')
