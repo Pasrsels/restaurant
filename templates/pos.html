@@ -235,12 +235,12 @@
     </div>
 
     <!--Authorization Modal-->
-    <div class="modal fade" id="AuthorizationModal" tabindex="-1" aria-labelledby="AuthorizationModalLabel" aria-hidden="false">
+    <div class="modal fade" id="AuthorizationModal" tabindex="-1" aria-labelledby="AuthorizationModalLabel" aria-hidden="false" data-bs-backdrop="static" data-bs-keyboard="false">
         <div class="modal-dialog bg modal-dialog-centered">
             <div class="modal-content p-3 shadow">
                 <div class="modal-header">
                     <h5 class="modal-title" id="AuthorizationModalLabel">Enter Supervisors Credentials</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <!--<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>-->
                 </div>
                 <form action="" method="POST" autocomplete="off">
                     {% csrf_token %}

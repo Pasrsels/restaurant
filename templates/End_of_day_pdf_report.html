@@ -10,7 +10,7 @@
 
         th, td {
             border: 1px solid #ddd;
-            text-align: left;  /* This aligns content from left to right */
+            text-align: left;
             padding: 8px;
         }
 
@@ -39,19 +39,25 @@
       <th>Total Portions</th>
       <th>Sold</th>
       <th>Staff</th>
+      <th>Wastage</th>
+      <th>Leftovers</th>
+      <th>Expected</th>
     </tr>
   </thead>
   <tbody>
     {% for item in productions_today %}
       <tr>
-        <td>{{ item.dish__name }}</td>
-        <td>{{ item.total_portions }}</td>
-        <td>{{ item.total_sold }}</td>
-        <td>{{ item.total_staff_portions }}</td>
+        <td>{{ item.Name }}</td>
+        <td>{{ item.Total_Portions }}</td>
+        <td>{{ item.Sold }}</td>
+        <td>{{ item.Staff_Portions }}</td>
+        <td>{{ item.Wastage }}</td>
+        <td>{{ item.Leftovers }}</td>
+        <td>{{ item.Expected }}</td>
       </tr>
     {% empty %}
       <tr>
-        <td colspan="4">No data for today.</td>
+        <td colspan="7">No data for today.</td>
       </tr>
     {% endfor %}
   </tbody>

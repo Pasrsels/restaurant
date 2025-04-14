@@ -33,7 +33,7 @@ from inventory.models import (
     Dish,
     Ingredient
 )
-from .models import Authorization
+from .models import SaleAuthorization
 from finance.models import SaleItem, Sale
 from permisions.permisions import (
     admin_required,
@@ -75,7 +75,7 @@ def pos(request):
 @login_required
 def check_authorization(request):
     try:
-        check_status = Authorization.objects.get(auth_date = datetime.date.today(), auth_granted = True)
+        check_status = SaleAuthorization.objects.get(auth_date = datetime.date.today(), auth_granted = True)
         if check_status:
             return JsonResponse({'success':True}, status = 200)
         return JsonResponse({'success':False}, status = 404)
@@ -161,7 +161,7 @@ def create_client_change(client_data, receipt_number, cashier, sale):
 def process_sale(request):
     if request.method == 'POST':
         try:
-            check_status = Authorization.objects.get(auth_date = datetime.date.today(), auth_granted = True)
+            check_status = SaleAuthorization.objects.get(auth_date = datetime.date.today(), auth_granted = True)
             today_plan = Production.objects.filter(date_created=datetime.date.today(), declared=True, status=True).first()
             if check_status and today_plan:
                 data = json.loads(request.body)
@@ -379,7 +379,7 @@ def process_sale(request):
                     return JsonResponse({'success': True, 'data': data}, status=201)
             if not today_plan:
                 messages.warning(request, "Currently no production plan")
-            return JsonResponse({'success': False, 'message': 'Authorization required or Production Plan Required'})
+            return JsonResponse({'success': False, 'message': 'Production Plan Required'})
         except Exception as e:
             logger.error(f'Error processing sale: {str(e)}')
             return JsonResponse({'success': False, 'message': str(e)}, status=400)
@@ -731,7 +731,7 @@ def void_authenticate(request):
             logger.info(user)
             if save_data == "save":
                     logger.info('saving')
-                    Authorization.objects.create(
+                    SaleAuthorization.objects.create(
                         auth_granted = True
                     )
             if user.role in ['admin', 'accountant', 'supervisor', 'manager']:
