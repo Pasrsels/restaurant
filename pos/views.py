@@ -387,72 +387,92 @@ def process_sale(request):
 
 @login_required
 def deduct_current_production_plan(request, meal, dish, product, quantity, staff):
-    logger.info(f"Meal: {meal}, Dish: {dish}")
+    logger.info(f"Deduction request — Meal: {meal}, Dish: {dish}, Product: {product}, Quantity: {quantity}, Staff: {staff}")
 
-    today_plan = Production.objects.filter(date_created=datetime.date.today(), declared=True, status=True).first()
+    today_plans = Production.objects.filter(
+        date_created=datetime.date.today(), declared=True, status=True
+    ).order_by('time_created')
 
-    if not today_plan:
-        messages.warning(request, "Currently no production plan for today. Stop selling.")
+    if not today_plans.exists():
+        messages.warning(request, "No production plans available for today. Please declare one.")
         return
 
-    try:
-        if not staff:
-            if meal:
-                meal_info = Meal.objects.filter(name=meal).first()
-                if not meal_info:
-                    messages.error(request, f"Meal '{meal}' not found.")
-                    return
+    deduction_successful = False
 
-                production_item = ProductionItems.objects.get(production=today_plan, dish=meal_info.dish)
-            elif dish:
-                dish_info = Dish.objects.filter(name=dish).first()
-                if not dish_info:
-                    messages.error(request, f"Dish '{dish}' not found.")
-                    return
+    if meal:
+        try:
+            meal_info = Meal.objects.get(name=meal)
+            dishes = meal_info.dish.all()
 
-                production_item = ProductionItems.objects.get(production=today_plan, dish=dish_info)
-            else:
-                logger.info(f"Finished Product: {product} not a part of production plan.")
+            if not dishes.exists():
+                messages.error(request, f"Meal '{meal}' has no associated dishes.")
+                logger.warning(f"Meal '{meal}' has no dishes linked.")
                 return
 
-            total_sold = production_item.portions_sold + quantity
-            production_item.portions_sold = total_sold
-            production_item.remaining_raw_material = production_item.portions - total_sold
-            production_item.save()
+            for dish_obj in dishes:
+                for plan in today_plans:
+                    try:
+                        production_item = ProductionItems.objects.get(production=plan, dish=dish_obj)
 
-            if production_item.remaining_raw_material < 4:
-                messages.warning(request, f"Dish '{production_item.dish.name}' is running low.")
-        else:
-            if meal:
-                meal_info = Meal.objects.filter(name=meal).first()
-                if not meal_info:
-                    messages.error(request, f"Meal '{meal}' not found.")
-                    return
+                        production_item.portions_sold += quantity
+                        if staff:
+                            production_item.staff_portions += quantity
+                        production_item.remaining_raw_material = production_item.portions - production_item.portions_sold
+                        production_item.save()
 
-                production_item = ProductionItems.objects.get(production=today_plan, dish=meal_info.dish)
-            elif dish:
-                dish_info = Dish.objects.filter(name=dish).first()
-                if not dish_info:
-                    messages.error(request, f"Dish '{dish}' not found.")
-                    return
+                        logger.info(f"Deducted {quantity} from production plan {plan.id} for dish '{dish_obj.name}' (from meal '{meal}').")
 
-                production_item = ProductionItems.objects.get(production=today_plan, dish=dish_info)
-            else:
-                logger.info(f"Finished Product: {product} not a part of production plan.")
-                return
+                        if production_item.remaining_raw_material < 4:
+                            messages.warning(request, f"Dish '{dish_obj.name}' is running low (less than 4 remaining).")
 
-            total_sold = production_item.portions_sold + quantity
-            production_item.portions_sold = total_sold
-            production_item.staff_portions += quantity
-            production_item.remaining_raw_material = production_item.portions - total_sold
-            production_item.save()
+                        messages.info(request, f"Production plan '{plan.id}' updated successfully.")
+                        deduction_successful = True
+                        break  # Break the plan loop after deduction for this dish
+                    except ProductionItems.DoesNotExist:
+                        logger.info(f"Dish '{dish_obj.name}' not found in production plan {plan.id}. Trying next plan.")
+                        continue
+        except Meal.DoesNotExist:
+            messages.error(request, f"Meal '{meal}' not found in the system.")
+            logger.warning(f"Meal '{meal}' does not exist.")
+            return
+    elif dish:
+        try:
+            dish_info = Dish.objects.get(name=dish)
 
-            if production_item.remaining_raw_material < 4:
-                messages.warning(request, f"Dish '{production_item.dish.name}' is running low.")
-        messages.info(request, "Working production plan found and updated.")
-    except ProductionItems.DoesNotExist:
-        messages.error(request, "Production item not found for the given meal/dish.")
-        logger.error("ProductionItems matching query does not exist.")
+            for plan in today_plans:
+                try:
+                    production_item = ProductionItems.objects.get(production=plan, dish=dish_info)
+
+                    production_item.portions_sold += quantity
+                    if staff:
+                        production_item.staff_portions += quantity
+                    production_item.remaining_raw_material = production_item.portions - production_item.portions_sold
+                    production_item.save()
+
+                    logger.info(f"Deducted {quantity} from production plan {plan.id} for dish '{dish_info.name}'.")
+
+                    if production_item.remaining_raw_material < 4:
+                        messages.warning(request, f"Dish '{dish_info.name}' is running low (less than 4 remaining).")
+
+                    messages.info(request, f"Production plan '{plan.id}' updated successfully.")
+                    deduction_successful = True
+                    break  # Break the plan loop after deduction for this dish
+                except ProductionItems.DoesNotExist:
+                    logger.info(f"Dish '{dish_info.name}' not found in production plan {plan.id}. Trying next plan.")
+                    continue
+
+        except Dish.DoesNotExist:
+            messages.error(request, f"Dish '{dish}' not found in the system.")
+            logger.warning(f"Dish '{dish}' does not exist.")
+            return
+
+    else:
+        logger.info(f"Finished product '{product}' does not require deduction from production plans.")
+        return
+
+    if not deduction_successful:
+        messages.error(request, f"No valid production plan contains the meal or dish '{meal or dish}'. Deduction failed.")
+        logger.error("Deduction failed: No matching production item found.")
 
 @login_required
 def change_list(request):
