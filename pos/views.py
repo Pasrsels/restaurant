@@ -738,9 +738,9 @@ def void_authenticate(request):
                 return JsonResponse({"success": True, 'role': user.role, "message": "Authentication successful.", "user_id":user.id}, status=200)
             else:
                 if not user.role:
-                    return JsonResponse({"success": True, "message": "Invalid username and password ."}, status=401)
+                    return JsonResponse({"success": False, "message": "Invalid username and password ."}, status=401)
                 else:
-                    return JsonResponse({"success": True, 'role': user.role, "message": "Invalid role."}, status=200)
+                    return JsonResponse({"success": False, 'role': user.role, "message": "Invalid role."}, status=208)
 
         except Exception as e:
             return JsonResponse({"success": False, "message": f"An error occurred: {str(e)}"}, status=500)
