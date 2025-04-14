@@ -734,10 +734,12 @@ def void_authenticate(request):
                     SaleAuthorization.objects.create(
                         auth_granted = True
                     )
-            if user.role in ['admin', 'accountant', 'supervisor', 'manager']:
+            if user.role in ['admin', 'accountant', 'supervisor', 'manager', 'owner']:
+                logger.info(user.role)
                 return JsonResponse({"success": True, 'role': user.role, "message": "Authentication successful.", "user_id":user.id}, status=200)
             else:
                 if not user.role:
+                    logger.info(user.role)
                     return JsonResponse({"success": False, "message": "Invalid username and password ."}, status=401)
                 else:
                     return JsonResponse({"success": False, 'role': user.role, "message": "Invalid role."}, status=208)
