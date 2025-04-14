@@ -26,8 +26,8 @@ class SalesAccessMiddleware:
 
             if not self.is_sales_personnel(request.user):
                 messages.error(request, "This area is restricted to sales personnel only.")
-                return redirect('home') 
-
+                return redirect('users:login')
+ 
         return self.get_response(request)
     
     def is_sales_personnel(self, user):
