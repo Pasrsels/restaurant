@@ -78,7 +78,8 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',
     
     # custom
-    'users.middleware.CompanySetupMiddleware'
+    'users.middleware.CompanySetupMiddleware',
+    'middleware.sales_middleware.SalesAccessMiddleware',
 ]
 
 ROOT_URLCONF = 'restaurant.urls'

@@ -19,6 +19,7 @@ from . tasks import send_expense_creation_notification
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from inventory.models import Logs
+from permisions.permisions import admin_required
 
 def get_previous_month():
     first_day_of_current_month = datetime.datetime.now().replace(day=1)
@@ -32,7 +33,7 @@ def get_current_year():
     return datetime.datetime.now().year
 
 
-# @login_required
+@login_required
 def sale(request):
     sales = Sale.objects.all()
     return render(request, 'finance/sales.html', 
@@ -41,8 +42,8 @@ def sale(request):
         }    
     )
  
- 
-# @login_required   
+@admin_required
+@login_required   
 def finance(request):
     sales = Sale.objects.filter(date__month = get_current_month(), void=False).order_by('-date')[:8]
     expenses = Expense.objects.filter(date__month = get_current_month()).order_by('-date')[:8]
@@ -71,7 +72,7 @@ def get_expense(request, expense_id):
     return JsonResponse({'success': True, 'data': data})
 
 
-
+@admin_required
 @transaction.atomic #use with atomic
 @login_required
 def expenses(request):
@@ -204,7 +205,7 @@ def expenses(request):
         except Exception as e:
             return JsonResponse({'success': False, 'message': str(e)}, status=400)
 
-
+@admin_required
 @login_required      
 def add_or_edit_expense(request):
     if request.method == 'POST':
