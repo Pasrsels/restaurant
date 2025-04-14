@@ -26,6 +26,7 @@
                     <th class="text-center">Wastage</th>
                     <th class="text-center">Leftovers</th>
                     <th class="text-center">Total Sold</th>
+                    -<th class="text-center">Total Staff</th>
                     <th class="text-center">Actions</th>
                 </tr>
             </thead>
@@ -38,7 +39,8 @@
                         <td><input type="text" class="form-control"></td>
                         <td><input type="text" class="form-control"></td>
                         <td class="text-center">{{ item.total_sold}}</td>
-                        <td class="action-cell text-center" data-quantity={{ item.Quantity }} data-staff={{ item.Staff_quantity }}>{{ item.Quantity }}<button class="btn btn-outline-dark btn-sm">Submit</button></td> 
+                        <td class="text-center">{{ item.total_staff_portions}}</td>
+                        <td class="action-cell text-center" data-quantity={{ item.total_sold }} data-staff={{ item.total_staff_portions }}>{{ item.Quantity }}<button class="btn btn-outline-dark btn-sm">Submit</button></td> 
                     </tr>
                 {% endfor %}
             </tbody>
@@ -82,12 +84,13 @@
             }
 
             const dishName = row.querySelector('td:first-child').innerText;
-            const totalPortions = parseInt(row.querySelector('td:nth-child(2) input').value);
-            const wastage = parseInt(row.querySelector('td:nth-child(3) input').value);
-            const leftovers = parseInt(row.querySelector('td:nth-child(4) input').value);
+            const totalPortions = parseInt(row.querySelector('td:nth-child(3) input').value);
+            const wastage = parseInt(row.querySelector('td:nth-child(4) input').value);
+            const leftovers = parseInt(row.querySelector('td:nth-child(5) input').value);
             const soldPortions = parseInt(row.querySelector('.action-cell').dataset.quantity);
             const staffPortions = parseInt(row.querySelector('.action-cell').dataset.staff);
 
+            
             console.log(soldPortions)
 
             const data = {
@@ -275,6 +278,15 @@ function pdfDownload(){
             });
         }
     })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            title: "Error",
+            text: "An error occurred while confirming the report.",
+            icon: "error"
+        });
+        window.location.reload();
+    });
 }
 function getCookie(name) {
     let cookieValue = null;

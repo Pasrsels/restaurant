@@ -1741,20 +1741,34 @@ def end_of_day_pdf(request):
     if request.method == "GET":
         today = localdate()
 
-        productions_today_qs = Production.objects.filter(date_created=today, status=True, declared=True)
-        production_items_today = ProductionItems.objects.filter(production__in=productions_today_qs)
+        e_o_d = EndOfDay.objects.filter(date=today, done=True).first()
 
-        productions_today = production_items_today.values('dish__name').annotate(
-            total_portions=Sum('portions'),
-            total_sold=Sum('portions_sold'),
-            total_staff_portions=Sum('staff_portions')
-        )
+        if not e_o_d:
+            messages.warning(request,'No end of day completed')
+            return HttpResponse("No completed End Of Day report for today.", status=404)
 
-        logger.info(list(productions_today))
+        e_o_d_items = EndOfDayItems.objects.filter(end_of_day=e_o_d)
+
+        logger.info(list(e_o_d_items))
+
+        e_o_d_items_list = [
+            {
+                'Name': item.dish_name,
+                'Total_Portions': item.total_portions,
+                'Sold': item.total_sold,
+                'Staff_Portions': item.staff_portions,
+                'Wastage': item.wastage,
+                'Leftovers': item.leftovers,
+                'Expected': item.expected
+            }
+            for item in e_o_d_items
+        ]
+
+        logger.info(e_o_d_items_list)
 
         return render_to_pdf(
             template_src="End_of_day_pdf_report.html",
-            context_data={"productions_today": productions_today}
+            context_data={"productions_today": e_o_d_items_list}
         )
 
 
