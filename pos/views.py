@@ -92,7 +92,7 @@ def product_meal_json(request):
 
         meal_data = [
             {
-                'image': meal.image.url.replace('/media/', '', 1),
+                # 'image': meal.image.url.replace('/media/', '', 1),
                 'name':meal.name,
                 'price':meal.price,
                 'category':meal.category.name,
@@ -427,7 +427,7 @@ def deduct_current_production_plan(request, meal, dish, product, quantity, staff
 
                         messages.info(request, f"Production plan '{plan.id}' updated successfully.")
                         deduction_successful = True
-                        break  # Break the plan loop after deduction for this dish
+                        break
                     except ProductionItems.DoesNotExist:
                         logger.info(f"Dish '{dish_obj.name}' not found in production plan {plan.id}. Trying next plan.")
                         continue
@@ -456,7 +456,7 @@ def deduct_current_production_plan(request, meal, dish, product, quantity, staff
 
                     messages.info(request, f"Production plan '{plan.id}' updated successfully.")
                     deduction_successful = True
-                    break  # Break the plan loop after deduction for this dish
+                    break
                 except ProductionItems.DoesNotExist:
                     logger.info(f"Dish '{dish_info.name}' not found in production plan {plan.id}. Trying next plan.")
                     continue
@@ -782,7 +782,6 @@ def cash_up(request, cashier_id):
         void_sales_dict = {}
 
         for items in sales_items:
-            # Handle different item types (Dish, Product, Meal)
             if items.dish:
                 name = [ {'Name': items.dish.name, 'Price': items.dish.price} ]
             elif items.product:
@@ -793,11 +792,10 @@ def cash_up(request, cashier_id):
                 name = None
 
             if name:
-                for item in name:  # Loop through dishes if it's a meal
+                for item in name: 
                     dish_name = item['Name']
                     dish_price = item['Price']
 
-                    # Handle Normal Sales (Non-void, Non-staff)
                     if not items.sale.void and not items.sale.staff:
                         if dish_name in sales_dict:
                             sales_dict[dish_name]['Quantity'] += items.quantity
@@ -809,8 +807,6 @@ def cash_up(request, cashier_id):
                                 'Price': dish_price,
                                 'Total': items.quantity * dish_price
                             }
-
-                    # 🔹 Handle Staff Meals
                     elif items.sale.staff:
                         if dish_name in staff_meals_dict:
                             staff_meals_dict[dish_name]['Quantity'] += items.quantity
@@ -822,8 +818,6 @@ def cash_up(request, cashier_id):
                                 'Price': dish_price,
                                 'Total': items.quantity * dish_price
                             }
-
-                    # 🔹 Handle Void Sales
                     elif items.sale.void:
                         if dish_name in void_sales_dict:
                             void_sales_dict[dish_name]['Quantity'] += items.quantity
@@ -835,8 +829,6 @@ def cash_up(request, cashier_id):
                                 'Price': dish_price,
                                 'Total': items.quantity * dish_price
                             }
-
-        # Convert dictionaries to lists for JSON response
         sales_portions_list = list(sales_dict.values())
         staff_meals_portions_list = list(staff_meals_dict.values())
         void_sales_portions_list = list(void_sales_dict.values())

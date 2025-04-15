@@ -22,7 +22,8 @@ class SalesAccessMiddleware:
         if is_sales_only_url:
             if not request.user.is_authenticated:
                 messages.error(request, "Please log in to access this area.")
-                return redirect(f"{reverse('login')}?next={request.path}")
+                # return redirect(f"{reverse('login')}?next={request.path}")
+                return redirect('users:login')
 
             if not self.is_sales_personnel(request.user):
                 messages.error(request, "This area is restricted to sales personnel only.")

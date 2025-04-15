@@ -116,20 +116,20 @@ DATABASES = {
     # 'default': dj_database_url.config(
     #     default='postgresql://postgres:bsgtOvAIFbBQgIcHLvlUFlvIiAiapbHm@autorack.proxy.rlwy.net:44818/railway'
     # )
-    # 'default': {
-    #     'ENGINE': 'django.db.backends.postgresql',
-    #     'NAME': 'urban_eats',  
-    #     'USER': 'postgres',
-    #     'PASSWORD': 'neverfail',
-    #     'PORT': '5432',
-    # }
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'test',  
+        'NAME': 'urban-eats',  
         'USER': 'postgres',
         'PASSWORD': 'neverfail',
         'PORT': '5432',
     }
+    # 'default': {
+    #     'ENGINE': 'django.db.backends.postgresql',
+    #     'NAME': 'test',  
+    #     'USER': 'postgres',
+    #     'PASSWORD': 'neverfail',
+    #     'PORT': '5432',
+    # }
 }
 
 AUTH_USER_MODEL = 'users.User'
