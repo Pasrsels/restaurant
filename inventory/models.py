@@ -55,6 +55,7 @@ class Product(models.Model):
     
     def __str__(self) -> str:
         return self.name
+    
 class ProductionRawMaterials(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.FloatField()
@@ -143,6 +144,7 @@ class Dish(models.Model):
         ('Salad', 'Salad')
     ])
     dish = models.BooleanField(default=True)
+    image = models.ImageField(upload_to='meal_images/', default='placeholder.png', null=True)
 
     def __str__(self) -> str:
         return self.name
@@ -151,7 +153,7 @@ class Ingredient(models.Model):
     dish = models.ForeignKey(Dish, on_delete=models.CASCADE, null=True)
     note = models.CharField(max_length=100, null=True)
     quantity = models.FloatField()
-    raw_material = models.CharField(null=True)
+    cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     minor_raw_material = models.ForeignKey(Product, on_delete=models.CASCADE, null=True)
 
     def __str__(self) -> str:        

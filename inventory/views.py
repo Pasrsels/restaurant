@@ -25,7 +25,7 @@ from django.core.mail import EmailMessage
 from finance.models import COGS
 from datetime import timedelta
 import datetime
-
+from .tasks import inventory_task
 from finance.models import (
     Sale,
     SaleItem,
@@ -58,6 +58,8 @@ from . forms import (
 )
 
 from utils.supplier_best_price import best_price
+from utils.utils import render_to_pdf
+from permisions.permisions import admin_required
 
 @login_required
 def unit_of_measurement(request):
@@ -105,7 +107,7 @@ def products(request):
         }
     )
     
-
+@admin_required
 @login_required
 def inventory(request):
     product_name = request.GET.get('name', '')
@@ -630,11 +632,15 @@ def process_received_order(request):
              
             purchase_order = order_item.purchase_order
             product = order_item.product
+            
+            average_cost = Decimal(((Decimal(product.cost) * Decimal(product.quantity)) + (Decimal(order_item.unit_cost) * Decimal(quantity)))) / Decimal((quantity + product.quantity))
 
             product.quantity += quantity
-            product.cost = order_item.unit_cost
+            product.cost = average_cost
             product.save()
 
+            inventory_task.delay(product.id)
+     
             Logs.objects.create(
                 purchase_order=purchase_order,
                 user=request.user, 
@@ -647,7 +653,7 @@ def process_received_order(request):
 
             order_item.receive_items(quantity)
             order_item.check_received()
-
+            
             return JsonResponse({'success': True, 'message': 'Inventory updated successfully'}, status=200)
 
         except json.JSONDecodeError:
@@ -710,7 +716,7 @@ def create_production_plan(request):
             if dish is None:
                 return JsonResponse({'success': False, 'message': f'Dish {dish_name} does not exist'}, status=404)
 
-            ingredients = Ingredient.objects.filter(dish=dish).select_related('raw_material')
+            ingredients = Ingredient.objects.filter(dish=dish).select_related('minor_raw_material')
 
             # Add production item to the list for bulk creation
             production_items.append(ProductionItems(
@@ -723,7 +729,7 @@ def create_production_plan(request):
 
             # Collect raw materials for checklist creation
             for ingredient in ingredients:
-                raw_materials_to_checklist.add(ingredient.raw_material)
+                raw_materials_to_checklist.add(ingredient.minor_raw_material)
 
         # Bulk create production items to reduce the number of queries
         ProductionItems.objects.bulk_create(production_items)
@@ -765,9 +771,9 @@ def dish_json_detail(request):
             if dish == ingredient.dish:
                 ingredients.append(
                 {
-                    'name' : f'{ingredient.raw_material}',
+                    'name' : f'{ingredient.minor_raw_material}',
                     'quantity':ingredient.quantity,
-                    'cost': ingredient.raw_material.cost
+                    'cost': ingredient.minor_raw_material.cost
                 }
             )
         
@@ -989,18 +995,18 @@ def confirm_production_plan(request, pp_id):
                 for ing in Ingredient.objects.filter(dish=item.dish):
                    
                     p_r_m_bf, created = ProductionRawMaterials.objects.get_or_create(
-                        product=ing.raw_material,
+                        product=ing.minor_raw_material,
                         defaults={'quantity': 0}
                     )
 
                     required_quantity = ing.quantity * (item.portions / item.dish.portion_multiplier)
 
-                    production_inventory = ProductionRawMaterials.objects.filter(product=ing.raw_material).first()
+                    production_inventory = ProductionRawMaterials.objects.filter(product=ing.minor_raw_material).first()
                     current_quantity = production_inventory.quantity if production_inventory else 0
 
                     expected_quantity = required_quantity - current_quantity
 
-                    raw_material_found = next((rm for rm in raw_materials if rm['id'] == ing.raw_material.id), None)
+                    raw_material_found = next((rm for rm in raw_materials if rm['id'] == ing.minor_raw_material.id), None)
                     
                     if raw_material_found:
                         raw_material_found['quantity'] += required_quantity
@@ -1009,8 +1015,8 @@ def confirm_production_plan(request, pp_id):
                     else:
                         raw_materials.append(
                             {
-                                'id': ing.raw_material.id,
-                                'name': ing.raw_material.name,
+                                'id': ing.minor_raw_material.id,
+                                'name': ing.minor_raw_material.name,
                                 'quantity_b_f': float(current_quantity),
                                 'quantity': float(required_quantity),
                                 'expected_quantity': float(expected_quantity),
@@ -1105,7 +1111,7 @@ def declare_production_plan(request, pp_id):
                 for ing in Ingredient.objects.filter(dish=item.dish):
                     
                     p_r_m_bf, created = ProductionRawMaterials.objects.get_or_create(
-                        product=ing.raw_material,
+                        product=ing.minor_raw_material,
                         defaults={
                             'quantity': 0
                         } 
@@ -1113,7 +1119,7 @@ def declare_production_plan(request, pp_id):
                     
                     quantity = ing.quantity * (item.portions / item.dish.portion_multiplier)
                     
-                    raw_material_found = next((rm for rm in raw_materials if rm['id'] == ing.raw_material.id), None)
+                    raw_material_found = next((rm for rm in raw_materials if rm['id'] == ing.minor_raw_material.id), None)
                     
                     if raw_material_found:
                         
@@ -1122,8 +1128,8 @@ def declare_production_plan(request, pp_id):
                         
                         raw_materials.append(
                             {
-                                'id': ing.raw_material.id,
-                                'name': ing.raw_material.name,
+                                'id': ing.minor_raw_material.id,
+                                'name': ing.minor_raw_material.name,
                                 'quantity': float(quantity),
                             }
                         )
@@ -1415,6 +1421,7 @@ def add_dish(request): # didn't change the name of the template, it caters for b
         
         try:
             data = json.loads(request.body)
+            logger.info(data)
             cart = data.get('cart')
         
             dish_name = data.get('name')
@@ -1423,6 +1430,9 @@ def add_dish(request): # didn't change the name of the template, it caters for b
             selling_price = data.get('selling_price')
             category = data.get('category')
 
+            logger.info(cart)
+            
+            
             if not dish_name or not portion_multiplier or not cost or not selling_price:
                 return JsonResponse({'success': False, 'message': f'Please fill all the missing data'}, status=400)
             
@@ -1433,21 +1443,21 @@ def add_dish(request): # didn't change the name of the template, it caters for b
                     name = dish_name,
                     portion_multiplier = portion_multiplier,
                     price = selling_price,
-                    category=category
+                    category=category,
                 )
                 
                 """if category exists in meal category return else create and assign to the dish"""
-                category, _ =  MealCategory.objects.get_or_create(name=dish.name)
+                # category, _ =  MealCategory.objects.get_or_create(name=dish.name)
 
-                meal = Meal.objects.create(
-                    name=dish.name,
-                    price=dish.price,
-                    category=category,
-                    deactivate=False
-                )
+                # meal = Meal.objects.create(
+                #     name=dish.name,
+                #     price=dish.price,
+                #     category=category,
+                #     deactivate=False
+                # )
                 
-                meal.dish.set([dish])
-                meal.save()
+                # meal.dish.set([dish])
+                # meal.save()
 
                 for item in cart:
                     raw_material = Product.objects.get(name=item.get('raw_material'))
@@ -1456,6 +1466,7 @@ def add_dish(request): # didn't change the name of the template, it caters for b
                         note=item.get('note'),
                         minor_raw_material=raw_material,
                         quantity=item.get('quantity'),
+                        cost=item.get('cost'),  
                     )
 
         except Exception as e:
@@ -1524,8 +1535,8 @@ def get_dish_data(request, dish_id):
         ingredients =Ingredient.objects.filter(dish__id = dish_id).values(
             'note',
             'quantity',
-            'raw_material__name',
-            'raw_material__cost'
+            'minor_raw_material__name',
+            'minor_raw_material__cost'
         )
 
         return JsonResponse({'success':True, 'dish':list(dish), 'ingridients':list(ingredients)})
@@ -1572,7 +1583,7 @@ def edit_dish(request, dish_id):
             dish.price = selling_price
             dish.category = dish.category
             existing_ingredients = Ingredient.objects.filter(dish=dish)
-            existing_ingredient_names = {ing.raw_material.name for ing in existing_ingredients}
+            existing_ingredient_names = {ing.minor_raw_material.name for ing in existing_ingredients}
             raw_material_map = {rm.name: rm for rm in Product.objects.all()}
 
             ingredient_updates = []
@@ -1586,7 +1597,7 @@ def edit_dish(request, dish_id):
                     return JsonResponse({'success': False, 'message': f'Raw material "{raw_material_name}" not found.'})
 
                 if raw_material_name in existing_ingredient_names:
-                    ing = next(ing for ing in existing_ingredients if ing.raw_material.name == raw_material_name)
+                    ing = next(ing for ing in existing_ingredients if ing.minor_raw_material.name == raw_material_name)
                     ing.quantity = item['quantity']
                     ing.note = item['note']
                     ingredient_updates.append(ing)
@@ -1595,7 +1606,7 @@ def edit_dish(request, dish_id):
                 else:
                     ingr = Ingredient.objects.create(
                         dish=dish,
-                        raw_material=raw_material,
+                        minor_raw_material=raw_material,
                         quantity=item['quantity'],
                         note=item['note'],
                     )
@@ -1623,7 +1634,7 @@ def edit_dish(request, dish_id):
 def edit_meal(request, meal_id):
     meal = get_object_or_404(Meal, id=meal_id)
     if request.method == 'POST':
-        form = MealForm(request.POST, instance=meal)
+        form = MealForm(request.POST, request.FILES, instance=meal)
         if form.is_valid():
             name = form.cleaned_data['name']
             price = form.cleaned_data['price']
@@ -1634,6 +1645,7 @@ def edit_meal(request, meal_id):
                 return redirect('inventory:add_meal')
             
             form.save()
+            logger.info('saved')
             return redirect('inventory:meal_list')  
     else:
         form = MealForm(instance=meal)
@@ -1724,7 +1736,43 @@ def CategoryMeal(request):
             return JsonResponse(meal_filter_list, safe=False, status = 200)
     else:
         return JsonResponse({'sucess': False, 'message': 'Invalid request'}, status = 500)
-    
+
+@login_required
+def end_of_day_pdf(request):
+    if request.method == "GET":
+        today = localdate()
+
+        e_o_d = EndOfDay.objects.filter(date=today, done=True).first()
+
+        if not e_o_d:
+            messages.warning(request,'No end of day completed')
+            return HttpResponse("No completed End Of Day report for today.", status=404)
+
+        e_o_d_items = EndOfDayItems.objects.filter(end_of_day=e_o_d)
+
+        logger.info(list(e_o_d_items))
+
+        e_o_d_items_list = [
+            {
+                'Name': item.dish_name,
+                'Total_Portions': item.total_portions,
+                'Sold': item.total_sold,
+                'Staff_Portions': item.staff_portions,
+                'Wastage': item.wastage,
+                'Leftovers': item.leftovers,
+                'Expected': item.expected
+            }
+            for item in e_o_d_items
+        ]
+
+        logger.info(e_o_d_items_list)
+
+        return render_to_pdf(
+            template_src="End_of_day_pdf_report.html",
+            context_data={"productions_today": e_o_d_items_list}
+        )
+
+
 @login_required
 def end_of_day_view(request):
     if request.method == 'GET':
@@ -1743,8 +1791,7 @@ def end_of_day_view(request):
             total_sold=Sum('portions_sold'),
             total_staff_portions=Sum('staff_portions')
         )
-
-        
+        logger.info(productions_today)
         # sales_data = SaleItem.objects.filter(sale__date = datetime.datetime.today())
 
 
@@ -1803,7 +1850,7 @@ def end_of_day_view(request):
        
         return render(request, 'end_of_day.html', {
             'date': today,
-            'production_today': production_data
+            'production_today': productions_today
         })
 
     

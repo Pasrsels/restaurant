@@ -3,7 +3,7 @@ import asyncio
 import tempfile
 import subprocess
 from django.http import JsonResponse
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from inventory.models import Meal, Production, ProductionItems, Product, Logs
 from loguru import logger
 import json, datetime
@@ -30,8 +30,10 @@ from inventory.models import (
     Production, 
     Product, 
     Logs, 
-    Dish
+    Dish,
+    Ingredient
 )
+from .models import SaleAuthorization
 from finance.models import SaleItem, Sale
 from permisions.permisions import (
     admin_required,
@@ -62,6 +64,7 @@ from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 from django.db.models import Sum
+from django.contrib import messages
 # logger = logging.getLogger('restaurant')  
 
 # @cache_page(60*50)
@@ -70,15 +73,26 @@ def pos(request):
     return render(request, 'pos.html')
 
 @login_required
+def check_authorization(request):
+    try:
+        check_status = SaleAuthorization.objects.get(auth_date = datetime.date.today(), auth_granted = True)
+        if check_status:
+            return JsonResponse({'success':True}, status = 200)
+        return JsonResponse({'success':False}, status = 404)
+    except Exception as e:
+        return JsonResponse({'success':False, 'message':f"{e}"}, status = 505)
+
+@login_required
 def product_meal_json(request):
     if request.method == 'GET':
         
         meals = Meal.objects.filter(deactivate=False)
         products = Product.objects.filter(raw_material=False).values('id', 'name', 'price', 'finished_product', 'image')
-        dishes = Dish.objects.all().values('id', 'name', 'price', 'dish')
+        dishes = Dish.objects.all().values('id', 'name', 'price', 'dish', 'image')
 
         meal_data = [
             {
+                'image': meal.image.url.replace('/media/', '', 1),
                 'name':meal.name,
                 'price':meal.price,
                 'category':meal.category.name,
@@ -147,215 +161,318 @@ def create_client_change(client_data, receipt_number, cashier, sale):
 def process_sale(request):
     if request.method == 'POST':
         try:
-            data = json.loads(request.body)
+            check_status = SaleAuthorization.objects.get(auth_date = datetime.date.today(), auth_granted = True)
+            today_plan = Production.objects.filter(date_created=datetime.date.today(), declared=True, status=True).first()
+            if check_status and today_plan:
+                data = json.loads(request.body)
 
-            logger.info(f'Sales data {data}')
+                logger.info(f'Sales data {data}')
 
 
-            items = data['items']
-            staff = data['staff']
-            change_data = data.get('change_data')
-            order_type = data['order_type']
-            received_amount = data.get('received_amount')
-            meal_bool = data.get('meal')
+                items = data['items']
+                staff = data['staff']
+                change_data = data.get('change_data')
+                order_type = data['order_type']
+                received_amount = data.get('received_amount')
+                meal_bool = data.get('meal')
 
-            logger.info(items)
+                logger.info(items)
 
-            logger.info('here ---------------------------------------------------------------------')
+                logger.info('here ---------------------------------------------------------------------')
 
-            sub_total = sum(item['price'] * item['quantity'] for item in items)
-            tax = sub_total * 0.15 
-            
-            total_amount = sub_total
-
-            balance=0
-            if change_data:
-                change_data = change_data[0]
-                balance = change_data['balance']
-            
-            if staff:
-                received_amount = 0.00
-
-            with transaction.atomic():
-                product = None
-
-                if staff:
-                    logger.info(f'sale is staff: {staff} : {total_amount}')
-                    sale = Sale.objects.create(
-                        total_amount=total_amount,
-                        tax=tax,
-                        sub_total=sub_total,
-                        cashier=request.user,
-                        staff=True,
-                        change=0.00,
-                        amount_paid=received_amount
-                    )
-                else:
-                    sale = Sale.objects.create(
-                        total_amount=total_amount,
-                        tax=tax,
-                        sub_total=sub_total,
-                        cashier=request.user,
-                        staff=False,
-                        change=balance,
-                        amount_paid=received_amount
-                    )
-
-                logger.info(sale)
-
-                today = localdate()
-
-                daily_productions = Production.objects.filter(date_created=today).order_by('time_created')
-
-                logger.info(f'daily productions: {daily_productions}')
+                sub_total = sum(item['price'] * item['quantity'] for item in items)
+                tax = sub_total * 0.15 
                 
-                for item in items:
-                    if not item['type']:
+                total_amount = sub_total
 
-                        logger.info('Processing meal or dish')
-                        
-                        meal = None
-                        dish = None
+                balance=0
+                if change_data:
+                    change_data = change_data[0]
+                    balance = change_data['balance']
+                
+                if staff:
+                    received_amount = 0.00
 
-                        logger.info(f'Looking for meal with id {item['meal_id']} or dishes with id {item['meal_id']}')
+                with transaction.atomic():
+                    product = None
 
-                        if item.get('meal'): 
-                            meal_id = item['meal_id'].split('-')[1]
-
-                            meal = get_object_or_404(Meal, id=meal_id)
-                            logger.info(f'Sale for meal: {meal}')
-                        elif item.get('dish'):  
-                            dish = get_object_or_404(Dish, id=item['meal_id'])
-                            logger.info(f'Sale for dish: {dish}')
-                        else:
-                            raise ValueError('Invalid item type: Neither meal nor dish specified.')
-                        
-                        if staff:
-                            sale_item = SaleItem.objects.create(
-                                sale=sale,
-                                quantity=item['quantity'],
-                                price=meal.price if meal else dish.price,
-                            )
-                        else:
-                             sale_item = SaleItem.objects.create(
-                                sale=sale,
-                                quantity=item['quantity'],
-                                price=meal.price if meal else dish.price,
-                            )
-                        if meal:
-                            sale_item.meal=meal
-
-                        elif dish:
-
-                            sale_item.dish=dish
-                        
-                        sale_item.save()
-
-                        logger.info(f'Sale item saved: {sale_item}')
-                        
-                        def log(products, sale_item):
-                            for product in products:
-                                ProductionLogs.objects.create(
-                                    user=request.user, 
-                                    action='sale',
-                                    product=product,
-                                    quantity=sale_item.quantity,
-                                    total_quantity=product.quantity,
-                                )
-                                logger.info(f'Log for {sale_item}')
-                            
+                    if staff:
+                        logger.info(f'sale is staff: {staff} : {total_amount}')
+                        sale = Sale.objects.create(
+                            total_amount=total_amount,
+                            tax=tax,
+                            sub_total=sub_total,
+                            cashier=request.user,
+                            staff=True,
+                            change=0.00,
+                            amount_paid=received_amount
+                        )
                     else:
-                        logger.info('Finished goods')
-                        product = get_object_or_404(Product, id=item['meal_id'])
-                        product.quantity -= item['quantity']
-
-                        logger.info(f'finished product {product}')
-                        
-                        if staff:
-                            sale_item = SaleItem.objects.create(
-                                sale=sale,
-                                product=product,
-                                quantity=item['quantity'],
-                                price=0.00,
-                            )
-                        else:
-                            sale_item = SaleItem.objects.create(
-                                sale=sale,
-                                product=product,
-                                quantity=item['quantity'],
-                                price=product.price,
-                            )
-
-                        logger.info(f'Saved sale item: {sale_item}')
-                        
-                        Logs.objects.create(
-                            user=request.user, 
-                            action='sale',
-                            product=product,
-                            quantity=sale_item.quantity,
-                            total_quantity=product.quantity,
+                        sale = Sale.objects.create(
+                            total_amount=total_amount,
+                            tax=tax,
+                            sub_total=sub_total,
+                            cashier=request.user,
+                            staff=False,
+                            change=balance,
+                            amount_paid=received_amount
                         )
 
-                        logger.info(f'log sale item: {sale_item}')
+                    logger.info(sale)
 
-                        product.save()
-                        logger.info(f'Saved product: {sale_item}')
+                    today = localdate()
 
-                CashBook.objects.create(
-                    sale=sale, 
-                    amount=sale.total_amount,
-                    debit=True,
-                    description=f'Sale (Receipt number: {sale.receipt_number})'
-                )
+                    daily_productions = Production.objects.filter(date_created=today).order_by('time_created')
 
-                logger.info('Cash book object created.')
-
-                # create change
-                if change_data:
-                    logger.info(f'creating change object if change data exists')
+                    logger.info(f'daily productions: {daily_productions}')
                     
-                    create_client_change(change_data, sale.receipt_number, sale.cashier, sale)
+                    for item in items:
+                        if not item['type']:
 
-                Logs.objects.create(
-                    user=request.user, 
-                    action='sale',
-                    sale=sale,
-                    quantity=sale_item.quantity,
-                    total_quantity=sale_item.quantity,
-                )
-                
-                logger.info(f'Sale: {sale.id} Processed')
+                            logger.info('Processing meal or dish')
+                            
+                            meal = None
+                            dish = None
 
-                data = {
-                    'receipt_number': sale.receipt_number,
-                    'date': str(localdate()),
-                    'time': timezone.localtime().strftime("%H:%M:%S"),
-                    'cashier': f'{request.user.first_name} {request.user.last_name}',
-                    'receipt_number': sale.receipt_number,
-                    'total_amount': sale.total_amount,
-                    'receipt_number':sale.receipt_number,
-                    'tax': sale.tax,
-                    'sub_total': sale.sub_total,
-                    'received_amount': received_amount,
-                    'change': received_amount - sale.total_amount,
-                    'items': list(SaleItem.objects.filter(sale=sale).values('quantity', 'price', 'meal__name', 'dish__name', 'product__name'))
-                }
+                            logger.info(f'Looking for meal with id {item['meal_id']} or dishes with id {item['meal_id']}')
 
-                # total_sales = Sale.objects.filter(date=today).aggregate(total=Sum('total_amount'))['total'] or 0
-                # channel_layer = get_channel_layer()
-                # async_to_sync(channel_layer.group_send)(
-                #     "sales_group",
-                #     {
-                #         "type": "send_sales_update",
-                #         "data": {"total_sales": str(total_sales)},
-                #     }
-                # )
+                            if item.get('meal'): 
+                                meal_id = item['meal_id'].split('-')[1]
 
-                return JsonResponse({'success': True, 'data': data}, status=201)
+                                meal = get_object_or_404(Meal, id=meal_id)
+                                logger.info(f'Sale for meal: {meal}')
+                            elif item.get('dish'):  
+                                dish = get_object_or_404(Dish, id=item['meal_id'])
+                                logger.info(f'Sale for dish: {dish}')
+                            else:
+                                raise ValueError('Invalid item type: Neither meal nor dish specified.')
+                            
+                            if staff:
+                                sale_item = SaleItem.objects.create(
+                                    sale=sale,
+                                    quantity=item['quantity'],
+                                    price=meal.price if meal else dish.price,
+                                )
+                            else:
+                                sale_item = SaleItem.objects.create(
+                                    sale=sale,
+                                    quantity=item['quantity'],
+                                    price=meal.price if meal else dish.price,
+                                )
+                            if meal:
+                                if staff:
+                                    deduct_current_production_plan(request, meal=meal.name, dish=None, product=None, quantity=item['quantity'], staff=True)
+                                    sale_item.meal=meal
+                                else:
+                                    deduct_current_production_plan(request, meal=meal.name, dish=None, product=None, quantity=item['quantity'], staff=None)
+                                    sale_item.meal=meal
+                            elif dish:
+                                if staff:
+                                    deduct_current_production_plan(request=request, meal=None, dish=dish.name, product=None, quantity=item['quantity'], staff=True)
+                                    sale_item.dish=dish
+                                else:
+                                    deduct_current_production_plan(request=request, meal=None, dish=dish.name, product=None, quantity=item['quantity'], staff=None)
+                                    sale_item.dish=dish
+                            
+                            sale_item.save()
+
+                            logger.info(f'Sale item saved: {sale_item}')
+                            
+                            def log(products, sale_item):
+                                for product in products:
+                                    ProductionLogs.objects.create(
+                                        user=request.user, 
+                                        action='sale',
+                                        product=product,
+                                        quantity=sale_item.quantity,
+                                        total_quantity=product.quantity,
+                                    )
+                                    logger.info(f'Log for {sale_item}')
+                                
+                        else:
+                            logger.info('Finished goods')
+                            product = get_object_or_404(Product, id=item['meal_id'])
+                            product.quantity -= item['quantity']
+
+                            logger.info(f'finished product {product}')
+                            if staff:
+                                sale_item = SaleItem.objects.create(
+                                    sale=sale,
+                                    product=product,
+                                    quantity=item['quantity'],
+                                    price=0.00,
+                                )
+                                deduct_current_production_plan(request=request, meal=None, dish=dish.name, product=product.name, quantity=item['quantity'], staff=True)
+                            else:
+                                sale_item = SaleItem.objects.create(
+                                    sale=sale,
+                                    product=product,
+                                    quantity=item['quantity'],
+                                    price=product.price,
+                                )
+                                deduct_current_production_plan(request=request, meal=None, dish=dish.name, product=product.name, quantity=item['quantity'], staff=None)
+                            logger.info(f'Saved sale item: {sale_item}')
+                            
+                            Logs.objects.create(
+                                user=request.user, 
+                                action='sale',
+                                product=product,
+                                quantity=sale_item.quantity,
+                                total_quantity=product.quantity,
+                            )
+
+                            logger.info(f'log sale item: {sale_item}')
+
+                            product.save()
+                            logger.info(f'Saved product: {sale_item}')
+
+                    CashBook.objects.create(
+                        sale=sale, 
+                        amount=sale.total_amount,
+                        debit=True,
+                        description=f'Sale (Receipt number: {sale.receipt_number})'
+                    )
+
+                    logger.info('Cash book object created.')
+
+                    # create change
+                    if change_data:
+                        logger.info(f'creating change object if change data exists')
+                        
+                        create_client_change(change_data, sale.receipt_number, sale.cashier, sale)
+
+                    Logs.objects.create(
+                        user=request.user, 
+                        action='sale',
+                        sale=sale,
+                        quantity=sale_item.quantity,
+                        total_quantity=sale_item.quantity,
+                    )
+                    
+                    logger.info(f'Sale: {sale.id} Processed')
+
+                    data = {
+                        'receipt_number': sale.receipt_number,
+                        'date': str(localdate()),
+                        'time': timezone.localtime().strftime("%H:%M:%S"),
+                        'cashier': f'{request.user.first_name} {request.user.last_name}',
+                        'receipt_number': sale.receipt_number,
+                        'total_amount': sale.total_amount,
+                        'receipt_number':sale.receipt_number,
+                        'tax': sale.tax,
+                        'sub_total': sale.sub_total,
+                        'received_amount': received_amount,
+                        'change': received_amount - sale.total_amount,
+                        'items': list(SaleItem.objects.filter(sale=sale).values('quantity', 'price', 'meal__name', 'dish__name', 'product__name'))
+                    }
+
+                    # total_sales = Sale.objects.filter(date=today).aggregate(total=Sum('total_amount'))['total'] or 0
+                    # channel_layer = get_channel_layer()
+                    # async_to_sync(channel_layer.group_send)(
+                    #     "sales_group",
+                    #     {
+                    #         "type": "send_sales_update",
+                    #         "data": {"total_sales": str(total_sales)},
+                    #     }
+                    # )
+
+                    return JsonResponse({'success': True, 'data': data}, status=201)
+            if not today_plan:
+                messages.warning(request, "Currently no production plan")
+            return JsonResponse({'success': False, 'message': 'Production Plan Required'})
         except Exception as e:
             logger.error(f'Error processing sale: {str(e)}')
             return JsonResponse({'success': False, 'message': str(e)}, status=400)
     return JsonResponse({'success': False, 'message': 'Invalid request'}, status=405)
+
+@login_required
+def deduct_current_production_plan(request, meal, dish, product, quantity, staff):
+    logger.info(f"Deduction request — Meal: {meal}, Dish: {dish}, Product: {product}, Quantity: {quantity}, Staff: {staff}")
+
+    today_plans = Production.objects.filter(
+        date_created=datetime.date.today(), declared=True, status=True
+    ).order_by('time_created')
+
+    if not today_plans.exists():
+        messages.warning(request, "No production plans available for today. Please declare one.")
+        return
+
+    deduction_successful = False
+
+    if meal:
+        try:
+            meal_info = Meal.objects.get(name=meal)
+            dishes = meal_info.dish.all()
+
+            if not dishes.exists():
+                messages.error(request, f"Meal '{meal}' has no associated dishes.")
+                logger.warning(f"Meal '{meal}' has no dishes linked.")
+                return
+
+            for dish_obj in dishes:
+                for plan in today_plans:
+                    try:
+                        production_item = ProductionItems.objects.get(production=plan, dish=dish_obj)
+
+                        production_item.portions_sold += quantity
+                        if staff:
+                            production_item.staff_portions += quantity
+                        production_item.remaining_raw_material = production_item.portions - production_item.portions_sold
+                        production_item.save()
+
+                        logger.info(f"Deducted {quantity} from production plan {plan.id} for dish '{dish_obj.name}' (from meal '{meal}').")
+
+                        if production_item.remaining_raw_material < 4:
+                            messages.warning(request, f"Dish '{dish_obj.name}' is running low (less than 4 remaining).")
+
+                        messages.info(request, f"Production plan '{plan.id}' updated successfully.")
+                        deduction_successful = True
+                        break  # Break the plan loop after deduction for this dish
+                    except ProductionItems.DoesNotExist:
+                        logger.info(f"Dish '{dish_obj.name}' not found in production plan {plan.id}. Trying next plan.")
+                        continue
+        except Meal.DoesNotExist:
+            messages.error(request, f"Meal '{meal}' not found in the system.")
+            logger.warning(f"Meal '{meal}' does not exist.")
+            return
+    elif dish:
+        try:
+            dish_info = Dish.objects.get(name=dish)
+
+            for plan in today_plans:
+                try:
+                    production_item = ProductionItems.objects.get(production=plan, dish=dish_info)
+
+                    production_item.portions_sold += quantity
+                    if staff:
+                        production_item.staff_portions += quantity
+                    production_item.remaining_raw_material = production_item.portions - production_item.portions_sold
+                    production_item.save()
+
+                    logger.info(f"Deducted {quantity} from production plan {plan.id} for dish '{dish_info.name}'.")
+
+                    if production_item.remaining_raw_material < 4:
+                        messages.warning(request, f"Dish '{dish_info.name}' is running low (less than 4 remaining).")
+
+                    messages.info(request, f"Production plan '{plan.id}' updated successfully.")
+                    deduction_successful = True
+                    break  # Break the plan loop after deduction for this dish
+                except ProductionItems.DoesNotExist:
+                    logger.info(f"Dish '{dish_info.name}' not found in production plan {plan.id}. Trying next plan.")
+                    continue
+
+        except Dish.DoesNotExist:
+            messages.error(request, f"Dish '{dish}' not found in the system.")
+            logger.warning(f"Dish '{dish}' does not exist.")
+            return
+
+    else:
+        logger.info(f"Finished product '{product}' does not require deduction from production plans.")
+        return
+
+    if not deduction_successful:
+        messages.error(request, f"No valid production plan contains the meal or dish '{meal or dish}'. Deduction failed.")
+        logger.error("Deduction failed: No matching production item found.")
 
 @login_required
 def change_list(request):
@@ -621,8 +738,10 @@ def void_authenticate(request):
 
             username = data.get("username")
             password = data.get("password")
+            save_data = data.get('save')
 
             logger.info(username)
+            logger.info(save_data)
 
             if not username or not password:
                 return JsonResponse({"success": False, "message": "Username and password are required."}, status=400)
@@ -630,15 +749,20 @@ def void_authenticate(request):
             user = User.objects.get(username=username)
 
             logger.info(user)
-
-            if user.role in ['admin', 'accountant', 'supervisor', 'manager']:
-
+            if save_data == "save":
+                    logger.info('saving')
+                    SaleAuthorization.objects.create(
+                        auth_granted = True
+                    )
+            if user.role in ['admin', 'accountant', 'supervisor', 'manager', 'owner']:
+                logger.info(user.role)
                 return JsonResponse({"success": True, 'role': user.role, "message": "Authentication successful.", "user_id":user.id}, status=200)
             else:
                 if not user.role:
-                    return JsonResponse({"success": True, "message": "Invalid username and password ."}, status=401)
+                    logger.info(user.role)
+                    return JsonResponse({"success": False, "message": "Invalid username and password ."}, status=401)
                 else:
-                    return JsonResponse({"success": True, 'role': user.role, "message": "Invalid role."}, status=200)
+                    return JsonResponse({"success": False, 'role': user.role, "message": "Invalid role."}, status=208)
 
         except Exception as e:
             return JsonResponse({"success": False, "message": f"An error occurred: {str(e)}"}, status=500)
@@ -653,69 +777,69 @@ def cash_up(request, cashier_id):
         sales_items = SaleItem.objects.filter(sale__cashier__id=cashier_id, sale__date=datetime.datetime.today())
         void_sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=True).values('total_amount')
 
-        sales_portions_list = []
-        void_sales_portions_list = []
-        staff_meals_portions_list = []
+        sales_dict = {}
+        staff_meals_dict = {}
+        void_sales_dict = {}
 
         for items in sales_items:
-            # name = items.dish.name if items.dish else items.product.name if items.product else items.meal.dish.all() if items.meal else None
+            # Handle different item types (Dish, Product, Meal)
             if items.dish:
-                name = items.dish.name
+                name = [ {'Name': items.dish.name, 'Price': items.dish.price} ]
             elif items.product:
-                name = items.product.name
+                name = [ {'Name': items.product.name, 'Price': items.product.price} ]
             elif items.meal:
-                logger.info(items.meal.dish.all())
                 name = [{'Name': dish.name, 'Price': dish.price} for dish in items.meal.dish.all()]
             else:
                 name = None
-            
-            if name:
-                if isinstance(name, list):
-                    logger.info(name)
-                    for item in name:
-                        logger.info(item['Name'])
-                        found = False
-                        
-                        for entry in sales_portions_list:
-                            if entry['Name'] == item['Name']:
-                                entry['Quantity'] += 1
-                                entry['Price'] = item['Price']
-                                entry['Total'] = Decimal(entry['Quantity']) * Decimal(entry['Price'])
-                                found = True
-                                break
-                        
-                        if not found:
-                            sales_portions_list.append({
-                                'Name': item['Name'],
-                                'Quantity': items.quantity,
-                                'Price': item['Price'],
-                                'Total': Decimal(items.quantity) * Decimal(item['Price'])
-                            })
-                else:
-                    if items.sale.void == False and items.sale.staff == False:
-                        found = False
-                        for entry in sales_portions_list:
-                            if entry['Name'] == name:
-                                entry['Quantity'] += items.quantity
-                                entry['Price'] = items.price
-                                entry['Total'] = (Decimal(entry['Quantity']) * Decimal(entry['Price']))
-                                found = True
-                                break
-                        if not found:
-                            sales_portions_list.append({'Name': name, 'Quantity': items.quantity, 'Price': items.price, 'Total': (Decimal(items.quantity) * Decimal(items.price))})
-                    else:
-                        found = False
-                        for entry in staff_meals_portions_list:
-                            if entry['Name'] == name:
-                                entry['Quantity'] += items.quantity
-                                entry['Price'] = items.price
-                                entry['Total'] = (Decimal(entry['Quantity']) * Decimal(entry['Price']))
-                                found = True
-                                break
-                        
-                        if not found:
-                            staff_meals_portions_list.append({'Name': name, 'Quantity': items.quantity, 'Price': items.price, 'Total': (Decimal(items.quantity) * Decimal(items.price))})
 
+            if name:
+                for item in name:  # Loop through dishes if it's a meal
+                    dish_name = item['Name']
+                    dish_price = item['Price']
+
+                    # Handle Normal Sales (Non-void, Non-staff)
+                    if not items.sale.void and not items.sale.staff:
+                        if dish_name in sales_dict:
+                            sales_dict[dish_name]['Quantity'] += items.quantity
+                            sales_dict[dish_name]['Total'] += items.quantity * dish_price
+                        else:
+                            sales_dict[dish_name] = {
+                                'Name': dish_name,
+                                'Quantity': items.quantity,
+                                'Price': dish_price,
+                                'Total': items.quantity * dish_price
+                            }
+
+                    # 🔹 Handle Staff Meals
+                    elif items.sale.staff:
+                        if dish_name in staff_meals_dict:
+                            staff_meals_dict[dish_name]['Quantity'] += items.quantity
+                            staff_meals_dict[dish_name]['Total'] += items.quantity * dish_price
+                        else:
+                            staff_meals_dict[dish_name] = {
+                                'Name': dish_name,
+                                'Quantity': items.quantity,
+                                'Price': dish_price,
+                                'Total': items.quantity * dish_price
+                            }
+
+                    # 🔹 Handle Void Sales
+                    elif items.sale.void:
+                        if dish_name in void_sales_dict:
+                            void_sales_dict[dish_name]['Quantity'] += items.quantity
+                            void_sales_dict[dish_name]['Total'] += items.quantity * dish_price
+                        else:
+                            void_sales_dict[dish_name] = {
+                                'Name': dish_name,
+                                'Quantity': items.quantity,
+                                'Price': dish_price,
+                                'Total': items.quantity * dish_price
+                            }
+
+        # Convert dictionaries to lists for JSON response
+        sales_portions_list = list(sales_dict.values())
+        staff_meals_portions_list = list(staff_meals_dict.values())
+        void_sales_portions_list = list(void_sales_dict.values())
         total = 0
         for items in sales_portions_list:
             total += items['Total']

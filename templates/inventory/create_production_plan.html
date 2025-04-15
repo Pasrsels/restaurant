@@ -47,168 +47,191 @@
     </div>
 </div>
 <script>
-$(document).ready(function() {
-    let cart = [];
-    let unit_cost = 1;
-    let unit_of_measurement = '';
-    let portion_multiplier = 1;
-    let ingredientsData = [];
-
-    let lf = document.getElementById('id_lf_carried_forward_quantity');
-    let rm = document.getElementById('id_rm_carried_forward_quantity');
-
-    let quantity = document.getElementById('id_quantity');
-    let actual = document.getElementById('id_actual_quantity');
-
-    $('#id_dish').select2();
-
-    //reset button
-    $('#id_reset').on('click', function(){
-      cart = []
-      updateCartTable()
-    })
-
-    // submit button 
-    $('#id_submit').on('click', function(){
-      const postData = {
-        csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
-        cart: cart
-    };
-
-    fetch('{% url "inventory:create_production_plan" %}', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()
-        },
-        body: JSON.stringify(postData)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success){
-            Swal.fire({
-                title: "Success",
-                text: "Production plan created successfully!",
-                icon: "success"
-            }).then(()=>{
-                window.location.href="{% url 'inventory:production_plans' %}"
-            });
-<<<<<<< HEAD
-=======
+    $(document).ready(function() {
+        let cart = [];
+        let portion_multiplier = 1;
+        let ingredientsData = [];
+    
+        const lf = document.getElementById('id_lf_carried_forward_quantity');
+        const rm = document.getElementById('id_rm_carried_forward_quantity');
+        const quantity = document.getElementById('id_quantity');
+        const actual = document.getElementById('id_actual_quantity');
+    
+        $('#id_dish').select2();
+    
+        // Reset button functionality
+        $('#id_reset').on('click', function() {
             cart = [];
             updateCartTable();
-            window.location.href=`/inventory/minor_raw_materials/${data.data}/`
->>>>>>> d1c14cc97287c67047ba0ba1f6f8c7790636586a
-        } else {
-            Swal.fire({
-                title: "Error",
-                text: data.message,
-                icon: "error"
+        });
+    
+        // Submit button functionality
+        $('#id_submit').on('click', function() {
+            const postData = {
+                csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
+                cart: cart
+            };
+    
+            fetch('{% url "inventory:create_production_plan" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()
+                },
+                body: JSON.stringify(postData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: "Success",
+                        text: "Production plan created successfully!",
+                        icon: "success"
+                    }).then(() => {
+                        //window.location.href = `/inventory/minor_raw_materials/${data.data}/`;
+                    });
+                    cart = [];
+                    updateCartTable();
+                } else {
+                    Swal.fire({
+                        title: "Error",
+                        text: data.message,
+                        icon: "error"
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error submitting production plan:', error);
+            });
+        });
+    
+        // Dish selection event
+        $('#id_dish').on('change', function(e) {
+            const selectedProductId = e.target.value;
+    
+            const postData = {
+                csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
+                dish_id: selectedProductId,
+            };
+    
+            fetch('{% url "inventory:dish_json_detail" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()
+                },
+                body: JSON.stringify(postData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    ingredientsData = data.data; // Replaces previous data
+                    portion_multiplier = data.portion_multiplier;
+                } else {
+                    Swal.fire({
+                        title: "Error",
+                        text: data.message,
+                        icon: "error"
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error posting product data:', error);
+            });
+        });
+    
+        // Quantity input listener
+        $('#id_quantity').on('input', function(e) {
+            let quantityVal = parseFloat(e.target.value) || 0;
+            let lfVal = parseFloat(lf.value) || 0;
+            let rmVal = parseFloat(rm.value) || 0;
+    
+            let value = quantityVal - (lfVal + rmVal);
+            actual.value = value < 0 ? 0 : value;
+            actual.readOnly = true;
+            actual.style.backgroundColor = 'lightgray';
+        });
+    
+        // Calculate total cost based on dish and portion size
+        function total_dish_cost(portions) {
+            let cost_per_kg = 0;
+            let kgs = portions / portion_multiplier;
+    
+            ingredientsData.forEach((i) => {
+                cost_per_kg += i.quantity * i.cost;
+            });
+    
+            return kgs * cost_per_kg;
+        }
+    
+        // Add item to cart
+        $('#save-button').on('click', function() {
+            const portions = parseFloat($('#id_portions').val());
+    
+            if (!ingredientsData.length || isNaN(portions) || portions <= 0) {
+                Swal.fire({
+                    title: "Invalid Entry",
+                    text: "Please select a dish and enter a valid portion size.",
+                    icon: "warning"
+                });
+                return;
+            }
+    
+            const item = {
+                dish: $('#id_dish option:selected').text(),
+                portions: portions,
+                total_cost: total_dish_cost(portions)
+            };
+    
+            cart.push(item);
+            updateCartTable();
+        });
+    
+        // Update cart table display
+        function updateCartTable() {
+            const cartItems = $('#cart-items');
+            cartItems.empty();
+    
+            cart.forEach((item, index) => {
+                cartItems.append(`
+                    <tr>
+                        <td>
+                            <button class="btn border bx bx-trash" onclick="deleteItem(${index})"></button>
+                            <span class='mx-2'>${item.dish}</span>
+                        </td>
+                        <td>
+                            <input type="number" class="form-control" value="${item.portions}" onchange="updateQuantity(${index}, this.value)">
+                        </td>
+                        <td>${item.total_cost.toFixed(2)}</td>
+                    </tr>
+                `);
             });
         }
-    })
-    .catch(error => {
-        console.error('Error submitting production plan:', error);
-    });
-    })
-
-    $('#id_dish').on('change', function(e) {
-        const selectedProductId = e.target.value;
-        console.log(selectedProductId)
-        const postData = {
-            csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
-            dish_id: selectedProductId,
-        };
-
-        fetch('{% url "inventory:dish_json_detail" %}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()
-            },
-            body: JSON.stringify(postData)
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success){
-                ingredientsData.push(data.data)
-                portion_multiplier = data.portion_multiplier                                                                                
-            } else {
-                Swal.fire({
-                    title: "Error",
-                    text: data.message,
-                    icon: "error"
-                });
-            }
-        })
-        .catch(error => {
-            console.error('Error posting product data:', error);
-        });
-    });
-
-    $('#id_quantity').on('input', function(e){
-        let quantity = parseFloat(e.target.value);
-        let value = parseFloat(quantity - (parseFloat(lf.value) + parseFloat(rm.value)));
-
-        if (value < 0){
-            value = 0;
+    
+        // Global functions for cart item actions
+        window.deleteItem = function(index) {
+            cart.splice(index, 1);
+            updateCartTable();
         }
-
-        actual.value = value
-        actual.readOnly = true;
-        actual.style.backgroundColor = 'lightgray';
+    
+        window.updateQuantity = function(index, newPortions) {
+            newPortions = parseFloat(newPortions);
+    
+            if (isNaN(newPortions) || newPortions <= 0) {
+                Swal.fire({
+                    title: "Invalid Portion",
+                    text: "Please enter a valid portion number.",
+                    icon: "warning"
+                });
+                return;
+            }
+    
+            const item = cart[index];
+            item.portions = newPortions;
+            item.total_cost = total_dish_cost(newPortions);
+            updateCartTable();
+        }
     });
-
-    function total_dish_cost(portions){
-        let cost_per_kg = 0;
-        let kgs = 0;
-
-        kgs = portions / portion_multiplier;
-        
-        ingredientsData[0].forEach((i)=>{
-            cost_per_kg += i.quantity * i.cost 
-        });
-        console.log(cost_per_kg)
-        return kgs * cost_per_kg;
-    }
-
-    $('#save-button').on('click', function() {
-        portions = parseFloat(document.getElementById('id_portions').value);
-        const item = {
-            dish: $('#id_dish option:selected').text(),
-            portions: portions,
-            total_cost: total_dish_cost(portions), 
-        };
-
-        cart.push(item);
-        updateCartTable();
-    });
-
-    function updateCartTable() {
-        const cartItems = $('#cart-items');
-        cartItems.empty();
-        cart.forEach((item, index) => {
-            cartItems.append(`
-                <tr>
-                    <td><button class="btn border bx bx-trash" onclick="deleteItem(${index})"></button> <span class='mx-2'>${item.dish}</span></td>
-                    <td><input type="number" class="form-control" value="${item.portions}" onchange="updateQuantity(${index}, this.value)"></td>
-                    <td>${item.total_cost.toFixed(2)}</td>
-                </tr>
-            `);
-        });
-    }
-
-    window.deleteItem = function(index) {
-        cart.splice(index, 1);
-        updateCartTable();
-    }
-
-    window.updateQuantity = function(index, newPortions) {
-        const item = cart[index];
-        item.portions = parseFloat(newPortions);
-        item.total_cost = total_dish_cost(newPortions)
-        updateCartTable();
-    }
-});
 </script>
+    
 {% endblock content %}
