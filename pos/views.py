@@ -398,6 +398,7 @@ def deduct_current_production_plan(request, meal, dish, product, quantity, staff
         return
 
     deduction_successful = False
+    count = 0
 
     if meal:
         try:
@@ -427,7 +428,13 @@ def deduct_current_production_plan(request, meal, dish, product, quantity, staff
 
                         messages.info(request, f"Production plan '{plan.id}' updated successfully.")
                         deduction_successful = True
-                        break
+                        if deduction_successful == True:
+                            logger.info(f"True: {count + 1}")
+                            deduction_successful = False
+                            count += 1
+                            if count == 2:
+                                deduction_successful = True
+                                break
                     except ProductionItems.DoesNotExist:
                         logger.info(f"Dish '{dish_obj.name}' not found in production plan {plan.id}. Trying next plan.")
                         continue
@@ -456,11 +463,11 @@ def deduct_current_production_plan(request, meal, dish, product, quantity, staff
 
                     messages.info(request, f"Production plan '{plan.id}' updated successfully.")
                     deduction_successful = True
-                    break
+                    if deduction_successful == True:
+                        break
                 except ProductionItems.DoesNotExist:
                     logger.info(f"Dish '{dish_info.name}' not found in production plan {plan.id}. Trying next plan.")
                     continue
-
         except Dish.DoesNotExist:
             messages.error(request, f"Dish '{dish}' not found in the system.")
             logger.warning(f"Dish '{dish}' does not exist.")
@@ -473,6 +480,7 @@ def deduct_current_production_plan(request, meal, dish, product, quantity, staff
     if not deduction_successful:
         messages.error(request, f"No valid production plan contains the meal or dish '{meal or dish}'. Deduction failed.")
         logger.error("Deduction failed: No matching production item found.")
+        raise Exception(f"Failed to find {meal or dish} in any production plan")
 
 @login_required
 def change_list(request):
