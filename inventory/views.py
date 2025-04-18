@@ -207,19 +207,30 @@ def product(request):
 
 @login_required
 def product_detail(request, product_id):
-    try: 
-        product = Product.objects.get(id=product_id)
-    except Product.DoesNotExist:
-        messages.warning(request, f'Product with ID: {product_id} doesn\'t exists')
-        
-    logs = Logs.objects.filter(product=product)
+    if request.method == 'GET':
+        try: 
+            product = Product.objects.get(id=product_id)
+        except Product.DoesNotExist:
+            messages.warning(request, f'Product with ID: {product_id} doesn\'t exists')
+            
+        logs = Logs.objects.filter(product=product)
 
-    return render(request, 'inventory/product_detail.html', 
-        {
-            'product': product,
-            'logs': logs,
-        }
-    )
+        return render(request, 'inventory/product_detail.html', 
+            {
+                'product': product,
+                'logs': logs,
+            }
+        )
+    elif request.method == 'DELETE':
+        try:
+            product = Product.objects.get(id = product_id)
+            product.delete()
+
+            return JsonResponse({"success": True}, status=200)
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': e}, status=405)
+
+
 
 @login_required
 def production_rm_detail(request, rm_id):
