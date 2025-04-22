@@ -407,9 +407,9 @@ def deduct_current_production_plan(request, meal, dish, product, quantity, staff
             dishes = meal_info.dish.all()
 
             if not dishes.exists():
-                messages.error(request, f"Meal '{meal}' has no associated dishes.")
+                # messages.error(request, f"Meal '{meal}' has no associated dishes.")
                 logger.warning(f"Meal '{meal}' has no dishes linked.")
-                return
+                raise Exception(f"Meal '{meal}' has no associated dishes.")
 
             for dish_obj in dishes:
                 for plan in today_plans:
@@ -461,10 +461,11 @@ def deduct_current_production_plan(request, meal, dish, product, quantity, staff
                             production_item.save()
 
                             logger.info(f"Deducted {quantity} from production plan {plan.id} for dish '{dish_obj.name}' (from meal '{meal}').")
-                        if production_item.remaining_raw_material < 4:
-                            messages.warning(request, f"Dish '{dish_obj.name}' is running low (less than 4 remaining).")
+                        # if production_item.remaining_raw_material < 4:
+                        #     messages.warning(request, f"Dish '{dish_obj.name}' is running low (less than 4 remaining).")
 
-                        messages.info(request, f"Production plan '{plan.id}' updated successfully.")
+                        # messages.info(request, f"Production plan '{plan.id}' updated successfully.")
+                        logger.info(f"Production plan '{plan.id}' updated successfully.")
                         if new_quantity==0:
                             deduction_successful = True
                             if deduction_successful == True:
@@ -534,10 +535,11 @@ def deduct_current_production_plan(request, meal, dish, product, quantity, staff
                         production_item.save()
 
                         logger.info(f"Deducted {quantity} from production plan {plan.id} for dish '{dish_info.name}' (from meal '{meal}').")
-                    if production_item.remaining_raw_material < 4:
-                        messages.warning(request, f"Dish '{dish_info.name}' is running low (less than 4 remaining).")
+                    # if production_item.remaining_raw_material < 4:
+                    #     messages.warning(request, f"Dish '{dish_info.name}' is running low (less than 4 remaining).")
 
-                    messages.info(request, f"Production plan '{plan.id}' updated successfully.")
+                    # messages.info(request, f"Production plan '{plan.id}' updated successfully.")
+                    logger.info(f"Production plan '{plan.id}' updated successfully.")
                     if new_quantity ==0:
                         deduction_successful = True
                         if deduction_successful == True:
