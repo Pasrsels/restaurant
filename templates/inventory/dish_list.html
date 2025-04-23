@@ -52,7 +52,7 @@
                                 <small>
                                     {% for ingredient in ingredients %}
                                         {% if dish == ingredient.dish %}
-                                            {{ ingredient.raw_material.name }} ({{ ingredient.quantity }})<br>
+                                            {{ ingredient.minor_raw_material.name }} ({{ ingredient.quantity }})<br>
                                         {% endif %}
                                     {% endfor %}
                                 </small>
