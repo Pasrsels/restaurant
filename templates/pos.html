@@ -234,7 +234,45 @@
         </div>
     </div>
 
-    <!--Authorization Modal-->
+    <!--void modal-->
+    <div class="modal fade" id="voidModal" tabindex="-1" aria-labelledby="voidModalLabel" aria-hidden="false">
+        <div class="modal-dialog bg modal-dialog-centered">
+            <div class="modal-content p-3 shadow">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="voidModalLabel">Enter User Credentials</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="" method="POST" autocomplete="off">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input 
+                            type="text" 
+                            id="v_username" 
+                            name="username" 
+                            class="form-control" 
+                            placeholder="Enter username" 
+                            autocomplete="off"
+                            required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input 
+                            type="password" 
+                            id="v_password" 
+                            name="password" 
+                            class="form-control" 
+                            placeholder="Enter password" 
+                            autocomplete="new-password"
+                            required>
+                    </div>
+                    <button id="voidbutton" onclick="voidReceipt()" type="button" class="btn btn-outline-dark w-100">Authenticate</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!--Sale Authorization Modal-->
     <div class="modal fade" id="AuthorizationModal" tabindex="-1" aria-labelledby="AuthorizationModalLabel" aria-hidden="false" data-bs-backdrop="static" data-bs-keyboard="false">
         <div class="modal-dialog bg modal-dialog-centered">
             <div class="modal-content p-3 shadow">
@@ -383,6 +421,7 @@
         </div>
     </div>
 
+    <!--Staff Modal-->
     <div class="modal fade" id="staffModal" tabindex="-1" aria-labelledby="chargeModalLabel" aria-hidden="true">
         <div class="modal-dialog bg modal-dialog-centered">
             <div class="modal-content p-4 shadow">
@@ -453,9 +492,10 @@
         const proceedBtn = document.getElementById('btn_proceed');
         const changeEl = document.getElementById('id_change');
         const backButton = document.getElementById('btn_back');
-        const cashupButton = document.getElementById('cashup')
-        const authenticateBtn = document.getElementById('void')
+        const cashupButton = document.getElementById('cashup');
+        const authenticateBtn = document.getElementById('void');
         const authenticateModal = new bootstrap.Modal(document.getElementById('cashupModal'));
+        const authenticatevoidModal = new bootstrap.Modal(document.getElementById('voidModal'));
         const sellAuthorizationModal = new bootstrap.Modal(document.getElementById('AuthorizationModal'));
         const search = document.getElementById('searchInput')
 
@@ -481,9 +521,13 @@
         })
 
         authenticateBtn.addEventListener('click', ()=>{
-            authenticateModal.show()
-        })
-
+            authenticatevoidModal.show()
+        });
+        /*
+        authenticatevoidBtn.addEventListener('click', ()=>{
+            authenticatevoidModal.show()
+        });
+        */
         // show change modal
         const showChangeForm = () =>{
             chargeModal.hide()
@@ -1366,6 +1410,7 @@
             });
         }
     */
+    /*
     const authenticate = (c_username, c_password) => {
     fetch('/pos/void_authenticate/', {
         method: 'POST',
@@ -1419,7 +1464,7 @@
             confirmButtonText: 'OK'
         });
     });
-};
+};*/
 
 // const processsCashUp = () => {
 //     fetch(`/pos/cash_up/{{ request.user.id }}/`, {
@@ -1510,6 +1555,50 @@ function generateAccountantCashUp(userId) {
             if(success){
                 console.log(data)
             }
+        });
+    }
+
+    const voidReceipt = () => {
+        const username = document.querySelector('#v_username').value;
+        const password = document.querySelector('#v_password').value;
+        console.log({name:name,username:username});
+        
+        fetch('{% url "pos:void_authenticate" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ username, password })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log(data)
+            if (data.success) {
+                Swal.fire({
+                    title: 'Success!',
+                    text: 'Authentication successful!',
+                    icon: 'success',
+                }).then(() => {
+                    window.location.href =  `/pos/sales/${data.user_id}`;
+                });
+            } else {
+                Swal.fire({
+                    title: 'Authentication Failed',
+                    text: data.message || 'Invalid username or password.',
+                    icon: 'error',
+                    confirmButtonText: 'Try Again'
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error during authentication:', error);
+            Swal.fire({
+                title: 'Oops!',
+                text: 'Something went wrong. Please try again later.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
         });
     }
 

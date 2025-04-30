@@ -230,7 +230,7 @@ def analytics_view(request):
     data['dishes'] = dict(f_dishes)
     data['grouped_meals'] = dict(formatted_meals)
     data['grouped_dishes'] = dict(formatted_dishes)
-
+    logger.info(data)
     return JsonResponse(data)
 
 @admin_required
