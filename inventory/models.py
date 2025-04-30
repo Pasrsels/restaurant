@@ -157,7 +157,7 @@ class Ingredient(models.Model):
     minor_raw_material = models.ForeignKey(Product, on_delete=models.CASCADE, null=True)
 
     def __str__(self) -> str:        
-        return self.minor_raw_material.name          
+        return self.minor_raw_material.name if self.minor_raw_material else 'None'        
     
 class MealCategory(models.Model):
     name = models.CharField(max_length=255)
