@@ -2034,7 +2034,8 @@ function generateAccountantCashUp(userId) {
 
 // function to filter items displayed on pos based on selected category
 function filterItemsByCategory(categoryName) {
-    fetch("{% url 'inventory:filter_meal_category' %}?category=" + categoryName, { 
+    console.log(categoryName);
+    fetch("{% url 'inventory:filter_meal_category' %}?category=" + encodeURIComponent(categoryName), { 
         method: 'GET'
     })
     .then(response => response.json())

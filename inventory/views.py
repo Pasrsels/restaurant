@@ -1724,6 +1724,7 @@ def create_meal_category(request):
 def CategoryMeal(request):
     if request.method == 'GET':
         category_name = request.GET.get('category')
+        logger.info(category_name)
         
         meal_filter = Meal.objects.filter(category__name = category_name).values('id', 'name', 'price', 'image', 'meal')
         product_filter = Product.objects.filter(category__name = category_name, finished_product=True).values('id', 'name', 'quantity', 'price', 'finished_product', 'image')
