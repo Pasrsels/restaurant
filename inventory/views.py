@@ -223,6 +223,7 @@ def product_detail(request, product_id):
         )
     elif request.method == 'DELETE':
         try:
+            logger.info(product_id)
             product = Product.objects.get(id = product_id)
             product.delete()
 
@@ -1304,6 +1305,7 @@ class DishListView(View):
         #     writer.writerow(['Total', '', '', total_expense])
         
             # return response
+        logger.info(ingredients)
         return render(request, 'inventory/dish_list.html', 
             {
                 'dishes': dishes,
