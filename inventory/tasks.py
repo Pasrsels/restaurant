@@ -149,13 +149,14 @@ def send_email_task(self, subject, message, recipient_list, from_email=None):
     A separate task for sending emails with retry logic
     """
     try:
-        email =send_mail(
+        send_mail(
             subject=subject,
             message=message,
             from_email=from_email,
             recipient_list=recipient_list,
             fail_silently=False,
         )
+
         return f"Email sent to {', '.join(recipient_list)}"
     except Exception as exc:
         logger.warning(f"Email sending failed: {exc}. Retrying in 5 seconds...")

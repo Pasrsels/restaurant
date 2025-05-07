@@ -75,7 +75,7 @@ def pos(request):
 @login_required
 def check_authorization(request):
     try:
-        check_status = SaleAuthorization.objects.get(auth_date = datetime.date.today(), auth_granted = True)
+        check_status = SaleAuthorization.objects.filter(auth_date = datetime.date.today(), auth_granted = True)
         if check_status:
             return JsonResponse({'success':True}, status = 200)
         return JsonResponse({'success':False}, status = 404)
@@ -162,8 +162,8 @@ def process_sale(request):
     if request.method == 'POST':
         try:
             check_status = SaleAuthorization.objects.get(auth_date = datetime.date.today(), auth_granted = True)
-            today_plan = Production.objects.filter(date_created=datetime.date.today(), declared=True, status=True).first()
-            if check_status and today_plan:
+            # today_plan = Production.objects.filter(date_created=datetime.date.today(), declared=True, status=True).first()
+            if check_status:
                 data = json.loads(request.body)
 
                 logger.info(f'Sales data {data}')
@@ -377,9 +377,9 @@ def process_sale(request):
                     # )
 
                     return JsonResponse({'success': True, 'data': data}, status=201)
-            if not today_plan:
-                messages.warning(request, "Currently no production plan")
-            return JsonResponse({'success': False, 'message': 'Production Plan Required'})
+            # if not today_plan:
+            #     messages.warning(request, "Currently no production plan")
+            return JsonResponse({'success': False, 'message': 'Not Authorized'})
         except Exception as e:
             logger.error(f'Error processing sale: {str(e)}')
             return JsonResponse({'success': False, 'message': str(e)}, status=400)
@@ -394,8 +394,8 @@ def deduct_current_production_plan(request, meal, dish, product, quantity, staff
     ).order_by('time_created')
 
     if not today_plans.exists():
-        messages.warning(request, "No production plans available for today. Please declare one.")
-        return
+        # messages.warning(request, "No production plans available for today. Please declare one.")
+        raise Exception("No production plans available for today. Please declare one.")
 
     deduction_successful = False
     count = 0
@@ -479,9 +479,9 @@ def deduct_current_production_plan(request, meal, dish, product, quantity, staff
                         logger.info(f"Dish '{dish_obj.name}' not found in production plan {plan.id}. Trying next plan.")
                         continue
         except Meal.DoesNotExist:
-            messages.error(request, f"Meal '{meal}' not found in the system.")
+            # messages.error(request, f"Meal '{meal}' not found in the system.")
             logger.warning(f"Meal '{meal}' does not exist.")
-            return
+            raise Exception(f"Meal '{meal}' does not exist.")
     elif dish:
         try:
             dish_info = Dish.objects.get(name=dish)
@@ -548,16 +548,16 @@ def deduct_current_production_plan(request, meal, dish, product, quantity, staff
                     logger.info(f"Dish '{dish_info.name}' not found in production plan {plan.id}. Trying next plan.")
                     continue
         except Dish.DoesNotExist:
-            messages.error(request, f"Dish '{dish}' not found in the system.")
+            # messages.error(request, f"Dish '{dish}' not found in the system.")
             logger.warning(f"Dish '{dish}' does not exist.")
-            return
+            raise Exception(f"Dish '{dish}' does not exist.")
 
     else:
         logger.info(f"Finished product '{product}' does not require deduction from production plans.")
         return
 
     if not deduction_successful:
-        messages.error(request, f"No valid production plan contains the meal or dish '{meal or dish}'. Deduction failed.")
+        # messages.error(request, f"No valid production plan contains the meal or dish '{meal or dish}'. Deduction failed.")
         logger.error("Deduction failed: No matching production item found.")
         raise Exception(f"Failed to find {meal or dish} in any production plan")
 
@@ -593,7 +593,7 @@ def change_list(request):
         timestamp__lte=end_date
     ).order_by('-timestamp')
     
-    paginator = Paginator(changes, 50) 
+    paginator = Paginator(changes, 10000) 
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
@@ -834,15 +834,15 @@ def void_authenticate(request):
                 return JsonResponse({"success": False, "message": "Username and password are required."}, status=400)
             logger.info(username)
             user = User.objects.get(username=username)
-
-            logger.info(user)
-            if save_data == "save":
+            logger.info(user.role)
+            if user.role in ['admin', 'accountant', 'supervisor', 'manager', 'owner']:
+                logger.info(user.role)
+                logger.info(user)
+                if save_data == "save":
                     logger.info('saving')
                     SaleAuthorization.objects.create(
                         auth_granted = True
                     )
-            if user.role in ['admin', 'accountant', 'supervisor', 'manager', 'owner']:
-                logger.info(user.role)
                 return JsonResponse({"success": True, 'role': user.role, "message": "Authentication successful.", "user_id":user.id}, status=200)
             else:
                 if not user.role:
