@@ -475,6 +475,7 @@ def deduct_current_production_plan(request, meal, dish, product, quantity, staff
                                 if count == 2:
                                     deduction_successful = True
                                     break
+                                break
                     except ProductionItems.DoesNotExist:
                         logger.info(f"Dish '{dish_obj.name}' not found in production plan {plan.id}. Trying next plan.")
                         continue
