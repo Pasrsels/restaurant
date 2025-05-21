@@ -1730,7 +1730,7 @@ def CategoryMeal(request):
         
         meal_filter = Meal.objects.filter(category__name = category_name).values('id', 'name', 'price', 'image', 'meal')
         product_filter = Product.objects.filter(category__name = category_name, finished_product=True).values('id', 'name', 'quantity', 'price', 'finished_product', 'image')
-        dish_filter = Dish.objects.filter(category = category_name).values('id', 'name', 'price', 'dish')
+        dish_filter = Dish.objects.filter(category = category_name).values('id', 'name', 'price', 'dish', 'image')
         
         logger.info(meal_filter)
         logger.info(product_filter)
@@ -1738,16 +1738,47 @@ def CategoryMeal(request):
 
         if not meal_filter and not dish_filter:
             product_filter_list = list(product_filter)
-            logger.info(product_filter)
-            return JsonResponse(product_filter_list, safe=False, status = 200)
+            product_data = [
+                {
+                    "id": f'p-{product['id']}',
+                    "name": product['name'],
+                    "quantity": product['quantity'],
+                    "price": product['price'],
+                    "finished_product": product['finished_product'],
+                    "image": product['image']
+                }
+                for product in product_filter
+            ]
+            logger.info(product_data)
+            return JsonResponse(product_data, safe=False, status = 200)
         elif not product_filter and not meal_filter:
             dish_filter_list = list(dish_filter)
-            logger.info(dish_filter_list)
-            return JsonResponse(dish_filter_list, safe=False, status = 200)
+            dish_data = [
+                {
+                    "id": f'd-{dish['id']}',
+                    "name": dish['name'],
+                    "price": dish['price'],
+                    "dish": dish['dish'],
+                    "image": dish['image']
+                }
+                for dish in dish_filter
+            ]
+            logger.info(dish_data)
+            return JsonResponse(dish_data, safe=False, status = 200)
         else:
             meal_filter_list = list(meal_filter) 
-            logger.info(meal_filter_list)
-            return JsonResponse(meal_filter_list, safe=False, status = 200)
+            meal_data = [
+                {
+                    "id": f'm-{meal['id']}',
+                    "name": meal['name'],
+                    "price": meal['price'],
+                    "meal": meal['meal'],
+                    "image": meal['image']
+                }
+                for meal in meal_filter
+            ]
+            logger.info(meal_data)
+            return JsonResponse(meal_data, safe=False, status = 200)
     else:
         return JsonResponse({'sucess': False, 'message': 'Invalid request'}, status = 500)
 
