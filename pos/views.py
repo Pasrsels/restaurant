@@ -102,8 +102,32 @@ def product_meal_json(request):
             for meal in meals
         ]
 
-        combined_items = meal_data + list(products) + list(dishes)
-        
+        product_data = [
+            {
+                'image': product['image'],
+                'name':product['name'],
+                'price':product['price'],
+                'finished_product':product['finished_product'],
+                'id':f'p-{product['id']}'
+            }
+            for product in products
+        ]
+
+        dish_data = [
+            {
+                'image': dish['image'],
+                'name':dish['name'],
+                'price':dish['price'],
+                'dish':dish['dish'],
+                'id':f'd-{dish['id']}'
+            }
+            for dish in dishes
+        ]
+
+        combined_items = meal_data + product_data + dish_data
+
+        logger.info(dish_data)
+        logger.info(product_data)
         data = {
             'items': combined_items
         }
@@ -241,8 +265,9 @@ def process_sale(request):
 
                                 meal = get_object_or_404(Meal, id=meal_id)
                                 logger.info(f'Sale for meal: {meal}')
-                            elif item.get('dish'):  
-                                dish = get_object_or_404(Dish, id=item['meal_id'])
+                            elif item.get('dish'):
+                                dish_id = item['meal_id'].split('-')[1] 
+                                dish = get_object_or_404(Dish, id=dish_id)
                                 logger.info(f'Sale for dish: {dish}')
                             else:
                                 raise ValueError('Invalid item type: Neither meal nor dish specified.')
@@ -291,7 +316,8 @@ def process_sale(request):
                                 
                         else:
                             logger.info('Finished goods')
-                            product = get_object_or_404(Product, id=item['meal_id'])
+                            product_id = item['meal_id'].split('-')[1]
+                            product = get_object_or_404(Product, id=product_id)
                             product.quantity -= item['quantity']
 
                             logger.info(f'finished product {product}')
