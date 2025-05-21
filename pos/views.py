@@ -443,16 +443,18 @@ def deduct_current_production_plan(request, meal, dish, product, quantity, staff
                         production_item = ProductionItems.objects.get(production=plan, dish=dish_obj)
 
                         if new_quantity > 0:
-                            if production_item.portions < new_quantity:
-                                logger.info(f"{new_quantity} is greater than production remaining {production_item.portions}")
-                                deduct_quanity = production_item.portions
+                            logger.info(f'Portions left:{production_item.portions}, Quantity:{quantity}')
+                            if (production_item.portions -production_item.portions_sold) < new_quantity:
+                                logger.info(f"{new_quantity} is greater than production remaining {(production_item.portions -production_item.portions_sold)}")
+                                deduct_quanity = (production_item.portions -production_item.portions_sold)
+                                logger.info(f'New Quantity Before:{new_quantity}')
                                 new_quantity = new_quantity - deduct_quanity
                                 logger.info(f"New Quantity:{new_quantity}")
                                 
                                 production_item.portions_sold += deduct_quanity
                                 if staff:
                                     production_item.staff_portions += deduct_quanity
-                                production_item.remaining_raw_material = production_item.portions - production_item.portions_sold
+                                production_item.remaining_raw_material = (production_item.portions -production_item.portions_sold)
                                 production_item.save()
 
                                 logger.info(f"Deducted {deduct_quanity} from production plan {plan.id} for dish '{dish_obj.name}' (from meal '{meal}').")
@@ -461,29 +463,31 @@ def deduct_current_production_plan(request, meal, dish, product, quantity, staff
                                 production_item.portions_sold += new_quantity
                                 if staff:
                                     production_item.staff_portions += new_quantity
-                                production_item.remaining_raw_material = production_item.portions - production_item.portions_sold
+                                production_item.remaining_raw_material = (production_item.portions -production_item.portions_sold)
                                 production_item.save()
                                 
                                 logger.info(f"Deducted {new_quantity} from production plan {plan.id} for dish '{dish_obj.name}' (from meal '{meal}').")
                                 new_quantity = 0
-                        elif production_item.portions < quantity:
-                            logger.info(f"{quantity} is greater than production remaining {production_item.portions}")
-                            deduct_quanity = production_item.portions
+                        elif (production_item.portions -production_item.portions_sold) < quantity:
+                            logger.info(f'Portions left:{(production_item.portions -production_item.portions_sold)}, Quantity:{quantity}')
+                            logger.info(f"{quantity} is greater than production remaining {(production_item.portions -production_item.portions_sold)}")
+                            deduct_quanity = (production_item.portions -production_item.portions_sold)
                             new_quantity = quantity - deduct_quanity
                             logger.info(f"New Quantity:{new_quantity}")
                             
                             production_item.portions_sold += deduct_quanity
                             if staff:
                                 production_item.staff_portions += deduct_quanity
-                            production_item.remaining_raw_material = production_item.portions - production_item.portions_sold
+                            production_item.remaining_raw_material = (production_item.portions -production_item.portions_sold)
                             production_item.save()
 
                             logger.info(f"Deducted {deduct_quanity} from production plan {plan.id} for dish '{dish_obj.name}' (from meal '{meal}').")
                         else:
+                            logger.info(f'Portions left:{(production_item.portions -production_item.portions_sold)}, Quantity:{quantity}')
                             production_item.portions_sold += quantity
                             if staff:
                                 production_item.staff_portions += quantity
-                            production_item.remaining_raw_material = production_item.portions - production_item.portions_sold
+                            production_item.remaining_raw_material = (production_item.portions -production_item.portions_sold)
                             production_item.save()
 
                             logger.info(f"Deducted {quantity} from production plan {plan.id} for dish '{dish_obj.name}' (from meal '{meal}').")
@@ -516,11 +520,13 @@ def deduct_current_production_plan(request, meal, dish, product, quantity, staff
             for plan in today_plans:
                 try:
                     production_item = ProductionItems.objects.get(production=plan, dish=dish_info)
-
+                    
                     if new_quantity > 0:
-                        if production_item.portions < new_quantity:
-                            logger.info(f"{new_quantity} is greater than production remaining {production_item.portions}")
-                            deduct_quanity = production_item.portions
+                        if (production_item.portions -production_item.portions_sold) < new_quantity:
+                            logger.info(f'Portions left:{(production_item.portions -production_item.portions_sold)}, Quantity:{quantity}')
+                            logger.info(f"{new_quantity} is greater than production remaining {(production_item.portions -production_item.portions_sold)}")
+                            deduct_quanity = (production_item.portions -production_item.portions_sold)
+                            logger.info(f'New quantity before:{new_quantity}')
                             new_quantity = new_quantity - deduct_quanity
                             logger.info(f"New Quantity:{new_quantity}")
                             
@@ -541,24 +547,26 @@ def deduct_current_production_plan(request, meal, dish, product, quantity, staff
                             
                             logger.info(f"Deducted {new_quantity} from production plan {plan.id} for dish '{dish_info.name}' (from meal '{meal}').")
                             new_quantity = 0
-                    elif production_item.portions < quantity:
-                        logger.info(f"{quantity} is greater than production remaining {production_item.portions}")
-                        deduct_quanity = production_item.portions
+                    elif (production_item.portions -production_item.portions_sold) < quantity:
+                        logger.info(f'Portions left:{(production_item.portions -production_item.portions_sold)}, Quantity:{quantity}')
+                        logger.info(f"{quantity} is greater than production remaining {(production_item.portions -production_item.portions_sold)}")
+                        deduct_quanity = (production_item.portions -production_item.portions_sold)
                         new_quantity = quantity - deduct_quanity
                         logger.info(f"New Quantity:{new_quantity}")
                         
                         production_item.portions_sold += deduct_quanity
                         if staff:
                             production_item.staff_portions += deduct_quanity
-                        production_item.remaining_raw_material = production_item.portions - production_item.portions_sold
+                        production_item.remaining_raw_material = (production_item.portions -production_item.portions_sold)
                         production_item.save()
 
                         logger.info(f"Deducted {deduct_quanity} from production plan {plan.id} for dish '{dish_info.name}' (from meal '{meal}').")
                     else:
+                        logger.info(f'Portions left:{(production_item.portions -production_item.portions_sold)}, Quantity:{quantity}')
                         production_item.portions_sold += quantity
                         if staff:
                             production_item.staff_portions += quantity
-                        production_item.remaining_raw_material = production_item.portions - production_item.portions_sold
+                        production_item.remaining_raw_material = (production_item.portions -production_item.portions_sold)
                         production_item.save()
 
                         logger.info(f"Deducted {quantity} from production plan {plan.id} for dish '{dish_info.name}' (from meal '{meal}').")
