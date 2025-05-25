@@ -218,13 +218,9 @@ def process_sale(request):
                             amount_paid=received_amount
                         )
 
-                    logger.info(sale)
-
                     today = localdate()
 
                     daily_productions = Production.objects.filter(date_created=today).order_by('time_created')
-
-                    logger.info(f'daily productions: {daily_productions}')
                     
                     for item in items:
                         if not item['type']:
@@ -305,6 +301,7 @@ def process_sale(request):
                                 deduct_current_production_plan(request=request, meal=None, dish=None, product=product.name, quantity=item['quantity'], staff=True)
                             else:
                                 sale_item = SaleItem.objects.create(
+                                    
                                     sale=sale,
                                     product=product,
                                     quantity=item['quantity'],
@@ -349,7 +346,9 @@ def process_sale(request):
                         total_quantity=sale_item.quantity,
                     )
                     
-                    logger.info(f'Sale: {sale.id} Processed')
+                    sales_amount_tracker(request, sale.amount_paid)
+                    
+                    logger.info(f'Sale: {sale.id} Processed by: {request.user.username}' )
 
                     data = {
                         'receipt_number': sale.receipt_number,
@@ -384,6 +383,12 @@ def process_sale(request):
             logger.error(f'Error processing sale: {str(e)}')
             return JsonResponse({'success': False, 'message': str(e)}, status=400)
     return JsonResponse({'success': False, 'message': 'Invalid request'}, status=405)
+
+def sales_amount_tracker(request, amount):
+    SalesAmountTracker.objects.create(
+        cashier = request.user,
+        amount = amount
+    )
 
 @login_required
 def deduct_current_production_plan(request, meal, dish, product, quantity, staff):
@@ -859,10 +864,12 @@ def cash_up(request, cashier_id):
 
     if request.method == 'GET':
         cash_in_hand = 0
+        
+        yesterday = datetime.today().date() - timedelta(days=1)
 
-        sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=False).values('total_amount')
-        sales_items = SaleItem.objects.filter(sale__cashier__id=cashier_id, sale__date=datetime.datetime.today())
-        void_sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=True).values('total_amount')
+        sales = Sale.objects.filter(cashier__id=cashier_id, date=yesterday, void=False).values('total_amount')
+        sales_items = SaleItem.objects.filter(sale__cashier__id=cashier_id, sale__date=yesterday)
+        void_sales = Sale.objects.filter(cashier__id=cashier_id, date=yesterday, void=True).values('total_amount')
 
         sales_dict = {}
         staff_meals_dict = {}
@@ -929,7 +936,7 @@ def cash_up(request, cashier_id):
         
         variance_list = []
 
-        eod_list = EndOfDayItems.objects.filter(end_of_day__date=datetime.datetime.today()).values(
+        eod_list = EndOfDayItems.objects.filter(end_of_day__date=yesterday).values(
             'dish_name',
             'wastage',
             'leftovers',

@@ -107,7 +107,7 @@ def products(request):
         }
     )
     
-@admin_required
+
 @login_required
 def inventory(request):
     product_name = request.GET.get('name', '')

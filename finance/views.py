@@ -42,7 +42,7 @@ def sale(request):
         }    
     )
  
-@admin_required
+
 @login_required   
 def finance(request):
     sales = Sale.objects.filter(date__month = get_current_month(), void=False).order_by('-date')[:8]
@@ -72,7 +72,6 @@ def get_expense(request, expense_id):
     return JsonResponse({'success': True, 'data': data})
 
 
-@admin_required
 @transaction.atomic #use with atomic
 @login_required
 def expenses(request):
@@ -205,7 +204,6 @@ def expenses(request):
         except Exception as e:
             return JsonResponse({'success': False, 'message': str(e)}, status=400)
 
-@admin_required
 @login_required      
 def add_or_edit_expense(request):
     if request.method == 'POST':

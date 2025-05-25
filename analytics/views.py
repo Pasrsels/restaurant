@@ -10,9 +10,9 @@ from datetime import date, timedelta
 from django.db.models.functions import ExtractHour
 from collections import defaultdict
 import decimal
-from permisions.permisions import admin_required
+# from permisions.permisions import admin_required
 
-@admin_required
+
 def analytics_view(request):
     # Get filter parameters
     filter_by = request.GET.get('filter_by', 'day')
@@ -233,6 +233,5 @@ def analytics_view(request):
     logger.info(data)
     return JsonResponse(data)
 
-@admin_required
 def analytics_index(request):
     return render(request, 'analytics.html')

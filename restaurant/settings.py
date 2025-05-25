@@ -118,7 +118,7 @@ DATABASES = {
     # )
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'urban-eats',  
+        'NAME': 'restaurant',  
         'USER': 'postgres',
         'PASSWORD': 'neverfail',
         'PORT': '5432',
