@@ -167,7 +167,10 @@
         // Add item to cart
         $('#save-button').on('click', function() {
             const portions = parseFloat($('#id_portions').val());
-    
+            const dish_name = $('#select2-id_dish-container').text();
+
+            console.log(dish_name)
+
             if (!ingredientsData.length || isNaN(portions) || portions <= 0) {
                 Swal.fire({
                     title: "Invalid Entry",
@@ -176,7 +179,7 @@
                 });
                 return;
             }
-    
+            /*
             const item = {
                 dish: $('#id_dish option:selected').text(),
                 portions: portions,
@@ -184,6 +187,24 @@
             };
     
             cart.push(item);
+            updateCartTable();
+            */
+            
+            const dish_text = $('#id_dish option:selected').text();
+            const itemIndex = cart.findIndex(entry => entry.dish === dish_text);
+
+            if (itemIndex !== -1) {
+                cart[itemIndex].portions += portions;
+                cart[itemIndex].total_cost = total_dish_cost(cart[itemIndex].portions);
+            } else {
+                const item = {
+                    dish: dish_text,
+                    portions: portions,
+                    total_cost: total_dish_cost(portions)
+                };
+                cart.push(item);
+            }
+
             updateCartTable();
         });
     

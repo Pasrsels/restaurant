@@ -947,18 +947,18 @@ def production_plan_detail(request, pp_id):
                 for ing in Ingredient.objects.filter(dish=item.dish):
                     # Fetch or create ProductionRawMaterials instance
                     p_r_m_bf, created = ProductionRawMaterials.objects.get_or_create(
-                        product=ing.raw_material,
+                        product=ing.minor_raw_material,
                         defaults={'quantity': 0}
                     )
 
                     required_quantity = ing.quantity * (item.portions / item.dish.portion_multiplier)
 
-                    production_inventory = ProductionRawMaterials.objects.filter(product=ing.raw_material).first()
+                    production_inventory = ProductionRawMaterials.objects.filter(product=ing.minor_raw_material).first()
                     current_quantity = production_inventory.quantity if production_inventory else 0
 
                     expected_quantity = required_quantity - current_quantity
 
-                    raw_material_found = next((rm for rm in raw_materials if rm['id'] == ing.raw_material.id), None)
+                    raw_material_found = next((rm for rm in raw_materials if rm['id'] == ing.minor_raw_material.id), None)
                     
                     if raw_material_found:
                      
@@ -969,8 +969,8 @@ def production_plan_detail(request, pp_id):
                         
                         raw_materials.append(
                             {
-                                'id': ing.raw_material.id,
-                                'name': ing.raw_material.name,
+                                'id': ing.minor_raw_material.id,
+                                'name': ing.minor_raw_material.name,
                                 'quantity_b_f': float(current_quantity),
                                 'quantity': float(required_quantity),
                                 'expected_quantity': float(expected_quantity),
@@ -978,7 +978,7 @@ def production_plan_detail(request, pp_id):
                         )
                         
         except Exception as e:
-            messages.warning(request, f'Production Plan With ID: {pp_id}, doesn\t exists.')
+            messages.warning(request, f'Production Plan With ID: {pp_id}, doesn\t exists. Error is {e}')
         
         return render(request, 'inventory/production_plan_detail.html', 
             {
@@ -1000,18 +1000,27 @@ def confirm_production_plan(request, pp_id):
             production_plan = Production.objects.get(id=pp_id)
             production_plan_items = ProductionItems.objects.filter(production=production_plan)
             total_cost_items = production_plan_items.aggregate(total_cost=Sum('total_cost'))['total_cost'] or 0
-
+            total_overrides = 0
             raw_materials = []
             
             for item in production_plan_items:
+                logger.info(item.dish.name)
                 for ing in Ingredient.objects.filter(dish=item.dish):
                    
                     p_r_m_bf, created = ProductionRawMaterials.objects.get_or_create(
                         product=ing.minor_raw_material,
                         defaults={'quantity': 0}
                     )
+                    overrided_raw_materials = OverrideHistory.objects.filter(raw_material_overrided = ing.minor_raw_material)
+                    
+                    total_overrides_up = sum(item.up if item.up else 0 for item in overrided_raw_materials)
+                    total_overrides_down = sum(item.down if item.down else 0 for item in overrided_raw_materials)
+
+                    logger.info(total_overrides_down)
+                    logger.info(total_overrides_up)
 
                     required_quantity = ing.quantity * (item.portions / item.dish.portion_multiplier)
+                    logger.info(ing.minor_raw_material.name)
 
                     production_inventory = ProductionRawMaterials.objects.filter(product=ing.minor_raw_material).first()
                     current_quantity = production_inventory.quantity if production_inventory else 0
@@ -1032,8 +1041,14 @@ def confirm_production_plan(request, pp_id):
                                 'quantity_b_f': float(current_quantity),
                                 'quantity': float(required_quantity),
                                 'expected_quantity': float(expected_quantity),
+                                'dish': item.dish.name,
+                                'production_id': pp_id,
+                                'accumulated_overrides_up':  total_overrides_up,
+                                'accumulated_overrides_down':  total_overrides_down,
                             }
                         )
+                    total_overrides_up = 0
+                    total_overrides_down = 0
             logger.info(raw_materials)
             
         except Exception as e:
@@ -1048,6 +1063,74 @@ def confirm_production_plan(request, pp_id):
                 'production_plan_minor_items': raw_materials,
             }
         )
+    
+@login_required
+def overrideBf(request):
+    if request.method == "GET":
+        try:
+            override_history = OverrideHistory.objects.all()
+            o_history = []
+            for items in override_history:
+                o_history.append(
+                    {
+                        'date': items.date_overrided,
+                        'raw_material': items.raw_material_overrided.name,
+                        'up': items.up if items.up else 0,
+                        'down': items.down if items.down else 0,
+                    }
+                )
+            logger.info(o_history)
+            return JsonResponse({'success':True, 'data': o_history}, status = 200)
+        except Exception as e:
+            return JsonResponse({'success':False, 'message': e}, status = 400)
+    elif request.method == "PUT":
+        try:
+            data = json.loads(request.body)
+            logger.info(data)
+            logger.info(int(data.get('id')))
+            product_info = Product.objects.get(id = int(data.get('id')))
+            logger.info({'Product': product_info})
+
+            production_raw_material_info = ProductionRawMaterials.objects.get(product = product_info)
+            production_raw_material_info.quantity = float(data.get('new_quantity'))
+            production_raw_material_info.save()
+
+            override_formula = float(data.get('old_quantity')) - float(data.get('new_quantity'))
+            logger.info(override_formula)
+
+            if override_formula < 0:
+                OverrideHistory.objects.create(
+                    raw_material_overrided = product_info,
+                    up = abs(override_formula)
+                )
+            else:
+                OverrideHistory.objects.create(
+                    raw_material_overrided = product_info,
+                    down = override_formula
+                )
+
+            return JsonResponse({'success': True, 'messages': f'Updated {product_info.name} bf to {data.get('new_quantity')}'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': f'Error is {e}'})
+    elif request.method == "DELETE":
+        try:
+            data = json.loads(request.body)
+            logger.info(data)
+            with transaction.atomic():
+                for items in data:
+                    print(items)
+                    product_info = Product.objects.get(name = items)
+                    production_raw_material = ProductionRawMaterials.objects.get(product = product_info)
+                    production_raw_material.quantity = 0
+                    production_raw_material.save()
+
+                    override_history_clear = OverrideHistory.objects.filter(raw_material_overrided = product_info)
+                    override_history_clear.delete()
+                return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': e})
+    else:
+        return JsonResponse({'success': False, "message": 'Invalid request'}, status = 505)
 
 
 @login_required      
@@ -1816,6 +1899,7 @@ def end_of_day_pdf(request):
             template_src="End_of_day_pdf_report.html",
             context_data={"productions_today": e_o_d_items_list}
         )
+    return JsonResponse({'success': False, "message": "Failed to download PDF"}, status = 500)
 
 
 @login_required
@@ -1829,7 +1913,7 @@ def end_of_day_view(request):
             e_o_d = None
 
         productions_today = Production.objects.filter(date_created=today, status=True, declared=True)
-        production_items_today = ProductionItems.objects.filter(production__in=productions_today)
+        production_items_today = ProductionItems.objects.filter(production__in=productions_today, end_of_day_status = False)
 
         productions_today = production_items_today.values('dish__name').annotate(
             total_portions=Sum('portions'),
@@ -1890,7 +1974,7 @@ def end_of_day_view(request):
                         })  
 
         production_data = sales_portions_list
-
+        logger.info(productions_today)
         logger.info(production_data)
        
         return render(request, 'end_of_day.html', {
@@ -1912,37 +1996,44 @@ def end_of_day_view(request):
             
             # production_item = ProductionItems.objects.get(dish__name=dish_name, date=request.POST.get('date'))
             logger.info(f'{total_portions_sold} {staff_portions}')
-            expected = total_portions - total_portions_sold - staff_portions - wastage - leftovers
+            expected = total_portions - (total_portions_sold + staff_portions + wastage + leftovers)
             
-            e_o_d, _ = EndOfDay.objects.get_or_create(
-                date=datetime.datetime.today(),
-                done = False,
-            )
-            
-            e_o_d_obj = EndOfDayItems.objects.create(
-                end_of_day = e_o_d,
-                dish_name = data.get('dish_name'),
-                total_portions = data.get('total_portions'),
-                staff_portions = data.get('total_staff_portions'),
-                wastage = data.get('wastage'),
-                leftovers = data.get('leftovers'),
-                total_sold = total_portions_sold,
-                expected = expected
-            )
-            
-            # dish = Dish.objects.get(name=dish_name)
-            
-            # ingredient_with_max_quantity = Ingredient.objects.all().order_by('-quantity').first()
-            
-            # if ingredient_with_max_quantity:
-            #     logger.info(f"The ingredient with the greatest quantity is: {ingredient_with_max_quantity.raw_material}")
-            #     kgs_left = e_o_d_obj.leftovers / dish.portion_multiplier 
+            with transaction.atomic():
+                e_o_d, _ = EndOfDay.objects.get_or_create(
+                    date=datetime.datetime.today(),
+                    done = False,
+                )
                 
-            #     prod_rm = ProductionRawMaterials.objects.get(product=ingredient_with_max_quantity.raw_material)
-            #     prod_rm.quantity += kgs_left
-            #     prod_rm.save()
-            # else:
-            #     return JsonResponse({'success': False, 'message': "No ingredients found."})
+                e_o_d_obj = EndOfDayItems.objects.create(
+                    end_of_day = e_o_d,
+                    dish_name = data.get('dish_name'),
+                    total_portions = data.get('total_portions'),
+                    staff_portions = data.get('total_staff_portions'),
+                    wastage = data.get('wastage'),
+                    leftovers = data.get('leftovers'),
+                    total_sold = total_portions_sold,
+                    expected = expected
+                )
+
+                production_plan = Production.objects.filter(date_created=datetime.date.today())
+                dish_info = Dish.objects.get(name=dish_name)
+
+                for production in production_plan:
+                    production_items = ProductionItems.objects.filter(production=production, dish=dish_info)
+                    production_items.update(end_of_day_status=True)
+                dish = Dish.objects.get(name=dish_name)
+                
+                ingredient_with_max_quantity = Ingredient.objects.all().order_by('-quantity').first()
+                
+                if ingredient_with_max_quantity:
+                    logger.info(f"The ingredient with the greatest quantity is: {ingredient_with_max_quantity.minor_raw_material}")
+                    kgs_left = e_o_d_obj.leftovers / dish.portion_multiplier 
+                    
+                    prod_rm = ProductionRawMaterials.objects.get(product=ingredient_with_max_quantity.minor_raw_material)
+                    prod_rm.quantity += kgs_left
+                    prod_rm.save()
+                else:
+                    return JsonResponse({'success': False, 'message': "No ingredients found."})
         
             return JsonResponse({'success': True})
         except Exception as e:
@@ -2199,7 +2290,8 @@ def confirm_minor_raw(request):
     """
     try:
         data = json.loads(request.body)
-        
+        logger.info(data)
+
         raw_material_id = data.get('raw_material_id')
         quantity = data.get('quantity')
         production_id = data.get('production_id')

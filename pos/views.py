@@ -787,6 +787,7 @@ def void_sales(request, user_id):
 
             logger.info(f'Sales data for voiding: {data}')
 
+
             sale_id = data['sale_id']
             sale = get_object_or_404(Sale, id=sale_id)
             items = SaleItem.objects.filter(sale=sale)
@@ -799,6 +800,45 @@ def void_sales(request, user_id):
                 sale.save()
 
                 logger.info(f'Sale marked as voided: {sale}')
+
+                for item in items:
+                    p_plan = Production.objects.filter(date_created = datetime.date.today(), declared = True)
+
+                    for item in items:
+                        if item.meal:
+                            for dish in item.meal.dish.all():
+                                logger.info(f"Processing dish from meal: {dish.name}")
+                                for pp in p_plan:
+                                    try:
+                                        p_item = ProductionItems.objects.get(production=pp, dish=dish)
+                                        if sale.staff == True:
+                                            p_item.staff_portions -= item.quantity
+                                        p_item.remaining_raw_material += item.quantity
+                                        p_item.portions_sold -= item.quantity
+                                        p_item.save()
+                                        break
+                                    except ProductionItems.DoesNotExist:
+                                        logger.info(f"ProductionItems not found for dish {dish.name} in production {pp.id}")
+                        elif item.dish:
+                            for pp in p_plan:
+                                try:
+                                    p_item = ProductionItems.objects.get(production=pp, dish=item.dish)
+                                    if sale.staff == True:
+                                        p_item.staff_portions -= item.quantity
+                                    p_item.remaining_raw_material += item.quantity
+                                    p_item.portions_sold -= item.quantity
+                                    p_item.save()
+                                    break
+                                except ProductionItems.DoesNotExist:
+                                    logger.info(f"ProductionItems not found for dish {item.dish.name} in production {pp.id}")
+                        elif item.product:
+                            try:
+                                product = Product.objects.get(finished_product=True, name=item.product.name)
+                                product.quantity += item.quantity
+                                product.save()
+                            except Product.DoesNotExist:
+                                logger.warning(f"Finished product not found: {item.product.name}")
+
 
                 # for item in items:
                 #     product = item.product or item.meal or item.dish

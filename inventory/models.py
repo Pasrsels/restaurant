@@ -100,6 +100,7 @@ class ProductionItems(models.Model):
     declared_quantity = models.FloatField(default=0, null=True)
     portions_sold = models.FloatField(default=0, null=True)
     allocated = models.BooleanField(default=False)
+    end_of_day_status = models.BooleanField(default=False)
 
 class MinorProductionItems(models.Model):
     production = models.ForeignKey(Production, on_delete=models.CASCADE)
@@ -124,6 +125,13 @@ class AllocatedRawMaterials(models.Model):
     def __str__(self) -> str:
         return f'{self.production} ({self.raw_material}: ({self.quantity}))'
     
+
+class OverrideHistory(models.Model):
+    date_overrided = models.DateField(auto_now_add=True)
+    raw_material_overrided = models.ForeignKey(Product, on_delete=models.CASCADE, null=False)
+    up = models.FloatField(null=True)
+    down = models.FloatField(null=True)
+
 class ProductionInventory(models.Model):
     raw_material = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.FloatField()

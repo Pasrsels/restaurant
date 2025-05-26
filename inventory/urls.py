@@ -34,6 +34,7 @@ urlpatterns = [
     path('confirm/minor_raw_materials/', confirm_minor_raw, name='confirm_minor_raw'),
     path('production_raw_materials/', production_raw_materials, name='production_raw_materials'),
     path('production_rm/detail/<int:rm_id>/', production_rm_detail, name='production_rm_detail'),
+    path('override/raw-material', overrideBf , name='override'),
     
     # supplier
     path('suppliers/list', suppliers, name='suppliers'),
