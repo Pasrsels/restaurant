@@ -803,13 +803,15 @@ def void_sales(request, user_id):
 
                 for item in items:
                     p_plan = Production.objects.filter(date_created = datetime.date.today(), declared = True)
-
+                    logger.info(f'Production Plan {p_plan.name}')
                     for item in items:
                         if item.meal:
+                            logger.info(f'Meal is {item.meal.name}')
                             for dish in item.meal.dish.all():
                                 logger.info(f"Processing dish from meal: {dish.name}")
                                 for pp in p_plan:
                                     try:
+                                        logger.info(f'Quantity is : {item.quantity}')
                                         p_item = ProductionItems.objects.get(production=pp, dish=dish)
                                         if sale.staff == True:
                                             p_item.staff_portions -= item.quantity
@@ -820,8 +822,10 @@ def void_sales(request, user_id):
                                     except ProductionItems.DoesNotExist:
                                         logger.info(f"ProductionItems not found for dish {dish.name} in production {pp.id}")
                         elif item.dish:
+                            logger.info(f'Dish is : {item.dish.name}')
                             for pp in p_plan:
                                 try:
+                                    logger.info(f'Quantity is : {item.quantity}')
                                     p_item = ProductionItems.objects.get(production=pp, dish=item.dish)
                                     if sale.staff == True:
                                         p_item.staff_portions -= item.quantity
@@ -833,6 +837,8 @@ def void_sales(request, user_id):
                                     logger.info(f"ProductionItems not found for dish {item.dish.name} in production {pp.id}")
                         elif item.product:
                             try:
+                                logger.info(f'Product is {item.product.name}')
+                                logger.info(f'Quantity is {item.quantity}')
                                 product = Product.objects.get(finished_product=True, name=item.product.name)
                                 product.quantity += item.quantity
                                 product.save()
