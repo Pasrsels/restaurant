@@ -92,7 +92,7 @@ def product_meal_json(request):
 
         meal_data = [
             {
-                # 'image': meal.image.url.replace('/media/', '', 1),
+                'image': meal.image.url.replace('/media/', '', 1),
                 'name':meal.name,
                 'price':meal.price,
                 'category':meal.category.name,
@@ -803,7 +803,7 @@ def void_sales(request, user_id):
 
                 for item in items:
                     p_plan = Production.objects.filter(date_created = datetime.date.today(), declared = True)
-                    logger.info(f'Production Plan {p_plan.name}')
+                    logger.info(f'Production Plan {[item.id for item in p_plan]}')
                     for item in items:
                         if item.meal:
                             logger.info(f'Meal is {item.meal.name}')

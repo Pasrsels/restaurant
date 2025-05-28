@@ -18,7 +18,7 @@
             <div class="row">
              <div class="col-9">
                 <h5 class="mt-2 px-1 bg-secondary rounded py-1 text-light">Dish Details</h5>
-                <form action="post">
+                <form action="post" enctype="multipart/form-data">
                     {% csrf_token %}
                     {{ dish_form | crispy }}
                 </form>
@@ -219,7 +219,20 @@ $(document).ready(function() {
     });
 
     $('#id_submit').on('click', function(){
-        
+      const imageInput = document.getElementById('id_image');
+      const formData = new FormData();
+      formData.append('image', imageInput.files[0]);
+      
+
+      formData.append('csrfmiddlewaretoken', $('input[name="csrfmiddlewaretoken"]').val());
+      formData.append('cart', JSON.stringify(cart));
+      formData.append('dish_cost', dish_total);
+      formData.append('name', document.getElementById('id_name').value);
+      formData.append('selling_price', parseFloat(document.getElementById('id_price').value));
+      formData.append('portion_multiplier', parseFloat(document.getElementById('id_portion_multiplier').value));
+      formData.append('category', document.getElementById('id_category').value);
+      formData.append('image', imageInput.files[0]);
+      /*
       const postData = {
         csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
         cart: cart,
@@ -227,16 +240,19 @@ $(document).ready(function() {
         name: document.getElementById('id_name').value,
         selling_price: parseFloat(document.getElementById('id_price').value),
         portion_multiplier: parseFloat(document.getElementById('id_portion_multiplier').value),
-        category: document.getElementById('id_category').value
+        category: document.getElementById('id_category').value,
     };
-    
+    */
     fetch('/inventory/edit_dish/{{ dish.id }}/', {
         method: 'POST',
+        /*
         headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()
         },
         body: JSON.stringify(postData)
+        */
+        body: formData
     })
     .then(response => response.json())
     .then(data => {

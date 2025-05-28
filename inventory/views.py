@@ -941,6 +941,8 @@ def production_plan_detail(request, pp_id):
             total_cost_minor_items = production_plan_minor_items.aggregate(total_cost=Sum('total_cost'))['total_cost'] or 0
 
             allocated = AllocatedRawMaterials.objects.filter(production=production_plan)
+
+            allocated_rm = []
             raw_materials = []
             
             for item in production_plan_items:
@@ -966,7 +968,7 @@ def production_plan_detail(request, pp_id):
                         raw_material_found['expected_quantity'] += expected_quantity
                         raw_material_found['quantity_b_f'] += current_quantity
                     else:
-                        
+                        logger.info('ew')
                         raw_materials.append(
                             {
                                 'id': ing.minor_raw_material.id,
@@ -976,10 +978,21 @@ def production_plan_detail(request, pp_id):
                                 'expected_quantity': float(expected_quantity),
                             }
                         )
-                        
+
+                    existing_ids = {rm['id'] for rm in allocated_rm if rm}
+                    logger.info([item for item in allocated_rm])
+                    if ing.minor_raw_material.id not in existing_ids:
+                        allocated_rm.append({
+                            'id': ing.minor_raw_material.id,
+                            'quantity': (item.portions / item.dish.portion_multiplier),
+                            'used': [i.quantity/item.dish.portion_multiplier for i in allocated if i.raw_material.id == ing.minor_raw_material.id],
+                        })
+
+
+
         except Exception as e:
             messages.warning(request, f'Production Plan With ID: {pp_id}, doesn\t exists. Error is {e}')
-        
+        logger.info(allocated_rm)
         return render(request, 'inventory/production_plan_detail.html', 
             {
                 'production_plan':production_plan,
@@ -988,6 +1001,7 @@ def production_plan_detail(request, pp_id):
                 'total_cost_items': total_cost_items,
                 'total_cost_minor_items': total_cost_minor_items,
                 'allocated_rm':allocated,
+                'allocated_rm_per_unit': allocated_rm,
                 'confirm': False
             }
         )
@@ -1658,6 +1672,16 @@ def edit_dish(request, dish_id):
         
     if request.method == 'POST':
         try:
+
+            dish_name = request.POST.get('name')
+            cost = request.POST.get('dish_cost')
+            selling_price = request.POST.get('selling_price')
+            portion_multiplier = request.POST.get('portion_multiplier')
+            category = request.POST.get('category')
+            image = request.FILES.get('image')
+            cart = json.loads(request.POST.get('cart'))
+
+            """
             data = json.loads(request.body)
             cart = data.get('cart', [])
             
@@ -1668,6 +1692,11 @@ def edit_dish(request, dish_id):
             cost = data.get('dish_cost')
             selling_price = data.get('selling_price')
             category = data.get('category')
+            image = data.get('image')
+            """
+
+            logger.info(f'cart: {cart}')
+            logger.info(image)
 
 
             cat, _= MealCategory.objects.get_or_create(name=category) 
@@ -1678,6 +1707,7 @@ def edit_dish(request, dish_id):
             dish.cost = cost
             dish.price = selling_price
             dish.category = dish.category
+            dish.image = image
             existing_ingredients = Ingredient.objects.filter(dish=dish)
             existing_ingredient_names = {ing.minor_raw_material.name for ing in existing_ingredients}
             raw_material_map = {rm.name: rm for rm in Product.objects.all()}

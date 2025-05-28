@@ -68,6 +68,7 @@
                             <th>Raw Material</th>
                             <th>Planned Quantity</th>
                             <th>Allocated Quantity</th>
+                            <th>Portions/Unit</th>
                             <th>Remaining Quantity</th>
                         </tr>
                     </thead>
@@ -81,6 +82,15 @@
                                     {% if allocated.raw_material.id == item.id%}
                                         <small>{{ allocated.quantity }}</small>
                                     {% endif %}
+                                {% endfor %}
+                            </td>
+                            <td>
+                                {% for all in allocated_rm_per_unit%}
+                                    <small>
+                                        {% if all.id == item.id%}
+                                            {{all.quantity}}{{all.used}}
+                                        {% endif %}
+                                    </small>
                                 {% endfor %}
                             </td>
                             <td>
