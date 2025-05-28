@@ -54,7 +54,7 @@ def inventory_task(product_id):
 
         # Get recipients configured for dish cost update notifications
         # emails = NotificationEmails.objects.filter(module=modules_list["dish_cost_update"]).values_list("email", flat=True)
-        emails = ['teddychinomona@gmail.com']
+        emails = ['teddychinomona@gmail.com', 'cassymyo@gmail.com', 'mirackletec@gmail.com']
 
         if emails:
             send_email_task.delay(
@@ -187,7 +187,7 @@ def send_production_creation_notification(production_id):
         The email is to notify you on the creation of a Production Plan {production.production_plan_number}, and it requires your cornifimation.
         """,
         from_email='admin@techcity.co.zw',
-        to=['cassymyo@gmail.com', 'teddychinomona@gmail.com'],
+        to=['cassymyo@gmail.com', 'teddychinomona@gmail.com', 'mirackletec@gmail.com'],
     )
     
     EmailThread(email).start()

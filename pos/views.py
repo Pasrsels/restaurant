@@ -67,6 +67,7 @@ from django.db.models import Sum
 from django.contrib import messages
 # logger = logging.getLogger('restaurant')  
 
+# logger.add('C:/Users\Teddy/Desktop/pos.log', rotation="1 MB", retention="10 Days")
 # @cache_page(60*50)
 @login_required
 def pos(request):
@@ -183,6 +184,7 @@ def create_client_change(client_data, receipt_number, cashier, sale):
 
 @login_required
 def process_sale(request):
+    sink_id = logger.add('C:/Users/Teddy/Desktop/Sales.log', rotation='1 MB', retention='5 Days')
     if request.method == 'POST':
         try:
             check_status = SaleAuthorization.objects.get(auth_date = datetime.date.today(), auth_granted = True)
@@ -401,7 +403,7 @@ def process_sale(request):
                     #         "data": {"total_sales": str(total_sales)},
                     #     }
                     # )
-
+                    logger.remove(sink_id)
                     return JsonResponse({'success': True, 'data': data}, status=201)
             # if not today_plan:
             #     messages.warning(request, "Currently no production plan")
