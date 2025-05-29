@@ -65,6 +65,7 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.styles import getSampleStyleSheet
 from django.db.models import Sum
 from django.contrib import messages
+from .tasks import lowStockNotifications
 # logger = logging.getLogger('restaurant')  
 
 # logger.add('C:/Users\Teddy/Desktop/pos.log', rotation="1 MB", retention="10 Days")
@@ -506,6 +507,7 @@ def deduct_current_production_plan(request, meal, dish, product, quantity, staff
                                 count += 1
                                 if count == 2:
                                     deduction_successful = True
+                                    lowStockNotifications(dish_name=production_item.dish.name, quantity=production_item.remaining_raw_material)
                                     break
                                 break
                     except ProductionItems.DoesNotExist:
@@ -580,6 +582,7 @@ def deduct_current_production_plan(request, meal, dish, product, quantity, staff
                     if new_quantity ==0:
                         deduction_successful = True
                         if deduction_successful == True:
+                            lowStockNotifications(dish_name=production_item.dish.name, quantity=production_item.remaining_raw_material)
                             break
                 except ProductionItems.DoesNotExist:
                     logger.info(f"Dish '{dish_info.name}' not found in production plan {plan.id}. Trying next plan.")
