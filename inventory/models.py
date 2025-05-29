@@ -426,4 +426,7 @@ class BudgetItem(models.Model):
     def __str__(self) -> str:
         return f'{self.product.name} - {self.allocated_amount}'
 
-    
+class EndOfDayStock(models.Model):
+    date = models.DateField(auto_now_add=True)
+    product =  models.ForeignKey(Product, on_delete= models.CASCADE, null=False)
+    quantity = models.IntegerField(default=0)

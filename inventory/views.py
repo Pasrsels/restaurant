@@ -106,7 +106,66 @@ def products(request):
             'count':raw_materials.count()
         }
     )
-    
+
+@admin_required
+@login_required
+def productHistory(request, id):
+    if request.method == 'GET':
+        logger.info(id)
+        product_info = Product.objects.get(id = id)
+        p_order_received = PurchaseOrderItem.objects.filter(purchase_order__order_date = datetime.datetime.today(), received = True, product = product_info)
+        p_order = 0
+        
+        product_sales = SaleItem.objects.filter(sale__date = datetime.date.today(), product = product_info)
+        sales_total = 0
+
+        previous_day = datetime.date.today() - datetime.timedelta(days=1)
+        starting_stock = 0
+
+        try:
+            starting_stock = EndOfDayStock.objects.get(date = previous_day, product = product_info)
+        except Exception as e:
+            logger.info(e)
+        
+        for item in p_order_received:
+            p_order += item.received_quantity
+            logger.info({'p_order_item': p_order})
+        
+        for item in product_sales:
+            sales_total += item.quantity
+            logger.info({'sale total': sales_total})
+
+        stock_report = {
+            'Name': product_info.name,
+            'Date': datetime.datetime.today(),
+            'Sold': sales_total,
+            'Stock_in': p_order,
+            'Start': starting_stock,
+            'Current': product_info.quantity
+        }
+
+        return JsonResponse({'success': True, 'data': stock_report}, status = 200)
+    elif request.method == "POST":
+        end_of_day_stock = None
+        try:
+            product_info = Product.objects.get(id = id)
+            end_of_day_stock = EndOfDayStock.objects.get(product = product_info, date = datetime.date.today())
+        except Exception as e:
+            logger.info(e)
+
+        if end_of_day_stock:
+            logger.info(f'Product end of day already logged')
+            logger.info(end_of_day_stock.quantity)
+            return JsonResponse({'success': True, 'message': 'Product end of day already logged'}, status = 200)
+        else:
+            log = EndOfDayStock.objects.create(
+                product = product_info,
+                quantity = product_info.quantity
+            )
+            logger.info(log)
+            return JsonResponse({'success': True}, status = 200)
+    return JsonResponse({'success': False, 'message': 'Invalid request'}, status = 505)
+
 @admin_required
 @login_required
 def inventory(request):
