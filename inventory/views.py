@@ -40,7 +40,8 @@ from finance.models import (
 from .tasks import (
     send_production_creation_notification,
     transfer_notification,
-    supplier_email
+    supplier_email,
+    sendProductHistory
 )
 from . forms import (
     MealForm,
@@ -154,6 +155,13 @@ def productHistory(request, id):
             'Start': starting_stock,
             'Current': product_info.quantity
         }
+        sendProductHistory.delay(
+            product_info.name,
+            product_info.name,
+            starting_stock,
+            p_order,
+            product_info.quantity
+        )
 
         return JsonResponse({'success': True, 'data': stock_report}, status = 200)
     elif request.method == "POST":

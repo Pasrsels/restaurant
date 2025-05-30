@@ -20,6 +20,42 @@ from decimal import Decimal
 from django.core.mail import send_mail
 
 @shared_task
+def sendProductHistory(product_name, name, opening, stock_in, remaining):
+    try:
+        logger.info({
+            'Name': name,
+            'Start': opening,
+            'Stock_in': stock_in,
+            'Current': remaining
+        })
+
+
+        report = f"""
+            Please find the stock movement below:
+            Product Name: {name} \n
+            Opening Stock: {opening} \n
+            Stock In: {stock_in} \n
+            Remaining: {remaining} \n
+        """
+
+        recipients = ['cassymyo@gmail.com', 'teddychinomona@gmail.com', 'mirackletec@gmail.com']
+
+        subject = f"End of Day {product_name} Report:"
+
+        logger.info('Sending Email')
+        mail = EmailMessage(
+            subject=subject,
+            body=report,
+            from_email='admin@techcity.co.zw',
+            to=recipients,
+        )
+
+        mail.send()
+        logger.info('Email sent successfully.')
+    except Exception as e:
+        logger.error(f"Failed to send email: {e}")
+
+@shared_task
 def inventory_task(product_id):
     ingridients = Ingredient.objects.filter(minor_raw_material__id = product_id).all()
     product = Product.objects.get(id = product_id)
