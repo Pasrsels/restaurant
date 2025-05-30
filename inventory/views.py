@@ -23,9 +23,10 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from utils.email import EmailThread
 from django.core.mail import EmailMessage
 from finance.models import COGS
-from datetime import timedelta
+from datetime import timedelta, time
 import datetime
 from .tasks import inventory_task
+from django.db.models import Q
 from finance.models import (
     Sale,
     SaleItem,
@@ -113,7 +114,15 @@ def productHistory(request, id):
     if request.method == 'GET':
         logger.info(id)
         product_info = Product.objects.get(id = id)
-        p_order_received = PurchaseOrderItem.objects.filter(purchase_order__order_date = datetime.datetime.today(), received = True, product = product_info)
+        start_of_day = datetime.datetime.combine(datetime.datetime.today(), time.min)  # today at 00:00:00
+        end_of_day = datetime.datetime.combine(datetime.datetime.today(), time.max)    # today at 23:59:59.999999
+
+        p_order_received = PurchaseOrder.objects.filter(
+            order_date__range=(start_of_day, end_of_day)
+        ).filter(
+            Q(received=True) | Q(is_partial=True)
+        )
+        logger.info(p_order_received)
         p_order = 0
         
         product_sales = SaleItem.objects.filter(sale__date = datetime.date.today(), product = product_info)
@@ -128,8 +137,10 @@ def productHistory(request, id):
             logger.info(e)
         
         for item in p_order_received:
-            p_order += item.received_quantity
-            logger.info({'p_order_item': p_order})
+            p_order_item_received = PurchaseOrderItem.objects.filter(purchase_order__id = item.id, product = product_info)
+            for items in p_order_item_received:
+                p_order += items.received_quantity
+                logger.info({'p_order_item': p_order})
         
         for item in product_sales:
             sales_total += item.quantity
