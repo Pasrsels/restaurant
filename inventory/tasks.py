@@ -20,10 +20,10 @@ from decimal import Decimal
 from django.core.mail import send_mail
 
 @shared_task
-def sendProductHistory(product_name, name, opening, stock_in, remaining):
+def sendProductHistory(product_name, sold, opening, stock_in, remaining):
     try:
         logger.info({
-            'Name': name,
+            'Name': product_name,
             'Start': opening,
             'Stock_in': stock_in,
             'Current': remaining
@@ -32,9 +32,10 @@ def sendProductHistory(product_name, name, opening, stock_in, remaining):
 
         report = f"""
             Please find the stock movement below:
-            Product Name: {name} \n
+            Product Name: {product_name} \n
             Opening Stock: {opening} \n
             Stock In: {stock_in} \n
+            Sold: {sold} \n
             Remaining: {remaining} \n
         """
 
@@ -46,7 +47,7 @@ def sendProductHistory(product_name, name, opening, stock_in, remaining):
         mail = EmailMessage(
             subject=subject,
             body=report,
-            from_email='admin@techcity.co.zw',
+            # from_email='admin@techcity.co.zw',
             to=recipients,
         )
 

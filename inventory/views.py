@@ -158,7 +158,7 @@ def productHistory(request, id):
 
         sendProductHistory.delay(
             product_info.name,
-            product_info.name,
+            sales_total,
             starting_stock.quantity,
             p_order,
             product_info.quantity
