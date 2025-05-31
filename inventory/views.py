@@ -152,13 +152,14 @@ def productHistory(request, id):
             'Date': datetime.datetime.today(),
             'Sold': sales_total,
             'Stock_in': p_order,
-            'Start': starting_stock,
+            'Start': starting_stock.quantity,
             'Current': product_info.quantity
         }
+
         sendProductHistory.delay(
             product_info.name,
             product_info.name,
-            starting_stock,
+            starting_stock.quantity,
             p_order,
             product_info.quantity
         )
