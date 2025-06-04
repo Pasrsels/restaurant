@@ -34,7 +34,9 @@
                 {% for item in production_today %}
                     <tr>
                         <td class="text-center">{{ item.dish__name }}</td>
-                        <td class="text-center">{{ item.total_portions }}</td>
+                        {% if request.user.role != 'salesperson'%}
+                            <td class="text-center">{{ item.total_portions }}</td>
+                        {% endif %}
                         <td><input type="text" class="form-control"></td>
                         <td><input type="text" class="form-control"></td>
                         <td><input type="text" class="form-control"></td>
@@ -49,7 +51,7 @@
     <div class="d-flex justify-content-end gap-2">
         <button class="btn btn-primary" id="confirmreport">Confirm Report</button>
         <button class="btn btn-primary" onclick="pdfDownload()">Confirm PDF</button>
-    </div>    
+    </div>
 </div>
 
 <script>

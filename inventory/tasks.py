@@ -20,39 +20,34 @@ from decimal import Decimal
 from django.core.mail import send_mail
 
 @shared_task
-def sendProductHistory(product_name, sold, opening, stock_in, remaining):
+def sendProductHistory(product_list):
     try:
-        logger.info({
-            'Name': product_name,
-            'Start': opening,
-            'Stock_in': stock_in,
-            'Current': remaining
-        })
+        logger.info(product_list)
 
+        for product in product_list:
+            report = f"""
+                Please find the stock movement below:
+                Product Name: {product.get('Product_Name')} \n
+                Opening Stock: {product.get('Start')} \n
+                Stock In: {product.get('Stock')} \n
+                Sold: {product.get('Sold')} \n
+                Remaining: {product.get('Current')} \n
+            """
 
-        report = f"""
-            Please find the stock movement below:
-            Product Name: {product_name} \n
-            Opening Stock: {opening} \n
-            Stock In: {stock_in} \n
-            Sold: {sold} \n
-            Remaining: {remaining} \n
-        """
+            recipients = ['cassymyo@gmail.com', 'teddychinomona@gmail.com', 'mirackletec@gmail.com']
 
-        recipients = ['cassymyo@gmail.com', 'teddychinomona@gmail.com', 'mirackletec@gmail.com']
+            subject = f"End of Day {product.get('Product_Name')} Report:"
 
-        subject = f"End of Day {product_name} Report:"
+            logger.info('Sending Email')
+            mail = EmailMessage(
+                subject=subject,
+                body=report,
+                # from_email='admin@techcity.co.zw',
+                to=recipients,
+            )
 
-        logger.info('Sending Email')
-        mail = EmailMessage(
-            subject=subject,
-            body=report,
-            # from_email='admin@techcity.co.zw',
-            to=recipients,
-        )
-
-        mail.send()
-        logger.info('Email sent successfully.')
+            mail.send()
+            logger.info('Email sent successfully.')
     except Exception as e:
         logger.error(f"Failed to send email: {e}")
 

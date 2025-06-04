@@ -11,7 +11,7 @@ urlpatterns = [
     path('product/detail/<int:product_id>/', product_detail, name='product_detail'),
     path('add/product/category/', add_product_category, name='add_product_category'),
     path('raw_material_json/', raw_material_json, name='raw_material_json'),
-    path('product-history/<int:id>/', productHistory, name='product_history'),
+    path('product-history/', productHistory, name='product_history'),
 
     path('inventory/', inventory, name='inventory_list'),
     

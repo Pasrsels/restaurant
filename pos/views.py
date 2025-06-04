@@ -2,6 +2,7 @@ import csv
 import asyncio
 import tempfile
 import subprocess
+from celery import shared_task
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from inventory.models import Meal, Production, ProductionItems, Product, Logs
@@ -33,6 +34,7 @@ from inventory.models import (
     Dish,
     Ingredient
 )
+from inventory.views import finishedProduct
 from .models import SaleAuthorization
 from finance.models import SaleItem, Sale
 from permisions.permisions import (
@@ -185,7 +187,7 @@ def create_client_change(client_data, receipt_number, cashier, sale):
 
 @login_required
 def process_sale(request):
-    sink_id = logger.add('C:/Users/Teddy/Desktop/Sales.log', rotation='1 MB', retention='5 Days')
+    sink_id = logger.add('Sales.log', rotation='1 MB', retention='5 Days')
     if request.method == 'POST':
         try:
             check_status = SaleAuthorization.objects.get(auth_date = datetime.date.today(), auth_granted = True)
@@ -422,9 +424,10 @@ def deduct_current_production_plan(request, meal, dish, product, quantity, staff
         date_created=datetime.date.today(), declared=True, status=True
     ).order_by('time_created')
 
-    if not today_plans.exists():
-        # messages.warning(request, "No production plans available for today. Please declare one.")
-        raise Exception("No production plans available for today. Please declare one.")
+    if not product:
+        if not today_plans.exists():
+            # messages.warning(request, "No production plans available for today. Please declare one.")
+            raise Exception("No production plans available for today. Please declare one.")
 
     deduction_successful = False
     count = 0
@@ -1077,6 +1080,9 @@ def cash_up(request, cashier_id):
                 # staff_meal_total = 
             )
 
+            finished_product = finishedProduct()
+            logger.info(finished_product)
+
             data = {
                 "total_sales":total_sales,
                 'sales_portions': sales_portions_list,
@@ -1089,10 +1095,11 @@ def cash_up(request, cashier_id):
                 'total_change':total_change,
                 'total_accumulated_change': total_accumulated_change,
                 'cash_in_hand':cash_in_hand,
-                'sales_total': total
+                'sales_total': total,
+                'finished_product': finished_product
             }
 
-            # accountantreport(request)
+            accountantreport(request)
 
             return JsonResponse({'success':True, "data":data})
         except Exception as e:
@@ -1133,6 +1140,7 @@ def update_cashed_amount(request, cashup_id):
     return JsonResponse({'success':False,'message':'Invalid request'}, status=500)
 
 @login_required
+@shared_task
 def accountantreport(request):
     cash_in_hand = 0
     cashier_id = request.user.id

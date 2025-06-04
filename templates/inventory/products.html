@@ -60,16 +60,12 @@
                                         <i class='bx bx-edit-alt'></i>
                                     </a>
                                 </span>
+                                
                                 <span>
                                     <span id='delete' data-id="" onclick="productId({{raw_material.id}})" class="text-dark">
                                         <i class='bx bx-trash-alt'></i>
                                     </span>
                                 </span>
-                                {% if raw_material.finished_product %}
-                                    <span class="mx-3" onclick="history({{raw_material.id}})">
-                                        <i class="bx bx-printer"></i>
-                                    </span>
-                                {% endif %}
                             </small>
                         </td>
                     </tr>
@@ -195,182 +191,7 @@
             printWindow.close();
         };
     }
-
-    function productId(id){
-        fetch('{% url "inventory:product_detail" 0 %}'.replace("0", id),{
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie("csrftoken"),
-            }
-        }).then(response => response.json())
-        .then(data =>{
-            if(data.success){
-                Swal.fire({
-                    icon: "success",
-                    text: "Deleted successfully",
-                    title: "DELETED"
-                });
-                window.location.reload();
-            }
-            else{
-                Swal.fire({
-                    icon: "error",
-                    text: "Delete failed",
-                    title: "Failed"
-                });
-            }
-        });
-    }
-
-    function history(product_id){
-        fetch("{% url 'inventory:product_history' 0 %}".replace('0', product_id),{
-            method: 'GET',
-            headers : {
-                'Content-Type': 'application/json',
-            }
-        }).then(response => response.json())
-        .then( data => {
-            if(data.success){
-                printProductHistory(data.data);
-                confirmEndofDay(product_id);
-            }
-            else{
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Failed',
-                    text: data.message
-                });
-            }
-        })
-    }
-
-    function printProductHistory(details){
-        console.log({
-            data: details
-        })
-        const printWindow = window.open('', '', 'height=400,width=300');
-
-        printWindow.document.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Print Receipt</title>
-                <style>
-                    body {
-                        font-family: Helvetica, Arial, sans-serif;
-                        font-size: 12px;
-                        margin: 0;
-                        padding: 0;
-                        background: #fff;
-                        color: #000;
-                    }
-
-                    .receipt {
-                        width: 100%;
-                        padding: 10px;
-                        box-sizing: border-box;
-                    }
-
-                    h2 {
-                        text-align: center;
-                        font-size: 16px;
-                        margin: 5px 0 10px 0;
-                    }
-
-                    p {
-                        text-align: center;
-                        font-size: 12px;
-                        margin: 0 0 10px 0;
-                    }
-
-                    .data-row {
-                        display: flex;
-                        justify-content: space-between;
-                        padding: 4px 0;
-                        border-bottom: 1px dashed #000;
-                        font-size: 12px;
-                    }
-
-                    .data-row span.label {
-                        font-weight: bold;
-                        color: #000;
-                    }
-
-                    .data-row span.value {
-                        color: #000;
-                    }
-
-                    .footer {
-                        text-align: center;
-                        margin-top: 10px;
-                        font-size: 12px;
-                    }
-                </style>
-            </head>
-            <body onload="window.print(); setTimeout(() => window.close(), 500);">
-                <div class="receipt">
-                    <h2>${details.Name} History</h2>
-                    <p>Date: ${new Date(details.Date).toLocaleString()}</p>
-
-                    <div class="data-row">
-                        <span class="label">Opening:</span>
-                        <span class="value">${details.Start}</span>
-                    </div>
-                    <div class="data-row">
-                        <span class="label">Stock:</span>
-                        <span class="value">${details.Stock_in}</span>
-                    </div>
-                    <div class="data-row">
-                        <span class="label">Sold:</span>
-                        <span class="value">${details.Sold}</span>
-                    </div>
-                    <div class="data-row">
-                        <span class="label">Left:</span>
-                        <span class="value">${details.Current}</span>
-                    </div>
-
-                    <div class="footer">
-                        <p>Thank you!</p>
-                    </div>
-                </div>
-            </body>
-            </html>
-        `);
-
-        printWindow.document.close();
-        printWindow.focus();
-        printWindow.print();
-        printWindow.close();
-
-    }
-
-    function confirmEndofDay(id){
-        fetch("{% url 'inventory:product_history' 0 %}".replace('0', id),{
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie("csrftoken")
-            }
-        }).then(response => response.json())
-        .then( data => {
-            if(data.success){
-                Swal.fire({
-                    icon: 'success',
-                    title: 'End of Day Stock',
-                    text: data.message || ''
-                });
-            }
-            else{
-                Swal.fire({
-                    icon: 'error',
-                    title: 'End of Day Stock Failed',
-                    text: data.message
-                });
-            }
-        })
-    }
-
+    
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== "") {

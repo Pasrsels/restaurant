@@ -1631,7 +1631,9 @@ function generateAccountantCashUp(userId) {
                 }).then(() => {
                     if(data.role !== "cashier")
                     {
-                        processsCashUp()
+                        //Add modal to verify if end of day
+                        showConfirmationDialog();
+                        
                     }
                     else{
                         //function for  cashier modal
@@ -1656,6 +1658,53 @@ function generateAccountantCashUp(userId) {
             });
         });
     }
+
+    function showConfirmationDialog() {
+        Swal.fire({
+            title: 'Is this the endy of day cashup?',
+            text: "Do you want to proceed?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes',
+            cancelButtonText: 'No',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+            doYesAction();
+            processsCashUp();
+
+            } else {
+            doNoAction();
+            processsCashUp();
+            }
+        });
+    }
+
+    function doYesAction() {
+        console.log("User clicked Yes");
+
+        fetch("{% url 'inventory:product_history' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        }).then(response => response.json())
+        .then(data => {
+            if(data.success){
+                console.log({product_history:data})
+            }
+            else{
+                console.log(data)
+            }
+        })
+
+    }
+
+    function doNoAction() {
+        console.log("User clicked No");
+    }
+
 
     const processsCashUp = () => {
         fetch(`/pos/cash_up/{{ request.user.id }}/`, {
@@ -1739,8 +1788,21 @@ function generateAccountantCashUp(userId) {
 
     function generateCashUpContent(cashUpData) {
         console.log({CashUpData: cashUpData})
-        const { total_sales, total_expenses, total_change, cash_in_hand, sales_portions, total_accumulated_change, void_sales_portions, staff_meal_portions, expense, previous_change_given, variance, sales_total} = cashUpData;
+        const { total_sales, total_expenses, total_change, cash_in_hand, sales_portions, total_accumulated_change, void_sales_portions, staff_meal_portions, expense, previous_change_given, variance, sales_total, finished_product} = cashUpData;
         
+        //finished products
+        const finished_products = finished_product.map(product => {
+            return `
+                <tr>
+                    <td>${product.Product_Name}</td>
+                    <td>${product.Start}</td>
+                    <td>${product.Stock}</td>
+                    <td>${product.Sold}</td>
+                    <td>${product.Current}</td>
+                </tr>
+            `;
+        }).join('');
+
         // Generate table rows for sales portions
         const salesRows = sales_portions.map(portion => {
             return `
@@ -1879,6 +1941,22 @@ function generateAccountantCashUp(userId) {
                                 <td colspan="3" style="font-weight: bold;">Total Sales</td>
                                 <td style="font-weight: bold;">$${sales_total}</td>
                             </tr>
+                        </tbody>
+                    </table>
+                    <hr>
+                    <h2>Finished Products</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Start</th>
+                                <th>In</th>
+                                <th>Out</th>
+                                <th>Left</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${finished_products}
                         </tbody>
                     </table>
                     <hr>

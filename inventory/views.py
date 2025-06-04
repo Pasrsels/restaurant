@@ -109,81 +109,189 @@ def products(request):
         }
     )
 
-@admin_required
+
+def finishedProduct():
+    product_info = Product.objects.filter(finished_product=True)
+
+    today = datetime.datetime.today()
+    start_of_day = datetime.datetime.combine(today, time.min)
+    end_of_day = datetime.datetime.combine(today, time.max)
+
+    p_order_received = PurchaseOrder.objects.filter(
+        order_date__range=(start_of_day, end_of_day)
+    ).filter(
+        Q(received=True) | Q(is_partial=True)
+    )
+
+    logger.info(f"Received Orders: {p_order_received}")
+    logger.info(f"Products: {product_info}")
+
+    product_list = []
+    previous_day = datetime.date.today() - datetime.timedelta(days=1)
+
+    for product in product_info:
+
+        # Get starting stock from yesterday
+        try:
+            stock_entry = EndOfDayStock.objects.get(date=previous_day, product=product)
+            starting_stock = stock_entry.quantity  # assuming field name is 'quantity'
+        except EndOfDayStock.DoesNotExist:
+            starting_stock = 0
+
+        # Handle received stock
+        for order in p_order_received:
+            received_items = PurchaseOrderItem.objects.filter(
+                purchase_order_id=order.id,
+                product=product
+            )
+            for item in received_items:
+                existing_entry = next(
+                    (entry for entry in product_list if entry['Product_Name'] == product.name), None
+                )
+                if existing_entry:
+                    existing_entry['Stock'] += item.received_quantity
+                else:
+                    product_list.append({
+                        'Product_Name': product.name,
+                        'Stock': item.received_quantity,
+                        'Start': starting_stock,
+                        'Current': product.quantity,
+                        'Sold': 0
+                    })
+                logger.info({'received_entry': product_list})
+
+        # Handle sales
+        product_sales = SaleItem.objects.filter(
+            sale__date=datetime.date.today(),
+            product=product
+        )
+        for sale in product_sales:
+            existing_entry = next(
+                (entry for entry in product_list if entry['Product_Name'] == product.name), None
+            )
+            if existing_entry:
+                existing_entry['Sold'] += sale.quantity
+            else:
+                product_list.append({
+                    'Product_Name': product.name,
+                    'Stock': 0,
+                    'Start': starting_stock,
+                    'Current': product.quantity,
+                    'Sold': sale.quantity
+                })
+
+    #Wrong logic here will look to see how i was thinking here
+    #Calculate current stock
+    # for entry in product_list:
+    #     entry['Current'] = entry['Start'] + entry['Stock'] - entry['Sold']
+
+    logger.info({'final_stock_data': product_list})
+
+    #Celery task
+    sendProductHistory.delay(product_list)
+
+    return product_list
+
 @login_required
-def productHistory(request, id):
+def productHistory(request):
     if request.method == 'GET':
-        logger.info(id)
-        product_info = Product.objects.get(id = id)
-        start_of_day = datetime.datetime.combine(datetime.datetime.today(), time.min)  # today at 00:00:00
-        end_of_day = datetime.datetime.combine(datetime.datetime.today(), time.max)    # today at 23:59:59.999999
+        product_info = Product.objects.filter(finished_product=True)
+
+        today = datetime.datetime.today()
+        start_of_day = datetime.datetime.combine(today, time.min)
+        end_of_day = datetime.datetime.combine(today, time.max)
 
         p_order_received = PurchaseOrder.objects.filter(
             order_date__range=(start_of_day, end_of_day)
         ).filter(
             Q(received=True) | Q(is_partial=True)
         )
-        logger.info(p_order_received)
-        p_order = 0
-        
-        product_sales = SaleItem.objects.filter(sale__date = datetime.date.today(), product = product_info)
-        sales_total = 0
 
+        logger.info(f"Received Orders: {p_order_received}")
+        logger.info(f"Products: {product_info}")
+
+        product_list = []
         previous_day = datetime.date.today() - datetime.timedelta(days=1)
-        starting_stock = 0
 
-        try:
-            starting_stock = EndOfDayStock.objects.get(date = previous_day, product = product_info)
-        except Exception as e:
-            logger.info(e)
-        
-        for item in p_order_received:
-            p_order_item_received = PurchaseOrderItem.objects.filter(purchase_order__id = item.id, product = product_info)
-            for items in p_order_item_received:
-                p_order += items.received_quantity
-                logger.info({'p_order_item': p_order})
-        
-        for item in product_sales:
-            sales_total += item.quantity
-            logger.info({'sale total': sales_total})
+        for product in product_info:
 
-        stock_report = {
-            'Name': product_info.name,
-            'Date': datetime.datetime.today(),
-            'Sold': sales_total,
-            'Stock_in': p_order,
-            'Start': starting_stock.quantity,
-            'Current': product_info.quantity
-        }
+            # Get starting stock from yesterday
+            try:
+                stock_entry = EndOfDayStock.objects.get(date=previous_day, product=product)
+                starting_stock = stock_entry.quantity  # assuming field name is 'quantity'
+            except EndOfDayStock.DoesNotExist:
+                starting_stock = 0
 
-        sendProductHistory.delay(
-            product_info.name,
-            sales_total,
-            starting_stock.quantity,
-            p_order,
-            product_info.quantity
-        )
+            # Handle received stock
+            for order in p_order_received:
+                received_items = PurchaseOrderItem.objects.filter(
+                    purchase_order_id=order.id,
+                    product=product
+                )
+                for item in received_items:
+                    existing_entry = next(
+                        (entry for entry in product_list if entry['Product_Name'] == product.name), None
+                    )
+                    if existing_entry:
+                        existing_entry['Stock'] += item.received_quantity
+                    else:
+                        product_list.append({
+                            'Product_Name': product.name,
+                            'Stock': item.received_quantity,
+                            'Start': starting_stock,
+                            'Current': 0,
+                            'Sold': 0
+                        })
+                    logger.info({'received_entry': product_list})
 
-        return JsonResponse({'success': True, 'data': stock_report}, status = 200)
-    elif request.method == "POST":
-        end_of_day_stock = None
-        try:
-            product_info = Product.objects.get(id = id)
-            end_of_day_stock = EndOfDayStock.objects.get(product = product_info, date = datetime.date.today())
-        except Exception as e:
-            logger.info(e)
-
-        if end_of_day_stock:
-            logger.info(f'Product end of day already logged')
-            logger.info(end_of_day_stock.quantity)
-            return JsonResponse({'success': True, 'message': 'Product end of day already logged'}, status = 200)
-        else:
-            log = EndOfDayStock.objects.create(
-                product = product_info,
-                quantity = product_info.quantity
+            # Handle sales
+            product_sales = SaleItem.objects.filter(
+                sale__date=datetime.date.today(),
+                product=product
             )
-            logger.info(log)
-            return JsonResponse({'success': True}, status = 200)
+            for sale in product_sales:
+                existing_entry = next(
+                    (entry for entry in product_list if entry['Product_Name'] == product.name), None
+                )
+                if existing_entry:
+                    existing_entry['Sold'] += sale.quantity
+                else:
+                    product_list.append({
+                        'Product_Name': product.name,
+                        'Stock': 0,
+                        'Start': starting_stock,
+                        'Current': 0,
+                        'Sold': sale.quantity
+                    })
+
+        #Calculate current stock
+        for entry in product_list:
+            entry['Current'] = entry['Start'] + entry['Stock'] - entry['Sold']
+
+        logger.info({'final_stock_data': product_list})
+
+        #Celery task
+        sendProductHistory.delay(product_list)
+
+        return JsonResponse({'success': True, 'data': product_list}, status=200)
+    elif request.method == "POST":
+        product_data = Product.objects.filter(finished_product = True)
+        end_of_day_stock = None
+        for product in product_data:
+            try:
+                end_of_day_stock = EndOfDayStock.objects.get(product = product, date = datetime.datetime.today())
+            except Exception as e:
+                logger.info(e)
+            if end_of_day_stock:
+                logger.info(f'Product: {product.name} end of day already logged')
+                logger.info(end_of_day_stock.quantity)
+            else:
+                log = EndOfDayStock.objects.create(
+                    product = product,
+                    quantity = product.quantity
+                )
+                logger.info(log)
+        return JsonResponse({'success': True}, status = 200)
     return JsonResponse({'success': False, 'message': 'Invalid request'}, status = 505)
 
 @admin_required
@@ -2083,6 +2191,7 @@ def end_of_day_view(request):
                         })  
 
         production_data = sales_portions_list
+
         logger.info(productions_today)
         logger.info(production_data)
        
