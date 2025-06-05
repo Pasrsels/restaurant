@@ -2527,12 +2527,22 @@ def confirm_minor_raw(request):
                     "quantity_left": 0.0
                 }  
             )
-            
-            AllocatedRawMaterials.objects.create(
-                production=production,
-                raw_material=raw_material,
-                quantity=quantity
-            )
+
+            logger.info({'BF': p_raw_materials.quantity})
+            allocated_raw_materials = None
+            try:
+                allocated_raw_materials = AllocatedRawMaterials.objects.get(production=production,raw_material=raw_material)
+            except Exception as e:
+                logger.info(f'Not enter before: {e}')
+
+            if allocated_raw_materials:
+                allocated_raw_materials.quantity += quantity
+            else:
+                AllocatedRawMaterials.objects.create(
+                    production=production,
+                    raw_material=raw_material,
+                    quantity=quantity
+                )
             
             p_raw_materials.quantity += quantity
             p_raw_materials.save()

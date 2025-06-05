@@ -132,7 +132,7 @@
                             {% if confirm %}
                                 <td class="text-center">
                                     {% csrf_token %}
-                                    <input type="number" class='checklist-input form-control' id="quantity" min='0' class='form-control'>
+                                    <input type="number" class="checklist-input form-control" min="0">
                                 </td>
                             {% else %}
                             <td class="text-center">
@@ -161,7 +161,11 @@
                 {% if confirm %}
                     <div class="d-flex justify-content-end mt-4">
                         <a href="" class="btn btn-danger text-light mx-2">Cancel</a>
-                        <a href="{% url 'inventory:process_production_plan' production_plan.id %}" class="btn-primary text-light btn">Confirm</a>
+                        <a href="{% url 'inventory:process_production_plan' production_plan.id %}" 
+                            class="btn-primary text-light btn disabled" 
+                            id="confirm-btn"
+                            onclick="return false;">Confirm
+                        </a>
                     </div>
                 {% endif %}
             </div>
@@ -200,6 +204,43 @@
 
 </div>
 <script>
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const inputs = document.querySelectorAll('.checklist-input');
+        const confirmBtn = document.getElementById('confirm-btn');
+
+        if (confirmBtn && inputs.length > 0) {
+            const confirmUrl = confirmBtn.getAttribute('href'); // store the real link
+
+            function checkInputs() {
+                let allFilled = true;
+
+                inputs.forEach(input => {
+                    const value = input.value.trim();
+                    if (value === '' || isNaN(value) || parseFloat(value) < 0) {
+                        allFilled = false;
+                    }
+                });
+
+                if (allFilled) {
+                    confirmBtn.classList.remove('disabled');
+                    confirmBtn.onclick = null; // allow navigation
+                    confirmBtn.setAttribute('href', confirmUrl); // restore URL
+                } else {
+                    confirmBtn.classList.add('disabled');
+                    confirmBtn.onclick = function () { return false; }; // block navigation
+                    confirmBtn.setAttribute('href', '#'); // prevent accidental follow
+                }
+            }
+
+            inputs.forEach(input => {
+                input.addEventListener('input', checkInputs);
+            });
+
+            checkInputs(); // initial validation
+        }
+    });
+
     document.addEventListener('DOMContentLoaded', function () {
         new DataTable('#plan_item_table');
         new DataTable('#minor');
@@ -211,7 +252,20 @@
 
                     const quantityEntered = parseFloat(this.value);
                     const row = this.closest('tr');
+                    const cells = row.querySelectorAll('td');
 
+                    const plannedQuantity = parseFloat(cells[confirm ? 3 : 2].innerText.trim());
+                    const expectedQuantityText = cells[confirm ? 4 : 3].innerText.trim();
+                    const expectedQuantity = parseFloat(expectedQuantityText) || 0.0;
+
+                    console.log({
+                        QuantityEntered: quantityEntered,
+                        PlannedQuantity: plannedQuantity,
+                        ExpectedQuantity: expectedQuantity
+                    });
+
+                    console.log({Quantity: quantityEntered})
+                    
                     if (!isNaN(quantityEntered)) {
                         Swal.fire({
                             title: 'Processing Allocation',
@@ -225,7 +279,7 @@
                         input.disabled = true;
 
                         const rawMaterialId = row.getAttribute('data-id');
-
+                    
                         fetch('{% url "inventory:confirm_minor_raw"%}', {
                             method: 'POST',
                             headers: {
@@ -236,6 +290,8 @@
                                 production_id: {{ production_plan.id }},
                                 raw_material_id: rawMaterialId,
                                 quantity: quantityEntered,
+                                PlannedQuantity: plannedQuantity,
+                                ExpectedQuantity: expectedQuantity
                                 /*csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),*/
                             })
                         })
