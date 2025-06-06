@@ -636,6 +636,7 @@ def change_list(request):
         timestamp__lte=end_date
     ).order_by('-timestamp')
     
+    logger.info({'Change': changes})
     paginator = Paginator(changes, 10000) 
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -949,9 +950,9 @@ def cash_up(request, cashier_id):
     if request.method == 'GET':
         cash_in_hand = 0
 
-        sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=False).values('total_amount')
-        sales_items = SaleItem.objects.filter(sale__cashier__id=cashier_id, sale__date=datetime.datetime.today())
-        void_sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=True).values('total_amount')
+        sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.date.today(), void=False).values('total_amount')
+        sales_items = SaleItem.objects.filter(sale__cashier__id=cashier_id, sale__date=datetime.date.today())
+        void_sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.date.today(), void=True).values('total_amount')
 
         sales_dict = {}
         staff_meals_dict = {}
@@ -1051,9 +1052,8 @@ def cash_up(request, cashier_id):
         
         total_sales = sales.filter(staff=False).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
         total_staff_sales = sales.filter(staff=True).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-
         total_expenses = expenses.aggregate(Sum('amount'))['amount__sum'] or 0
-        total_change = change.aggregate(Sum('amount'))['amount__sum'] or 0 
+        total_change = change.aggregate(Sum('amount'))['amount__sum'] or 0
         total_accumulated_change = accumulated_change.aggregate(Sum('amount'))['amount__sum'] or 0
         total_void_sales = void_sales.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
 
@@ -1080,7 +1080,7 @@ def cash_up(request, cashier_id):
                 # staff_meal_total = 
             )
 
-            finished_product = finishedProduct()
+            finished_product = finishedProduct(cashier_id)
             logger.info(finished_product)
 
             data = {

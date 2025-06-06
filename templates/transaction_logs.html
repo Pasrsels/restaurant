@@ -13,6 +13,7 @@
         <thead>
             <tr>
                 <th>Date</th>
+                <th>Cashier</th>
                 <th>Receipt Number</th>
                 <th>Product(s)</th>
                 <!-- <th>Total Amount Paid</th> -->
@@ -25,6 +26,7 @@
                 {% if log.sale %}
                     <tr>
                         <td><small>{{ log.timestamp }}</small></td>
+                        <td><small>{{ log.user.username }}</small></td>
                         <td>
                             <small>
                                 {{ log.sale.receipt_number }}

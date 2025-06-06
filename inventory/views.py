@@ -110,7 +110,7 @@ def products(request):
     )
 
 
-def finishedProduct():
+def finishedProduct(cashier_id):
     product_info = Product.objects.filter(finished_product=True)
 
     today = datetime.datetime.today()
@@ -163,7 +163,8 @@ def finishedProduct():
         # Handle sales
         product_sales = SaleItem.objects.filter(
             sale__date=datetime.date.today(),
-            product=product
+            product=product,
+            sale__cashier__id = cashier_id
         )
         for sale in product_sales:
             existing_entry = next(
