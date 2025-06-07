@@ -936,7 +936,6 @@ def transaction_logs(request):
 @login_required
 def cashier_expenses(request, cashier_id):
     if request.method == 'GET':
-        logger.info(request.user.role)
         expense_category = ExpenseCategory.objects.all()
         if request.user.role in ['manager', 'superviser', 'admin', 'accountant']:
             expenses = CashierExpense.objects.all()

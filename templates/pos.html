@@ -1125,6 +1125,8 @@
         const totalAmountInput = parseFloat(document.getElementById('totalAmountInput').value);
         const total = parseFloat(document.getElementById('total').innerText.slice(1));
         const change = totalAmountInput - total;
+
+        console.log('change', change)
         document.getElementById('changeDisplay').value = `$${change.toFixed(2)}`;
 
         if (!totalAmountInput) {
@@ -1715,7 +1717,6 @@ function generateAccountantCashUp(userId) {
             console.log(data)
             if (data.success) {
                 let cashupContent = generateCashUpContent(data.data);
-                console.log({CashUp:data.data});
                 Swal.fire({
                     title: "Processing...",
                     text: "Please wait while printing the cash up.",
@@ -1727,6 +1728,7 @@ function generateAccountantCashUp(userId) {
                 });
                 setTimeout(() => {
                     Swal.close();
+                    console.log('here')
                     printCashUpSilently(cashupContent);
                 }, 2000); 
             } else {
@@ -1738,21 +1740,7 @@ function generateAccountantCashUp(userId) {
         })
     }
     
-    function checkAuthorization() {
-        fetch('{% url "pos:authorizationstatus" %}', {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (!data.success) {
-                sellAuthorizationModal.show();
-            }
-        });
-    }
-
+   
     const authorization = () => {
         const username = document.querySelector('#s_username').value;
         const password = document.querySelector('#s_password').value;
@@ -1788,7 +1776,24 @@ function generateAccountantCashUp(userId) {
 
     function generateCashUpContent(cashUpData) {
         console.log({CashUpData: cashUpData})
-        const { total_sales, total_expenses, total_change, cash_in_hand, sales_portions, total_accumulated_change, void_sales_portions, staff_meal_portions, expense, previous_change_given, variance, sales_total, finished_product} = cashUpData;
+        const { 
+            sales_summary, 
+            staff_sales_summary, 
+            total_summary_sales,
+            total_sales, 
+            total_expenses, 
+            total_change, 
+            cash_in_hand, 
+            sales_portions, 
+            total_accumulated_change,
+            void_sales_portions, 
+            staff_meal_portions, 
+            expense, 
+            previous_change_given, 
+            variance, 
+            sales_total, 
+            finished_product
+        } = cashUpData;
         
         //finished products
         const finished_products = finished_product.map(product => {
@@ -1804,13 +1809,29 @@ function generateAccountantCashUp(userId) {
         }).join('');
 
         // Generate table rows for sales portions
-        const salesRows = sales_portions.map(portion => {
+        const salesPortionsRows = sales_portions.map(portion => {
             return `
                 <tr>
                     <td>${portion.Name}</td>
                     <td>${portion.Quantity}</td>
                     <td>$${portion.Price}</td>
                     <td>$${portion.Total}</td>
+                </tr>
+            `;
+        }).join('');
+
+
+        const salesRows = Object.entries(sales_summary).map(([name, details]) => {
+            const quantity = details.quantity;
+            const price = parseFloat(details.price);
+            const total = (price * quantity).toFixed(2);
+
+            return `
+                <tr>
+                    <td>${name}</td>
+                    <td>${quantity}</td>
+                    <td>$${price.toFixed(2)}</td>
+                    <td>$${total}</td>
                 </tr>
             `;
         }).join('');
@@ -1827,16 +1848,20 @@ function generateAccountantCashUp(userId) {
             `;
         }).join('');
 
-        const staffMealRows = staff_meal_portions.map(portion => {
+        const staffMealRows = Object.entries(staff_sales_summary).map(([name, details]) => {
+            const quantity = details.quantity;
+            const price = parseFloat(details.price);
+            const total = (price * quantity).toFixed(2);
+
             return `
                 <tr>
-                    <td>${portion.Name}</td>
-                    <td>${portion.Quantity}</td>
-                    <td>$${portion.Price}</td>
-                    <td>$${portion.Total}</td>
+                    <td>${name}</td>
+                    <td>${quantity}</td>
+                    <td>$${price.toFixed(2)}</td>
+                    <td>$${total}</td>
                 </tr>
-            `
-        }).join('');
+            `;
+        }).join('')
 
         const expenseDetail = expense.map(item => {
             return `
@@ -1930,7 +1955,7 @@ function generateAccountantCashUp(userId) {
                         <thead>
                             <tr>
                                 <th>Name</th>
-                                <th>Portions</th>
+                                <th>Quantity</th>
                                 <th>Price</th>
                                 <th>Total</th>
                             </tr>
@@ -1939,8 +1964,23 @@ function generateAccountantCashUp(userId) {
                             ${salesRows}
                             <tr>
                                 <td colspan="3" style="font-weight: bold;">Total Sales</td>
-                                <td style="font-weight: bold;">$${sales_total}</td>
+                                <td style="font-weight: bold;">$${total_summary_sales}</td>
                             </tr>
+                        </tbody>
+                    </table>
+                    <hr>
+                    <h2>Sales per Dish</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Portions</th>
+                                <th>Price</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${salesPortionsRows}
                         </tbody>
                     </table>
                     <hr>
@@ -1980,7 +2020,7 @@ function generateAccountantCashUp(userId) {
                         <thead>
                             <tr>
                                 <th>Name</th>
-                                <th>Portions</th>
+                                <th>Quantity</th>
                                 <th>Price</th>
                                 <th>Total</th>
                             </tr>
@@ -2032,31 +2072,33 @@ function generateAccountantCashUp(userId) {
                     </table> {% endcomment %}
 
                     <div class="line">
-                        <span>Total Sales:</span>
-                        <span>$${total_sales}</span>
+                        <span style="font-weight:bold;">Total Sales:</span>
+                        <span style="font-weight:bold;">$${total_sales}</span>
                     </div>
                     <div class="line">
                         <span>Total Expenses:</span>
-                        <span>$${total_expenses}</span>
+                        <span>-$${total_expenses}</span>
                     </div>
                     <div class="line">
                         <span>Todays Change:</span>
-                        <span>$${total_change}</span>
+                        <span>+$${total_change}</span>
                     </div>
+                    <hr>
                     <div class="line">
-                        <span>Total Change In System:</span>
-                        <span>$${total_accumulated_change}</span>
+                        <span style="font-weight:bold; font-size:14;">Chash In Hand:</span>
+                        <span style="font-weight:bold; font-size:14;">$${cash_in_hand}</span>
                     </div>
-                    <div class="line">
-                        <span>Chash In Hand:</span>
-                        <span>$${cash_in_hand}</span>
+                    <hr>
+                    <div class="line" style='margin-top:10px;'>
+                        <span style="font-size:10;"><span style="font-weight:bold;"">Nb</span>+-+ Total Change In Sytem: $${total_accumulated_change}</span>
                     </div>
+
             </div>
         `;
     }
 
     function printCashUpSilently(content) {
-        console.log(content)
+        console.log(content, 'here')
         let printFrame = document.getElementById("print-frame-cash-up");
 
         if (!printFrame) {
@@ -2168,7 +2210,7 @@ function searchItems() {
         }
     });
 }*/
-    checkAuthorization();
+
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {

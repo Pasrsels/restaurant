@@ -6,9 +6,9 @@
 <div class="Finance">
     <nav class="d-flex justify-content-between align-items-center rounded mb-2 py-2 border-bottom">
         <div>
-            <a href='{% url "finance:finance"%}' class='border btn bx bx-arrow-back fs-5'></a>
+            <a href='{% url "pos:pos"%}' class='border btn bx bx-arrow-back fs-5'></a>
             <a href='/' class='bx bx-home btn border fs-5 mx-2'></a>
-            <span class='mt-2 fs-5'>Expenses</span>
+            <span class='mt-2 fs-5'>Cashier Expenses</span>
         </div>
         <div class="d-flex justify-content-between mt-1">
             <button type="button" class="btn btn-outline-dark mx-2" id="id_add_expense">
@@ -240,9 +240,17 @@
             description: description,
         };
 
-        console.log(data) 
-
         const url = window.location.href;
+
+        Swal.fire({
+            title: 'Processing...',
+            text: 'Please wait while we save the expense.',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
 
         fetch(url, {
             method: 'POST',
@@ -254,6 +262,8 @@
         })
         .then(response => response.json())
         .then(data => {
+            Swal.close(); 
+
             if (data.success) {
                 Swal.fire({
                     title: 'Success!',
@@ -267,7 +277,6 @@
                     document.getElementById('id_name').value = '';
                     document.getElementById('id_amount').value = '0';
                     document.getElementById('id_description').value = '';
-
                 });
             } else {
                 Swal.fire({
@@ -279,6 +288,7 @@
             }
         })
         .catch(error => {
+            Swal.close(); 
             Swal.fire({
                 title: 'Error!',
                 text: 'An error occurred while processing your request.',

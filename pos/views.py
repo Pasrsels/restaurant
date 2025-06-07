@@ -68,10 +68,10 @@ from reportlab.lib.styles import getSampleStyleSheet
 from django.db.models import Sum
 from django.contrib import messages
 from .tasks import lowStockNotifications
-# logger = logging.getLogger('restaurant')  
+from collections import defaultdict
 
-# logger.add('C:/Users\Teddy/Desktop/pos.log', rotation="1 MB", retention="10 Days")
-# @cache_page(60*50)
+today = localdate()
+
 @login_required
 def pos(request):
     return render(request, 'pos.html')
@@ -190,24 +190,17 @@ def process_sale(request):
     sink_id = logger.add('Sales.log', rotation='1 MB', retention='5 Days')
     if request.method == 'POST':
         try:
-            check_status = SaleAuthorization.objects.get(auth_date = datetime.date.today(), auth_granted = True)
+            # check_status = SaleAuthorization.objects.get(auth_date = datetime.date.today(), auth_granted = True)
+            check_status = True
             # today_plan = Production.objects.filter(date_created=datetime.date.today(), declared=True, status=True).first()
             if check_status:
                 data = json.loads(request.body)
-
-                logger.info(f'Sales data {data}')
-
-
                 items = data['items']
                 staff = data['staff']
                 change_data = data.get('change_data')
                 order_type = data['order_type']
                 received_amount = data.get('received_amount')
                 meal_bool = data.get('meal')
-
-                logger.info(items)
-
-                logger.info('here ---------------------------------------------------------------------')
 
                 sub_total = sum(item['price'] * item['quantity'] for item in items)
                 tax = sub_total * 0.15 
@@ -249,11 +242,9 @@ def process_sale(request):
 
                     logger.info(sale)
 
-                    today = localdate()
+                    # daily_productions = Production.objects.filter(date_created=today).order_by('time_created')
 
-                    daily_productions = Production.objects.filter(date_created=today).order_by('time_created')
-
-                    logger.info(f'daily productions: {daily_productions}')
+                    # logger.info(f'daily productions: {daily_productions}')
                     
                     for item in items:
                         if not item['type']:
@@ -291,17 +282,17 @@ def process_sale(request):
                                 )
                             if meal:
                                 if staff:
-                                    deduct_current_production_plan(request, meal=meal.name, dish=None, product=None, quantity=item['quantity'], staff=True)
+                                    # deduct_current_production_plan(request, meal=meal.name, dish=None, product=None, quantity=item['quantity'], staff=True)
                                     sale_item.meal=meal
                                 else:
-                                    deduct_current_production_plan(request, meal=meal.name, dish=None, product=None, quantity=item['quantity'], staff=None)
+                                    # deduct_current_production_plan(request, meal=meal.name, dish=None, product=None, quantity=item['quantity'], staff=None)
                                     sale_item.meal=meal
                             elif dish:
                                 if staff:
-                                    deduct_current_production_plan(request=request, meal=None, dish=dish.name, product=None, quantity=item['quantity'], staff=True)
+                                    # deduct_current_production_plan(request=request, meal=None, dish=dish.name, product=None, quantity=item['quantity'], staff=True)
                                     sale_item.dish=dish
                                 else:
-                                    deduct_current_production_plan(request=request, meal=None, dish=dish.name, product=None, quantity=item['quantity'], staff=None)
+                                    # deduct_current_production_plan(request=request, meal=None, dish=dish.name, product=None, quantity=item['quantity'], staff=None)
                                     sale_item.dish=dish
                             
                             sale_item.save()
@@ -333,7 +324,7 @@ def process_sale(request):
                                     quantity=item['quantity'],
                                     price=0.00,
                                 )
-                                deduct_current_production_plan(request=request, meal=None, dish=None, product=product.name, quantity=item['quantity'], staff=True)
+                                # deduct_current_production_plan(request=request, meal=None, dish=None, product=product.name, quantity=item['quantity'], staff=True)
                             else:
                                 sale_item = SaleItem.objects.create(
                                     sale=sale,
@@ -341,7 +332,7 @@ def process_sale(request):
                                     quantity=item['quantity'],
                                     price=product.price,
                                 )
-                                deduct_current_production_plan(request=request, meal=None, dish=None, product=product.name, quantity=item['quantity'], staff=None)
+                                # deduct_current_production_plan(request=request, meal=None, dish=None, product=product.name, quantity=item['quantity'], staff=None)
                             logger.info(f'Saved sale item: {sale_item}')
                             
                             Logs.objects.create(
@@ -636,7 +627,7 @@ def change_list(request):
         timestamp__lte=end_date
     ).order_by('-timestamp')
     
-    paginator = Paginator(changes, 10000) 
+    paginator = Paginator(changes, 20) 
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
@@ -953,11 +944,39 @@ def cash_up(request, cashier_id):
         sales_items = SaleItem.objects.filter(sale__cashier__id=cashier_id, sale__date=datetime.datetime.today())
         void_sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=True).values('total_amount')
 
+
         sales_dict = {}
         staff_meals_dict = {}
         void_sales_dict = {}
 
-        for items in sales_items:
+        total_summary_sales = 0
+        total_staff_summary_sales = 0
+        sales_summary = defaultdict(lambda: {'price': 0, 'quantity':0})
+        staff_sales_summary = defaultdict(lambda: {'price': 0, 'quantity':0})
+
+        for sale in sales_items.filter(sale__staff=False):
+            print(sale.sale.staff)
+            item = sale.meal or sale.product or sale.dish
+
+            if item:
+                key = f"{item.name}"
+                sales_summary[key]['price'] = round(sale.price, 2) # revisit
+                sales_summary[key]['quantity'] += sale.quantity
+                total_summary_sales += round(sale.price * sale.quantity, 2)
+                
+        
+        for sale in sales_items.filter(sale__staff=True):
+            item = sale.meal or sale.product or sale.dish
+
+            if item:
+                key = f"{item.name}"
+                staff_sales_summary[key]['price'] = round(sale.price, 2) # revisit
+                staff_sales_summary[key]['quantity'] += sale.quantity
+                total_staff_summary_sales += round(sale.price * sale.quantity, 2)
+
+
+        # to be optimised
+        for items in sales_items.filter(sale__staff=False):
             if items.dish:
                 name = [ {'Name': items.dish.name, 'Price': items.dish.price} ]
             elif items.product:
@@ -1096,7 +1115,10 @@ def cash_up(request, cashier_id):
                 'total_accumulated_change': total_accumulated_change,
                 'cash_in_hand':cash_in_hand,
                 'sales_total': total,
-                'finished_product': finished_product
+                'finished_product': finished_product,
+                'sales_summary': sales_summary,
+                'total_summary_sales':total_summary_sales,
+                'staff_sales_summary':staff_sales_summary
             }
 
             accountantreport(request)

@@ -23,7 +23,8 @@ ALLOWED_HOSTS = [
     '192.168.10.38',
     '192.168.10.181',
     'c845-196-27-126-114.ngrok-free.app',
-    '192.168.1.146'
+    '192.168.1.146',
+    '192.168.1.136'
 ]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -118,7 +119,7 @@ DATABASES = {
     # )
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'urban-eats',  
+        'NAME': 'restaurant_test',  
         'USER': 'postgres',
         'PASSWORD': 'neverfail',
         'PORT': '5432',
