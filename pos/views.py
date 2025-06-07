@@ -1070,9 +1070,8 @@ def cash_up(request, cashier_id):
         
         total_sales = sales.filter(staff=False).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
         total_staff_sales = sales.filter(staff=True).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-
         total_expenses = expenses.aggregate(Sum('amount'))['amount__sum'] or 0
-        total_change = change.aggregate(Sum('amount'))['amount__sum'] or 0 
+        total_change = change.aggregate(Sum('amount'))['amount__sum'] or 0
         total_accumulated_change = accumulated_change.aggregate(Sum('amount'))['amount__sum'] or 0
         total_void_sales = void_sales.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
 
@@ -1099,7 +1098,7 @@ def cash_up(request, cashier_id):
                 # staff_meal_total = 
             )
 
-            finished_product = finishedProduct()
+            finished_product = finishedProduct(cashier_id)
             logger.info(finished_product)
 
             data = {

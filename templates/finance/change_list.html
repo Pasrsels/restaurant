@@ -48,6 +48,8 @@
                 <tr>
                     <th>Date</th>
                     <th>Name</th>
+                    <th>Cashier In</th>
+                    <th>Cashier Out</th>
                     <th>Phone number</th>
                     <th>Amount</th>
                     <th>Receipt Number</th>
@@ -59,6 +61,8 @@
                   <tr>
                         <td><small>{{ change.timestamp }}</small></td>
                         <td><small>{{ change.name }}</small></td>
+                        <td><small>{{ change.cashier }}</small></td>
+                        <td><small>{{ change.cashier_give }}</small></td>
                         <td><small>{{ change.phonenumber}}</small></td>
                         <td><small>{{ change.amount }}</small></td>
                         <td><small>{{ change.receipt_number }}</small></td>

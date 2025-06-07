@@ -110,7 +110,7 @@ def products(request):
     )
 
 
-def finishedProduct():
+def finishedProduct(cashier_id):
     product_info = Product.objects.filter(finished_product=True)
 
     today = datetime.datetime.today()
@@ -163,7 +163,8 @@ def finishedProduct():
         # Handle sales
         product_sales = SaleItem.objects.filter(
             sale__date=datetime.date.today(),
-            product=product
+            product=product,
+            sale__cashier__id = cashier_id
         )
         for sale in product_sales:
             existing_entry = next(
@@ -2527,12 +2528,22 @@ def confirm_minor_raw(request):
                     "quantity_left": 0.0
                 }  
             )
-            
-            AllocatedRawMaterials.objects.create(
-                production=production,
-                raw_material=raw_material,
-                quantity=quantity
-            )
+
+            logger.info({'BF': p_raw_materials.quantity})
+            allocated_raw_materials = None
+            try:
+                allocated_raw_materials = AllocatedRawMaterials.objects.get(production=production,raw_material=raw_material)
+            except Exception as e:
+                logger.info(f'Not enter before: {e}')
+
+            if allocated_raw_materials:
+                allocated_raw_materials.quantity += quantity
+            else:
+                AllocatedRawMaterials.objects.create(
+                    production=production,
+                    raw_material=raw_material,
+                    quantity=quantity
+                )
             
             p_raw_materials.quantity += quantity
             p_raw_materials.save()

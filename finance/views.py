@@ -925,8 +925,8 @@ def days_data(request):
 
 @login_required
 def transaction_logs(request):
-    transactions = Logs.objects.all()
-    sale_items = SaleItem.objects.all()
+    transactions = Logs.objects.filter(sale__date = datetime.date.today())
+    sale_items = SaleItem.objects.filter(sale__date = datetime.date.today())
 
     return render(request, 'transaction_logs.html', {
         'sale_items':sale_items,
