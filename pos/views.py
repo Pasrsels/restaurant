@@ -953,9 +953,9 @@ def cash_up(request, cashier_id):
         total_staff_summary_sales = 0
         sales_summary = defaultdict(lambda: {'price': 0, 'quantity':0})
         staff_sales_summary = defaultdict(lambda: {'price': 0, 'quantity':0})
-
+        
         for sale in sales_items.filter(sale__staff=False):
-            print(sale.sale.staff)
+            # print(sale.sale.staff)
             item = sale.meal or sale.product or sale.dish
 
             if item:

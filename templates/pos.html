@@ -1793,7 +1793,7 @@ function generateAccountantCashUp(userId) {
             variance, 
             sales_total, 
             finished_product
-        } = cashUpData;
+        } = cashUpData; 
         
         //finished products
         const finished_products = finished_product.map(product => {
@@ -1949,25 +1949,6 @@ function generateAccountantCashUp(userId) {
                 <p>Date: ${new Date().toLocaleDateString()}</p>
                 <p>Time: ${new Date().toLocaleTimeString()}</p>
                 <div class="totals">
-
-                    <h2>Sales</h2>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Quantity</th>
-                                <th>Price</th>
-                                <th>Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${salesRows}
-                            <tr>
-                                <td colspan="3" style="font-weight: bold;">Total Sales</td>
-                                <td style="font-weight: bold;">$${total_summary_sales}</td>
-                            </tr>
-                        </tbody>
-                    </table>
                     <hr>
                     <h2>Sales per Dish</h2>
                     <table>
@@ -1981,6 +1962,10 @@ function generateAccountantCashUp(userId) {
                         </thead>
                         <tbody>
                             ${salesPortionsRows}
+                            <tr>
+                                <td colspan="3" style="font-weight: bold;">Total Sales</td>
+                                <td style="font-weight: bold;">$${sales_total}</td>
+                            </tr>
                         </tbody>
                     </table>
                     <hr>
