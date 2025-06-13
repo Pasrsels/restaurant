@@ -17,7 +17,7 @@
         </div>
     </nav>
     <div class='mt-2'>
-        <table class="table table-hover table-bordered table-striped" id="cashiers_table" style="width: 100%;">
+        <table class="table table-hover" id="cashiers_table" style="width: 100%;">
             <thead>
                 <tr>
                     <th>Date</th>
@@ -34,58 +34,59 @@
                 </tr>
             </thead>
             <tbody>
-                {% for expense in expenses %}
-                  <tr>
-                        <td>
-                            <small>{{expense.date}}</small>
+                {% for date, expenses in grouped_expenses.items %}
+                    <tr>
+                        <td colspan="7">
+                            <strong>{{ date }}</strong>
                         </td>
-                        <td>
-                           <small>{{ expense.name }}</small>
-                        </td>
-                        <td>
-                            <small>{{ expense.description }}</small>
-                        </td>
-                        <td>
-                            <small>
-                                {%if expense.track_amount == 0%}
-                                    {{expense.amount}}
-                                {%else%}
-                                    {{expense.track_amount}}
-                                {%endif%}
-                            </small>
-                        </td>
-                        <td id="confidential">
-                           <small>
-                                {% if request.user.role == 'admin' or request.user.role == 'supervisor' or request.user.role == 'accountant' or request.user.role == 'manager' %}
-                                    {{ expense.cashier.first_name |default:expense.cashier.username }}
-                                {%else%}
-                                    {{request.user.role |default:expense.cashier.username}}
-                                {% endif %}
-                           </small>
-                        </td>
-                        <td>
-                            <small>
-                                {%if expense.status == False%}
-                                    <p class="bg-danger text-center rounded-2 shadow-lg">Pending</p>
-                                {%else%}
-                                    <p class="bg-success text-center rounded-2 shadow-lg">Allocated</p>
-                                {%endif%}
-                            </small>
-                        </td>
-                        <td>
-                            <small>
-                                <button class="btn btn-sm bx bx-edit mx-2" onclick="editexpense({{expense.id}}, '{{expense.name}}', '{{expense.description}}', {{expense.amount}})"></button>
-                                <button class="btn btn-sm bx bx-trash" onclick="deleteexpense({{expense.id}})"></button>
-                                {%if request.user.role == 'admin' or request.user.role == 'supervisor' or request.user.role == 'accountant' or request.user.role == 'manager' or request.user.role == 'owner'%}
-                                    {%if expense.status == False%}
-                                        <button class = "btn btn-sm bx bx-check-circle" onclick="confirmexpense('{{expense.description}}', {{expense.amount}}, {{expense.id}})"></button>
-                                    {%else%}
-                                    {%endif%}
-                                {%else%}  
-                                {%endif%}
-                            </small>
-                        </td>
-                  </tr>
+                    </tr>
+                    {% for expense in expenses %}
+                        <tr>
+                            <td><small>{{ expense.date }}</small></td>
+                            <td><small>{{ expense.name }}</small></td>
+                            <td><small>{{ expense.description }}</small></td>
+                            <td>
+                                <small>
+                                    {% if expense.track_amount == 0 %}
+                                        {{ expense.amount }}
+                                    {% else %}
+                                        {{ expense.track_amount }}
+                                    {% endif %}
+                                </small>
+                            </td>
+                            <td id="confidential">
+                                <small>
+                                    {% if request.user.role in 'admin supervisor accountant manager' %}
+                                        {{ expense.cashier.first_name|default:expense.cashier.username }}
+                                    {% else %}
+                                        {{ request.user.role|default:expense.cashier.username }}
+                                    {% endif %}
+                                </small>
+                            </td>
+                            <td>
+                                <small>
+                                    {% if not expense.status %}
+                                        <p class="bg-danger text-center rounded-2 shadow-lg">Pending</p>
+                                    {% else %}
+                                        <p class="bg-success text-center rounded-2 shadow-lg">Allocated</p>
+                                    {% endif %}
+                                </small>
+                            </td>
+                            <td>
+                                <small>
+                                    <button class="btn btn-sm bx bx-edit mx-2" onclick="editexpense({{ expense.id }}, '{{ expense.name }}', '{{ expense.description }}', {{ expense.amount }})"></button>
+                                    <button class="btn btn-sm bx bx-trash" onclick="deleteexpense({{ expense.id }})"></button>
+                                    {% if request.user.role in 'admin supervisor accountant manager owner' %}
+                                        {% if not expense.status %}
+                                            <button class="btn btn-sm bx bx-check-circle" onclick="confirmexpense('{{ expense.description }}', {{ expense.amount }}, {{ expense.id }})"></button>
+                                        {% endif %}
+                                    {% endif %}
+                                </small>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% empty %}
+                    <tr><td colspan="7">No expenses found.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

@@ -1122,7 +1122,8 @@ def production_plan_detail(request, pp_id):
     if request.method == 'GET':
         try:
             production_plan = Production.objects.get(id=pp_id)
-            production_plan_items = ProductionItems.objects.filter(production=production_plan)  
+            production_plan_items = ProductionItems.objects.filter(production=production_plan) 
+            dish_ingredients = Ingredient.objects.all() 
             production_plan_minor_items = MinorProductionItems.objects.filter(production=production_plan)
             
             total_cost_items = production_plan_items.aggregate(total_cost=Sum('total_cost'))['total_cost'] or 0
@@ -1166,7 +1167,7 @@ def production_plan_detail(request, pp_id):
                                 'expected_quantity': float(expected_quantity),
                             }
                         )
-
+                    """"
                     existing_ids = {rm['id'] for rm in allocated_rm if rm}
                     logger.info([item for item in allocated_rm])
                     if ing.minor_raw_material.id not in existing_ids:
@@ -1175,7 +1176,7 @@ def production_plan_detail(request, pp_id):
                             'quantity': (item.portions / item.dish.portion_multiplier),
                             'used': [i.quantity/item.dish.portion_multiplier for i in allocated if i.raw_material.id == ing.minor_raw_material.id],
                         })
-
+                    """
 
 
         except Exception as e:
@@ -1190,7 +1191,8 @@ def production_plan_detail(request, pp_id):
                 'total_cost_minor_items': total_cost_minor_items,
                 'allocated_rm':allocated,
                 'allocated_rm_per_unit': allocated_rm,
-                'confirm': False
+                'confirm': False,
+                'dish_ing': dish_ingredients
             }
         )
  
@@ -1201,6 +1203,7 @@ def confirm_production_plan(request, pp_id):
         try:
             production_plan = Production.objects.get(id=pp_id)
             production_plan_items = ProductionItems.objects.filter(production=production_plan)
+            dish_ingridients = Ingredient.objects.all()
             total_cost_items = production_plan_items.aggregate(total_cost=Sum('total_cost'))['total_cost'] or 0
             total_overrides = 0
             raw_materials = []
@@ -1263,6 +1266,7 @@ def confirm_production_plan(request, pp_id):
                 'production_plan_items': production_plan_items,
                 'total_cost_items': total_cost_items,
                 'production_plan_minor_items': raw_materials,
+                'dish_ing': dish_ingridients
             }
         )
     
