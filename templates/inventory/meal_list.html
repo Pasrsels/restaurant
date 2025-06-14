@@ -21,6 +21,8 @@
             <tr>
                 <th>Name</th>
                 <th>Dishes</th>
+                <th>Cost</th>
+                <th>GP</th>
                 <th>Selling Price</th>
                 <th>Actions</th>
             </tr>
@@ -29,11 +31,25 @@
             {% for meal in meals %}
                 <tr>
                     <td>{{ meal.name }}</td>
-                    <td>
-                        {% for dish in meal.dish.all %}
+                    <td> 
+                        {% for dish in meal.dish.all %} 
                             {{ dish.name }} - ${{ dish.cost }} <br>
-                        {% empty %}
+                            {% empty %}
                             No dishes available
+                        {% endfor %} 
+                    </td>
+                    <td>
+                        {% for detail in meals_info %}
+                            {% if detail.Name == meal.name %}
+                                ${{detail.Cost}}
+                            {% endif %}
+                        {% endfor %}
+                    </td>
+                    <td>
+                        {% for detail in meals_info %}
+                            {% if detail.Name == meal.name %}
+                                {{detail.GP}}%
+                            {% endif %}
                         {% endfor %}
                     </td>
                     <td>

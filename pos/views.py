@@ -315,7 +315,7 @@ def process_sale(request):
                                         quantity_in_cache = cached_data.get("Quantity", 0)
                                         logger.info({'Cached Quantity': quantity_in_cache})
 
-                                        # Assuming item['quantity'] is defined elsewhere
+                                        
                                         cache_qnty = quantity_in_cache - item['quantity']
 
                                         # Update the cache
@@ -328,7 +328,7 @@ def process_sale(request):
                                             }
                                         )
                                     else:
-                                        take_away = Product.objects.get(name=name)
+                                        take_away = Product.objects.get(name__icontains=name)
                                         logger.info({f'Product Takeaway Stuff': take_away.name})
 
                                         take_away.quantity -= item['quantity']

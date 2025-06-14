@@ -888,7 +888,8 @@ def create_production_plan(request):
             return JsonResponse({'success': False, 'message': 'Invalid data: items should be a list'}, status=400)
 
         if Production.objects.filter(declared=False).exists():
-            return JsonResponse({'success': False, 'message': 'Please declare all the production plans you have.'}, status=400)
+            pass
+            # return JsonResponse({'success': False, 'message': 'Please declare all the production plans you have.'}, status=400)
 
         # Create a new production plan
         production_plan = Production.objects.create(status=False, declared=False)
@@ -1229,7 +1230,7 @@ def confirm_production_plan(request, pp_id):
 
                     production_inventory = ProductionRawMaterials.objects.filter(product=ing.minor_raw_material).first()
                     current_quantity = production_inventory.quantity if production_inventory else 0
-
+                
                     expected_quantity = required_quantity - current_quantity
 
                     raw_material_found = next((rm for rm in raw_materials if rm['id'] == ing.minor_raw_material.id), None)
@@ -1780,10 +1781,39 @@ def add_dish(request): # didn't change the name of the template, it caters for b
 @login_required
 def meal_list(request):
     meals = Meal.objects.filter(deactivate=False)
+    dish_list = []
+    dish_count =  0
+    logger.info(meals)
+
     
+    for meal in meals:
+        for dish in meal.dish.all():
+            dish_name = dish.name
+            logger.info(dish_name)
+
+            found = False
+            for item in dish_list:
+                if item['Name'] == meal.name:
+                    item['Cost'] += dish.cost
+                    gp = ((Decimal(meal.price) - item['Cost']) / Decimal(meal.price)) * Decimal(100)
+                    item['GP'] = gp.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                    found = True
+                    break
+            if not found:
+                gp = ((Decimal(meal.price) - dish.cost) / Decimal(meal.price)) * Decimal(100)
+                dish_list.append({
+                    'Name': meal.name,
+                    'Cost': Decimal(dish.cost),
+                    'Selling': Decimal(meal.price),
+                    'GP': gp.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                })
+
+    logger.info(dish_list)
+
     return render(request, 'inventory/meal_list.html', 
         {
             'meals':meals,
+            'meals_info': dish_list
         }
     )
 
@@ -1951,6 +1981,8 @@ def edit_dish(request, dish_id):
 @login_required
 def edit_meal(request, meal_id):
     meal = get_object_or_404(Meal, id=meal_id)
+    meal_categories = MealCategory.objects.all()
+    dishes = Dish.objects.all()
     if request.method == 'POST':
         form = MealForm(request.POST, request.FILES, instance=meal)
         if form.is_valid():
@@ -1964,14 +1996,17 @@ def edit_meal(request, meal_id):
             
             form.save()
             logger.info('saved')
-            return redirect('inventory:meal_list')  
+            # return redirect('inventory:meal_list')
+            return JsonResponse({'success': True}) 
     else:
         form = MealForm(instance=meal)
 
     return render(request, 'inventory/edit_meal.html', 
         {
             'form': form, 
-            'meal': meal
+            'meal': meal,
+            'meal_categories': meal_categories,
+            'dishes': dishes
         }
     )
 

@@ -279,63 +279,71 @@
 
                     console.log({Quantity: quantityEntered})
                     
-                    if (!isNaN(quantityEntered)) {
-                        Swal.fire({
-                            title: 'Processing Allocation',
-                            text: 'Please wait...',
-                            icon: 'info',
-                            showConfirmButton: false,
-                            timer: 1500
-                        });
+                    if (quantityEntered < expectedQuantity){
+                        if (!isNaN(quantityEntered)) {
+                            Swal.fire({
+                                title: 'Processing Allocation',
+                                text: 'Please wait...',
+                                icon: 'info',
+                                showConfirmButton: false,
+                                timer: 1500
+                            });
 
-                        input.classList.add('loading');
-                        input.disabled = true;
+                            input.classList.add('loading');
+                            input.disabled = true;
 
-                        const rawMaterialId = row.getAttribute('data-id');
-                    
-                        fetch('{% url "inventory:confirm_minor_raw"%}', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val(),
-                            },
-                            body: JSON.stringify({
-                                production_id: {{ production_plan.id }},
-                                raw_material_id: rawMaterialId,
-                                quantity: quantityEntered,
-                                PlannedQuantity: plannedQuantity,
-                                ExpectedQuantity: expectedQuantity
-                                /*csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),*/
+                            const rawMaterialId = row.getAttribute('data-id');
+                        
+                            fetch('{% url "inventory:confirm_minor_raw"%}', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val(),
+                                },
+                                body: JSON.stringify({
+                                    production_id: {{ production_plan.id }},
+                                    raw_material_id: rawMaterialId,
+                                    quantity: quantityEntered,
+                                    PlannedQuantity: plannedQuantity,
+                                    ExpectedQuantity: expectedQuantity
+                                    /*csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),*/
+                                })
                             })
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                input.classList.remove('loading');
-                                // input.disabled = true;
-                                row.style.backgroundColor = '#d3d3d3';
-                                console.log('Quantity confirmed');
-                                focusNextInput(input);
-                            } else {
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    input.classList.remove('loading');
+                                    // input.disabled = true;
+                                    row.style.backgroundColor = '#d3d3d3';
+                                    console.log('Quantity confirmed');
+                                    focusNextInput(input);
+                                } else {
+                                    Swal.fire({
+                                        title: "Error",
+                                        text: data.message,
+                                        icon: "error"
+                                    });
+                                    input.disabled = false; 
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error:', error);
                                 Swal.fire({
                                     title: "Error",
-                                    text: data.message,
+                                    text: "An error occurred during the request.",
                                     icon: "error"
                                 });
-                                input.disabled = false; 
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            Swal.fire({
-                                title: "Error",
-                                text: "An error occurred during the request.",
-                                icon: "error"
+                                input.disabled = false; // Re-enable input in case of a fetch error
+                            })
+                            .finally(() => {
+                                input.classList.remove('loading');
                             });
-                            input.disabled = false; // Re-enable input in case of a fetch error
-                        })
-                        .finally(() => {
-                            input.classList.remove('loading');
+                        }
+                    }else{
+                        Swal.fire({
+                            title: "Error",
+                            text: "Allocated quantity is greater than  expected quantity",
+                            icon: "error"
                         });
                     }
                 }
