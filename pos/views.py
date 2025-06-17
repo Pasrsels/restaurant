@@ -77,6 +77,10 @@ def pos(request):
     return render(request, 'pos.html')
 
 @login_required
+def dashboard(request):
+    return render(request, 'dashboard.html')
+
+@login_required
 def check_authorization(request):
     try:
         check_status = SaleAuthorization.objects.filter(auth_date = datetime.date.today(), auth_granted = True)
