@@ -111,6 +111,7 @@
       }
       
 </style>
+
 <div class="pos px-4 py-3">
     <div class="container-fluid">
         <div class="row justify-content-center">
@@ -136,7 +137,7 @@
                     <div class="d-flex flex-wrap">
                         <li><a href="{% url 'inventory:end_of_day_view' %}" class="btn btn-outline-dark m-1">End of day</a></li>
                         <li class='m-1'>
-                            <button class="btn btn-outline-dark" id="chargeStaff">Staff</button>
+                            <button class="btn btn-outline-dark" id="chargeStaff">Staff (F1)</button>
                         </li>
                         <li class='m-1'>
                             <a href='{% url "pos:change_list" %}' class="btn btn-outline-dark">View Change</a>
@@ -188,7 +189,7 @@
                                 Charge $0.00
                                 <span class="text-light mx-2">Enter</span>
                             </button>
-                            <button class="btn btn-outline-danger w-100" id="cancelBtn">Cancel</button>
+                            <button class="btn btn-outline-danger w-100" id="cancelBtn">Cancel (ESC)</button>
                         </div>
                     </div>
                 </div>
@@ -353,7 +354,7 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="totalAmountInput" class="form-label">Total Amount</label>
+                        <label for="totalAmountInput" class="form-label">Total Amount Received</label>
                         <input type="number" class="form-control" id="totalAmountInput" placeholder="Enter total amount received">
                     </div>
                     <div class="mb-3">
@@ -453,7 +454,7 @@
                         </div>
                         <div class="mb-3">
                             <label for="id_change_amount" class="form-label">Change Amount</label>
-                            <input type="text" class="form-control" id="change_amount" required>
+                            <input type="text" class="form-control" id="change_amount" disabled required>
                         </div>
                         <div class="mb-3">
                             <label for="id_change_given" class="form-label">Change Given</label>
@@ -461,7 +462,7 @@
                         </div>
                         <div class="mb-3">
                             <label for="id_balance" class="form-label">Balance</label>
-                            <textarea class="form-control" id="balance" rows="1" required></textarea>
+                            <input class="form-control" id="balance" rows="1" disabled required></input>
                         </div>
                         <div class='d-flex justify-content-between'>
                             <button type="button" class="btn btn-outline-dark" id="btn_back">Back</button>
@@ -499,6 +500,12 @@
         const sellAuthorizationModal = new bootstrap.Modal(document.getElementById('AuthorizationModal'));
         const search = document.getElementById('searchInput')
 
+
+        document.addEventListener('keydown', function(event){
+            if(event.code === 'F1'){
+                staffModal.show();
+            }
+        })
         
         // clear search input
 
@@ -1087,7 +1094,7 @@
             document.getElementById('subTotal').innerText = `$${subTotalExclTax.toFixed(2)}`;
             document.getElementById('tax').innerText = `$${tax.toFixed(2)}`;
             document.getElementById('total').innerText = `$${total.toFixed(2)}`;
-            document.getElementById('chargeButton').innerText = `Charge $${total.toFixed(2)}`;
+            document.getElementById('chargeButton').innerText = `Charge $${total.toFixed(2)} (Enter)`;
 
             // pay modal
             document.getElementById('totalAmountInput').value = total.toFixed(2);
@@ -1792,8 +1799,9 @@ function generateAccountantCashUp(userId) {
             previous_change_given, 
             variance, 
             sales_total, 
+            staff_total,
             finished_product
-        } = cashUpData;
+        } = cashUpData; 
         
         //finished products
         const finished_products = finished_product.map(product => {
@@ -1913,8 +1921,9 @@ function generateAccountantCashUp(userId) {
                     width: 100%;
                     border-collapse: collapse;
                     margin-bottom: 40px;
-                    font-family: Arial, sans-serif;
-                    font-size: 10px;
+                    font-family: Helvetica, Arial, sans-serif;
+                    font-size: 11px;
+                    border-spacing: 0;
                 }
 
                 th {
@@ -1949,25 +1958,6 @@ function generateAccountantCashUp(userId) {
                 <p>Date: ${new Date().toLocaleDateString()}</p>
                 <p>Time: ${new Date().toLocaleTimeString()}</p>
                 <div class="totals">
-
-                    <h2>Sales</h2>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Quantity</th>
-                                <th>Price</th>
-                                <th>Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${salesRows}
-                            <tr>
-                                <td colspan="3" style="font-weight: bold;">Total Sales</td>
-                                <td style="font-weight: bold;">$${total_summary_sales}</td>
-                            </tr>
-                        </tbody>
-                    </table>
                     <hr>
                     <h2>Sales per Dish</h2>
                     <table>
@@ -1981,6 +1971,10 @@ function generateAccountantCashUp(userId) {
                         </thead>
                         <tbody>
                             ${salesPortionsRows}
+                            <tr>
+                                <td colspan="3" style="font-weight: bold;">Total Sales</td>
+                                <td style="font-weight: bold;">$${sales_total}</td>
+                            </tr>
                         </tbody>
                     </table>
                     <hr>
@@ -2027,6 +2021,10 @@ function generateAccountantCashUp(userId) {
                         </thead>
                         <tbody>
                             ${staffMealRows}
+                            <tr>
+                                <td colspan="3" style="font-weight: bold;">Total Staff Sales</td>
+                                <td style="font-weight: bold;">$${staff_total}</td>
+                            </tr>
                         </tbody>
                     </table>
                     <hr>

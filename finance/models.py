@@ -20,7 +20,7 @@ class Expense(models.Model):
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=0) 
     date = models.DateField(auto_now_add=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    description = models.CharField(max_length=255)
+    description = models.CharField(max_length=255, null=True)
     cancel = models.BooleanField(default=False)
     status = models.BooleanField(default=False)
     

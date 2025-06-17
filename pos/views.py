@@ -67,8 +67,9 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.styles import getSampleStyleSheet
 from django.db.models import Sum
 from django.contrib import messages
-from .tasks import lowStockNotifications
+from .tasks import lowStockNotifications, updateTakeAway
 from collections import defaultdict
+from django.core.cache import cache
 
 today = localdate()
 
@@ -203,6 +204,8 @@ def process_sale(request):
                 staff = data['staff']
                 change_data = data.get('change_data')
                 order_type = data['order_type']
+                logger.info(order_type)
+                logger.info(items)
                 received_amount = data.get('received_amount')
                 meal_bool = data.get('meal')
 
@@ -249,7 +252,8 @@ def process_sale(request):
                     # daily_productions = Production.objects.filter(date_created=today).order_by('time_created')
 
                     # logger.info(f'daily productions: {daily_productions}')
-                    
+                    task_list = []
+                    take_away_bool = False
                     for item in items:
                         if not item['type']:
 
@@ -284,6 +288,66 @@ def process_sale(request):
                                     quantity=item['quantity'],
                                     price=meal.price if meal else dish.price,
                                 )
+
+                            if order_type == 'takeaway':
+                                """
+                                    cache total takeaway orders
+
+                                    use name instead of id 
+
+                                    use redis to to cache kylelite , fork/spoon , plastic bag
+
+                                    check if item exists in cache memory  if not check in db and dump to redis cache memory
+                                """
+                                if not take_away_bool:
+                                    if cache.get('Take_Away_Total'):
+                                        cache_total = cache.get('Take_Away_Total') 
+                                        cache_total += 1
+                                        cache.set('Take_Away_Total', cache_total, timeout= 46000)
+                                    else:
+                                        cache.set('Take_Away_Total', 1, timeout= 46000)
+                                take_away_bool = True
+
+                                take_away_items = ['Kylites #25', 'Spoons / Fork', 'Plastic bags']
+                                cache_qnty = 0
+
+                                for name in take_away_items:
+                                    cached_data = cache.get(name)
+                                    logger.info({'Cached Data Raw': cached_data})
+
+                                    if cached_data:
+                                        quantity_in_cache = cached_data.get("Quantity", 0)
+                                        logger.info({'Cached Quantity': quantity_in_cache})
+
+                                        
+                                        cache_qnty = quantity_in_cache - item['quantity']
+
+                                        # Update the cache
+                                        cache.set(name, {'Quantity': cache_qnty}, timeout = 36000)
+                                        logger.info({'Updated Quantity': cache_qnty})
+                                        task_list.append(
+                                            {
+                                                'Product_Name': name,
+                                                'Quantity': item['quantity']
+                                            }
+                                        )
+                                    else:
+                                        take_away = Product.objects.get(name__icontains=name)
+                                        logger.info({f'Product Takeaway Stuff': take_away.name})
+
+                                        take_away.quantity -= item['quantity']
+                                        take_away.save()
+
+                                        # Initialize in cache
+                                        cache.set(name, {'Quantity': take_away.quantity}, timeout = 36000)
+
+                                        """   
+                                        logger.info({f'ID : {id}'})
+                                        take_away = Product.objects.get(id = id)
+                                        logger.info({f'Product Takeaway Stuff : {take_away.name}'})
+                                        take_away.quantity -= item['quantity']
+                                        take_away.save()
+                                        """    
                             if meal:
                                 if staff:
                                     # deduct_current_production_plan(request, meal=meal.name, dish=None, product=None, quantity=item['quantity'], staff=True)
@@ -351,7 +415,10 @@ def process_sale(request):
 
                             product.save()
                             logger.info(f'Saved product: {sale_item}')
-
+                    if task_list:
+                        logger.info(F'Update task list')
+                        updateTakeAway.delay(task_list)
+                    
                     CashBook.objects.create(
                         sale=sale, 
                         amount=sale.total_amount,
@@ -957,9 +1024,9 @@ def cash_up(request, cashier_id):
         total_staff_summary_sales = 0
         sales_summary = defaultdict(lambda: {'price': 0, 'quantity':0})
         staff_sales_summary = defaultdict(lambda: {'price': 0, 'quantity':0})
-
+        
         for sale in sales_items.filter(sale__staff=False):
-            print(sale.sale.staff)
+            # print(sale.sale.staff)
             item = sale.meal or sale.product or sale.dish
 
             if item:
@@ -1031,10 +1098,17 @@ def cash_up(request, cashier_id):
         sales_portions_list = list(sales_dict.values())
         staff_meals_portions_list = list(staff_meals_dict.values())
         void_sales_portions_list = list(void_sales_dict.values())
-        total = 0
-        for items in sales_portions_list:
-            total += items['Total']
         
+        sale_total = 0
+        staff_total = 0
+
+        for items in sales_portions_list:
+            sale_total += items['Total']
+        
+        for items in staff_meals_portions_list:
+            staff_total += items['Total']
+        
+
         logger.info(sales_portions_list)
         logger.info(void_sales_portions_list)
         logger.info(staff_meals_portions_list)
@@ -1117,7 +1191,8 @@ def cash_up(request, cashier_id):
                 'total_change':total_change,
                 'total_accumulated_change': total_accumulated_change,
                 'cash_in_hand':cash_in_hand,
-                'sales_total': total,
+                'sales_total': sale_total,
+                'staff_total': staff_total,
                 'finished_product': finished_product,
                 'sales_summary': sales_summary,
                 'total_summary_sales':total_summary_sales,

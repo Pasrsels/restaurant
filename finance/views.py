@@ -20,6 +20,7 @@ from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from inventory.models import Logs
 from permisions.permisions import admin_required
+from collections import defaultdict
 
 def get_previous_month():
     first_day_of_current_month = datetime.datetime.now().replace(day=1)
@@ -157,7 +158,7 @@ def expenses(request):
             description = data.get('description')
             category = data.get('category')
             
-            if not amount or not description or not category:
+            if not amount or not category:
                 return JsonResponse({'success':False, 'message':'Missing fields: amount, description, category.'})
             
             try:
@@ -814,6 +815,7 @@ def cashiers_list(request):
     
     if request.method == 'GET':
         cashiers = CashierAccount.objects.all()
+        logger.info(cashiers)
         return render(request, 'finance/cashiers.html', {'cashiers':cashiers})
 
     if request.method == 'POST':
@@ -894,22 +896,31 @@ def update_expense_status(request):
 
 @login_required
 def days_data(request):
-    current_month = get_current_month()
+    from datetime import date, timedelta
+    from calendar import monthrange
+    from django.db.models import Sum
+
+
+    today = date.today()
+    current_month = today.month
+    year = today.year
 
     sales = Sale.objects.filter(date__month=current_month, staff=False, void=False)
     cogs = COGS.objects.filter(date__month=current_month)
 
-    first_day = min(sales.first().date, cogs.first().date)
-    
+    first_day = date(year, current_month, 1)
+    _, last_day = monthrange(year, current_month)
+    num_weeks = ((last_day - 1) // 7) + 1  # ensures full coverage
+
     def get_week_data(queryset, start_date, end_date, amount_field):
         week_data = queryset.filter(date__gte=start_date, date__lt=end_date).values(amount_field, 'date')
         total = week_data.aggregate(total=Sum(amount_field))['total'] or 0
         return week_data, total
 
     data = {}
-    for week in range(1, 5):
-        week_start = first_day + timedelta(days=(week-1)*7)
-        week_end = week_start + timedelta(days=7)
+    for week in range(1, num_weeks + 1):
+        week_start = first_day + timedelta(days=(week - 1) * 7)
+        week_end = min(week_start + timedelta(days=7), date(year, current_month, last_day) + timedelta(days=1))
         
         sales_data, sales_total = get_week_data(sales, week_start, week_end, 'total_amount')
         cogs_data, cogs_total = get_week_data(cogs, week_start, week_end, 'amount')
@@ -937,17 +948,28 @@ def transaction_logs(request):
 def cashier_expenses(request, cashier_id):
     if request.method == 'GET':
         expense_category = ExpenseCategory.objects.all()
-        if request.user.role in ['manager', 'superviser', 'admin', 'accountant']:
-            expenses = CashierExpense.objects.all()
-        else:
-            expenses = CashierExpense.objects.filter(cashier__id = cashier_id).select_related('cashier')
 
+        if request.user.role in ['manager', 'superviser', 'admin', 'accountant']:
+            expenses = CashierExpense.objects.select_related('cashier').all()
+        else:
+            expenses = CashierExpense.objects.select_related('cashier').filter(cashier__id=cashier_id)
+
+        grouped_expenses = defaultdict(list)
+        for expense in expenses.order_by('-date'):
+            grouped_expenses[expense.date].append(expense)
+
+        
         total_expenses = expenses.aggregate(total=Sum('amount'))['total'] or 0
-        logger.info(expenses)
+
+        logger.info(grouped_expenses)
+        print(type(grouped_expenses))
+
+        grouped_expense = dict(grouped_expenses)
+
         return render(request, 'finance/cashier_expenses.html', {
-            'expenses':expenses,
+            'grouped_expenses': grouped_expense,
             'categories': expense_category,
-            'total_expenses':total_expenses
+            'total_expenses': total_expenses
         })
     
     if request.method == 'POST':
