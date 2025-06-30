@@ -4,6 +4,13 @@
 {% block title%} Production Plan {% endblock%}
 {% block content %}
 <style>
+    .but{
+        background-color: rgb(215, 245, 215);
+    }
+
+    .but1{
+        background-color: rgb(241, 224, 227);
+    }
     @media (min-width:600px ) and (max-width:1024px){
         .checklist{
             display: none;
@@ -122,9 +129,9 @@
                                         {% if request.user.role != 'admin' or request.user.role != 'accountant' %}
                                             <small >
                                                 {% if plan.status %}
-                                                    <small class="bg-success text-light p-2 rounded text-center w-100">Confirmed</small>
+                                                    <small class="but text-success p-2 rounded text-center w-100">Confirmed</small>
                                                 {%else %}
-                                                    <a href="{% url 'inventory:confirm_production_plan' plan.id %}" class="bg-danger text-light p-2 rounded text-center w-100">Please Confirm</a>
+                                                    <a href="{% url 'inventory:confirm_production_plan' plan.id %}" class="but1 text-danger p-2 rounded text-center w-100">Please Confirm</a>
                                                 {% endif %}
                                             </small>
                                         {% endif %}
@@ -133,12 +140,12 @@
                                         {% if request.user.role != 'chef'%}
                                             <small>
                                                 {% if plan.declared %}
-                                                    <small class="bg-success text-light p-2 rounded text-center w-100" disabled>Declared</small>
+                                                    <small class="but text-success p-2 rounded text-center w-100" disabled>Declared</small>
                                                 {% else %}
                                                     {% if plan.status %}
-                                                        <a href="{% url 'inventory:declare_production_plan' plan.id %}" class="bg-danger text-light p-2 rounded text-center w-100">Waiting declaration</a>
+                                                        <a href="{% url 'inventory:declare_production' plan.id %}" class="but1 text-danger p-2 rounded text-center w-100">Waiting declaration</a>
                                                     {% else %}
-                                                        <small class="bg-danger text-light p-2 rounded text-center w-100" disabled>Awaiting production plan confirmation</small>
+                                                        <small class="but1 text-danger p-2 rounded text-center w-100" disabled>Awaiting production plan confirmation</small>
                                                     {% endif %}
                                                 {% endif %}
                                             </small>
@@ -148,6 +155,10 @@
                                         <small>
                                             <a href="{% url 'inventory:production_plan_detail' plan.id %}" class="bx bx-show mx-2"></a>
                                             <a href="" class="bx bx-printer"></a>
+                                            {% if plan.status %}
+                                            {% else %}
+                                                <a href="{% url 'inventory:production_plan_delete' plan.id %}" class="bx bx-trash mx-2"></a>
+                                            {% endif %}
                                         </small>
                                     </td>
                                 </tr>

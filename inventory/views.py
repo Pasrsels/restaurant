@@ -1126,7 +1126,8 @@ def production_plan_detail(request, pp_id):
             production_plan_items = ProductionItems.objects.filter(production=production_plan) 
             dish_ingredients = Ingredient.objects.all() 
             production_plan_minor_items = MinorProductionItems.objects.filter(production=production_plan)
-            
+            p_rm_variance = ProductionVariance.objects.filter(production=production_plan)
+
             total_cost_items = production_plan_items.aggregate(total_cost=Sum('total_cost'))['total_cost'] or 0
             total_cost_minor_items = production_plan_minor_items.aggregate(total_cost=Sum('total_cost'))['total_cost'] or 0
 
@@ -1158,7 +1159,6 @@ def production_plan_detail(request, pp_id):
                         raw_material_found['expected_quantity'] += expected_quantity
                         raw_material_found['quantity_b_f'] += current_quantity
                     else:
-                        logger.info('ew')
                         raw_materials.append(
                             {
                                 'id': ing.minor_raw_material.id,
@@ -1193,7 +1193,8 @@ def production_plan_detail(request, pp_id):
                 'allocated_rm':allocated,
                 'allocated_rm_per_unit': allocated_rm,
                 'confirm': False,
-                'dish_ing': dish_ingredients
+                'dish_ing': dish_ingredients,
+                'p_rm_variance': p_rm_variance,
             }
         )
  
@@ -1406,12 +1407,37 @@ def declare_production_plan(request, pp_id):
             production_plan = Production.objects.select_related().get(id=pp_id)
             production_plan_items = ProductionItems.objects.filter(production=production_plan)
             allocated_raw_materials = AllocatedRawMaterials.objects.filter(production=production_plan)
-          
-            raw_materials = []
             
+            raw_materials = []
+            dish_raw = []
             for item in production_plan_items:
                 for ing in Ingredient.objects.filter(dish=item.dish):
                     
+                    for all_raw_m in allocated_raw_materials:
+                        if ing.minor_raw_material.id == all_raw_m.raw_material.id:
+                            dish_entry = next((item for item in dish_raw if item['Name'] == ing.dish.name), None)
+
+                            if dish_entry:
+                                dish_entry['Ingredients'].append(
+                                    {
+                                        'Name': ing.minor_raw_material.name,
+                                        'Quantity': f'{round(ing.quantity/ing.dish.portion_multiplier, 3)} {ing.minor_raw_material.unit}',
+                                        'Planned': f'{round(all_raw_m.quantity/round(ing.quantity/ing.dish.portion_multiplier, 3))} Portion(s)'
+                                    }
+                                )
+                            else:
+                                dish_raw.append({
+                                    'Name': ing.dish.name,
+                                    'Ingredients': [
+                                        {
+                                            'Name': ing.minor_raw_material.name,
+                                            'Quantity': f'{round(ing.quantity/ing.dish.portion_multiplier, 3)} {ing.minor_raw_material.unit}',
+                                            'Planned': f'{round(all_raw_m.quantity/round(ing.quantity/ing.dish.portion_multiplier, 3))} Portion(s)'
+                                        }
+                                    ]
+                                })
+                            break
+
                     p_r_m_bf, created = ProductionRawMaterials.objects.get_or_create(
                         product=ing.minor_raw_material,
                         defaults={
@@ -1442,7 +1468,8 @@ def declare_production_plan(request, pp_id):
         return render(request, 'inventory/declare_raw_material_left.html', {
             'production_plan': production_plan,
             'raw_materials': raw_materials,
-            'allocated':allocated_raw_materials 
+            'allocated':allocated_raw_materials,
+            'dish_raw': dish_raw
         })
     
     if request.method == 'POST':
@@ -1492,6 +1519,196 @@ def declare_production_plan(request, pp_id):
             return JsonResponse({'success': False, 'message': f'Invalid JSON data: {e}'}, status=400)
 
     return JsonResponse({'success': False, 'message': 'Invalid request method'}, status=405)
+
+@login_required
+def production_plan_delete(request, id):
+    try:
+        p_p_delete = Production.objects.get(id = id)
+        p_p_delete.delete()
+        messages.success(request, f'Successfully deleted production plan with id :{id}')
+        return redirect('inventory:production_plans')
+    except Exception as e:
+        messages.warning(request, e)
+        return redirect('inventory:production_plans')
+
+@login_required
+def new_declare_production(request, pp_id):
+    # pp_id = 25
+    if request.method == 'GET':
+        try:
+            production_plan = Production.objects.select_related().get(id=pp_id)
+            production_plan_items = ProductionItems.objects.filter(production=production_plan)
+            allocated_raw_materials = AllocatedRawMaterials.objects.filter(production=production_plan)
+            
+            raw_materials = []
+            dish_details = []
+            total_cost = 0
+            total_price = 0
+            total_portions = 0
+
+            for item in production_plan_items:
+                    total_portions += item.portions
+                    dish_details.append(
+                        {
+                            'name': item.dish.name,
+                            'cost': item.dish.cost,
+                            'total_price': round(item.dish.price * Decimal(item.portions), 2)
+                        }
+                    )
+                    total_price += round(item.dish.price * Decimal(item.portions), 2)
+                    for ing in Ingredient.objects.filter(dish=item.dish):
+                        
+                        p_r_m_bf, created = ProductionRawMaterials.objects.get_or_create(
+                            product=ing.minor_raw_material,
+                            defaults={
+                                'quantity': 0
+                            } 
+                        )
+                        
+                        quantity = round(ing.quantity * (item.portions / item.dish.portion_multiplier), 3)
+                        print(quantity)
+                        raw_material_found = next((rm for rm in raw_materials if rm['id'] == ing.minor_raw_material.id), None)
+                        
+                        if raw_material_found:
+                            
+                            raw_material_found['quantity'] += round(float(quantity), 3)
+                            raw_material_found['cost'] = round(Decimal(raw_material_found['quantity']) * ing.minor_raw_material.cost, 2)
+                        else:
+                            
+                            raw_materials.append(
+                                {
+                                    'id': ing.minor_raw_material.id,
+                                    'name': ing.minor_raw_material.name,
+                                    'quantity': round(float(quantity), 3),
+                                    'unit': ing.minor_raw_material.unit,
+                                    'cost': round(Decimal(ing.minor_raw_material.cost) * Decimal(quantity), 2),
+                                }
+                            )
+            logger.info(raw_materials)
+            
+            for cost in raw_materials:
+                total_cost += cost['cost']
+            logger.info(total_cost)
+            logger.info(dish_details)
+
+        except Production.DoesNotExist:
+            messages.warning(request, f'Production Plan With ID: {pp_id} doesn\'t exist.')
+            return redirect('inventory:production_plan_detail', pp_id)
+        
+        return render(request, 'inventory/new_declare.html', {
+            'p_plan': production_plan,
+            'production_plan': production_plan_items,
+            'ingridients':raw_materials,
+            'production_plan_id': pp_id,
+            'total_price': dish_details,
+            'total': total_cost,
+            'total_portions': total_portions,
+            'price': total_price
+        })
+    elif request.method == 'POST':
+        data = json.loads(request.body)
+
+        dish_name = data.get('dish_name').split('@')[0].strip()
+        logger.info(f'Dish Name: {dish_name}')
+        portions = data.get('portions')
+
+        try:
+            dish_ing = Ingredient.objects.filter(dish__name = dish_name)
+            logger.info(f'Dish ingridients: {dish_ing}')
+
+            ingridient_list = []
+
+            for ingridient in dish_ing:
+                portion_m = ingridient.dish.portion_multiplier
+                qnty = ingridient.quantity
+
+                prop = qnty/portion_m
+                declared_total_qnty = prop * int(portions)
+                logger.info({'Name': ingridient.minor_raw_material.name, 'Declared Qnty': declared_total_qnty})
+                ingridient_list.append({
+                    'ingridient_name': ingridient.minor_raw_material.name,
+                    'ingridient_qnty': round(declared_total_qnty, 3)
+                })
+
+
+            return JsonResponse({'success':True, 'ingridient': ingridient_list}, status = 200)
+        except Exception as e:
+            logger.info(f'Error: {e}')
+            return JsonResponse({'success': False}, status= 400)
+    elif request.method == 'PUT':
+        try:
+            data = json.loads(request.body)
+            logger.info(data)
+
+            try:
+                production= Production.objects.get(id=pp_id)
+            except ProductionItems.DoesNotExist:
+                return JsonResponse({'success': False, 'message': f'Production Plan with ID: {pp_id} doesn\'t exist'}, status=404)
+
+            for ing_data in data:
+                logger.info({
+                    'name': ing_data.get('ingridient_name'),
+                    'used_qnty': ing_data.get('system'),
+                    'variance': ing_data.get('variance')
+                })
+                try:
+                    allocated = AllocatedRawMaterials.objects.get(raw_material__name=ing_data.get('ingridient_name'), production=production)
+                except ProductionItems.DoesNotExist:
+                    return JsonResponse({'success': False, 'message': f'Raw Material with ID: {ing_data.get('ingridient_name')} doesn\'t exist'}, status=404)
+
+                try:
+                    product = Product.objects.get(name=ing_data.get('ingridient_name'))
+                    p_rm_variance = ProductionVariance.objects.create(
+                        production=production,
+                        ingredient=product,
+                        quantity=float(ing_data.get('variance'))
+                    )
+                except ProductionVariance.DoesNotExist:
+                    return JsonResponse({'success': False, 'message': f'Variance for Raw Material with ID: {ing_data.get('ingridient_name')} doesn\'t exist'}, status=404)
+                
+                with transaction.atomic():
+                    p_rm = ProductionRawMaterials.objects.get(product__name=ing_data.get('ingridient_name'))
+                    p_rm.quantity -= float(ing_data.get('system'))
+                    
+                    
+                    allocated.remaining_quantity = allocated.quantity - float(ing_data.get('system'))
+                    allocated.save()
+                    
+                    ProductionLogs.objects.create(
+                        user=request.user, 
+                        action= 'declared',
+                        description='from warehouse',
+                        product=p_rm,
+                        quantity=p_rm.quantity,
+                        total_quantity=p_rm.quantity,
+                    )
+                    p_rm.save()
+            
+            try:
+                production = Production.objects.get(id=pp_id)  
+                production_plan_items = ProductionItems.objects.filter(production=production)
+                total_cost = production_plan_items.aggregate(total_cost=Sum('total_cost'))['total_cost'] or 0
+            except Production.DoesNotExist:
+                return JsonResponse({'success':False, 'message':f'Production with ID: {pp_id}, doesn\'t exists'})
+            logger.info({
+                'Total_cost': total_cost
+            })
+            declaration_flag = True
+            with transaction.atomic():
+                COGS.objects.create(
+                    production=production,
+                    amount=total_cost
+                )
+                
+                if declaration_flag:
+                    
+                    production.declared = True
+                    production.save()
+                
+            return JsonResponse({'success': True})
+        except Exception as e:
+            logger.info(f'Error: {e}')
+            return JsonResponse({'success':False})
 
 
 @login_required

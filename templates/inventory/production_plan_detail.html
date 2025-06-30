@@ -99,7 +99,7 @@
                             <td>
                                 {% for allocated in allocated_rm %}
                                     {% if allocated.raw_material.name == item.name %}
-                                        <small>{{ allocated.remaining_quantity }}</small>
+                                        <small>{{ allocated.remaining_quantity|floatformat:"2"}}</small>
                                     {% endif %}
                                 {% endfor %}
                             </td>

@@ -36,6 +36,8 @@ urlpatterns = [
     path('production_raw_materials/', production_raw_materials, name='production_raw_materials'),
     path('production_rm/detail/<int:rm_id>/', production_rm_detail, name='production_rm_detail'),
     path('override/raw-material', overrideBf , name='override'),
+    path('production-plan/delete/<int:id>/', production_plan_delete, name="production_plan_delete"),
+    path('declare-production-plan/<int:pp_id>/', new_declare_production, name="declare_production"),
     
     # supplier
     path('suppliers/list', suppliers, name='suppliers'),

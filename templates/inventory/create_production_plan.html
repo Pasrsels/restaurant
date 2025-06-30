@@ -88,7 +88,7 @@
                         text: "Production plan created successfully!",
                         icon: "success"
                     }).then(() => {
-                        //window.location.href = `/inventory/minor_raw_materials/${data.data}/`;
+                        window.location.href = `/inventory/production/plan/list`;
                     });
                     cart = [];
                     updateCartTable();
@@ -206,6 +206,8 @@
             }
 
             updateCartTable();
+            $('#id_dish').val(null).trigger('change');
+            $('#id_portions').val(0);
         });
     
         // Update cart table display

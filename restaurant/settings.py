@@ -24,7 +24,7 @@ ALLOWED_HOSTS = [
     '192.168.10.181',
     'c845-196-27-126-114.ngrok-free.app',
     '192.168.1.146',
-    '192.168.1.136'
+    '192.168.1.145'
 ]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -119,9 +119,10 @@ DATABASES = {
     # )
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'restaurant_test',  
+        'NAME': 'urban-eats-export',  
         'USER': 'postgres',
-        'PASSWORD': 'neverfail',
+        'PASSWORD': '5052',
+        # 'HOST': '192.168.1.147',
         'PORT': '5432',
     }
     # 'default': {
@@ -221,6 +222,7 @@ CELERY_ACCEPT_CONTENT = os.environ.get('CELERY_ACCEPT_CONTENT', 'json').split(',
 CELERY_TASK_SERIALIZER = os.environ.get('CELERY_TASK_SERIALIZER', 'json')
 CELERY_RESULT_SERIALIZER = os.environ.get('CELERY_RESULT_SERIALIZER', 'json')
 CELERY_TIMEZONE = os.environ.get('CELERY_TIMEZONE', 'Africa/Johannesburg')
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 # Email Backend Configuration
 # EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -312,3 +314,13 @@ CONNECTION_TIME_EXEMPT_URLS = [
     '/connection-error/',
 ]
 
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "SERIALIZER": "django_redis.serializers.json.JSONSerializer",
+        }
+    }
+}

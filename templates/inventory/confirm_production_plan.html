@@ -145,7 +145,7 @@
                             {% if confirm %}
                                 <td class="text-center">
                                     {% csrf_token %}
-                                    <input type="number" class="checklist-input form-control" min="0">
+                                    <input type="number" class="checklist-input form-control" min="0" placeholder="Press enter when done">
                                 </td>
                             {% else %}
                             <td class="text-center">
@@ -219,42 +219,36 @@
 <script>
 
     document.addEventListener('DOMContentLoaded', function () {
-        const inputs = document.querySelectorAll('.checklist-input');
-        const confirmBtn = document.getElementById('confirm-btn');
+        const inputs_state = document.querySelectorAll('.checklist-input');
+        const confirmBtn_state = document.getElementById('confirm-btn');
+        const confirmUrl = confirmBtn_state.getAttribute('href');
 
-        if (confirmBtn && inputs.length > 0) {
-            const confirmUrl = confirmBtn.getAttribute('href'); // store the real link
+        function checkInputs() {
+            let allFilled = true;
 
-            function checkInputs() {
-                let allFilled = true;
-
-                inputs.forEach(input => {
-                    const value = input.value.trim();
-                    if (value === '' || isNaN(value) || parseFloat(value) < 0) {
-                        allFilled = false;
-                    }
-                });
-
-                if (allFilled) {
-                    confirmBtn.classList.remove('disabled');
-                    confirmBtn.onclick = null; // allow navigation
-                    confirmBtn.setAttribute('href', confirmUrl); // restore URL
-                } else {
-                    confirmBtn.classList.add('disabled');
-                    confirmBtn.onclick = function () { return false; }; // block navigation
-                    confirmBtn.setAttribute('href', '#'); // prevent accidental follow
+            inputs_state.forEach(input => {
+                if (!input.disabled) {
+                    allFilled = false;
                 }
-            }
-
-            inputs.forEach(input => {
-                input.addEventListener('input', checkInputs);
             });
 
-            checkInputs(); // initial validation
+            if (allFilled) {
+                confirmBtn_state.classList.remove('disabled');
+                confirmBtn_state.onclick = null; // allow navigation
+                confirmBtn_state.setAttribute('href', confirmUrl); // restore URL
+            } else {
+                confirmBtn_state.classList.add('disabled');
+                confirmBtn_state.onclick = function () { return false; };
+                confirmBtn_state.setAttribute('href', '#'); // prevent accidental follow
+            }
         }
-    });
 
-    document.addEventListener('DOMContentLoaded', function () {
+        inputs_state.forEach(input => {
+            input.addEventListener('input', checkInputs);
+        });
+
+        checkInputs(); // initial validation
+
         new DataTable('#plan_item_table');
         new DataTable('#minor');
     
@@ -279,7 +273,7 @@
 
                     console.log({Quantity: quantityEntered})
                     
-                    if (quantityEntered < expectedQuantity){
+                    if (quantityEntered <= expectedQuantity){
                         if (!isNaN(quantityEntered)) {
                             Swal.fire({
                                 title: 'Processing Allocation',
@@ -291,6 +285,7 @@
 
                             input.classList.add('loading');
                             input.disabled = true;
+                            checkInputs();
 
                             const rawMaterialId = row.getAttribute('data-id');
                         
@@ -314,6 +309,7 @@
                                 if (data.success) {
                                     input.classList.remove('loading');
                                     // input.disabled = true;
+                                    checkInputs();
                                     row.style.backgroundColor = '#d3d3d3';
                                     console.log('Quantity confirmed');
                                     focusNextInput(input);
@@ -356,9 +352,7 @@
                 inputs[currentIndex + 1].focus();
             }
         }
-    });
 
-    document.addEventListener("DOMContentLoaded", function () {
         const overrideButtons = document.querySelectorAll('.override-btn');
 
         overrideButtons.forEach(button => {

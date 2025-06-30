@@ -193,7 +193,7 @@ def process_sale(request):
         try:
             # check_status = SaleAuthorization.objects.get(auth_date = datetime.date.today(), auth_granted = True)
             check_status = True
-            # today_plan = Production.objects.filter(date_created=datetime.date.today(), declared=True, status=True).first()
+            #today_plan = Production.objects.filter(date_created=datetime.date.today(), declared=True, status=True).first()
             if check_status:
                 data = json.loads(request.body)
                 items = data['items']
@@ -346,17 +346,17 @@ def process_sale(request):
                                         """    
                             if meal:
                                 if staff:
-                                    # deduct_current_production_plan(request, meal=meal.name, dish=None, product=None, quantity=item['quantity'], staff=True)
+                                    deduct_current_production_plan(request, meal=meal.name, dish=None, product=None, quantity=item['quantity'], staff=True)
                                     sale_item.meal=meal
                                 else:
-                                    # deduct_current_production_plan(request, meal=meal.name, dish=None, product=None, quantity=item['quantity'], staff=None)
+                                    deduct_current_production_plan(request, meal=meal.name, dish=None, product=None, quantity=item['quantity'], staff=None)
                                     sale_item.meal=meal
                             elif dish:
                                 if staff:
-                                    # deduct_current_production_plan(request=request, meal=None, dish=dish.name, product=None, quantity=item['quantity'], staff=True)
+                                    deduct_current_production_plan(request=request, meal=None, dish=dish.name, product=None, quantity=item['quantity'], staff=True)
                                     sale_item.dish=dish
                                 else:
-                                    # deduct_current_production_plan(request=request, meal=None, dish=dish.name, product=None, quantity=item['quantity'], staff=None)
+                                    deduct_current_production_plan(request=request, meal=None, dish=dish.name, product=None, quantity=item['quantity'], staff=None)
                                     sale_item.dish=dish
                             
                             sale_item.save()
@@ -388,7 +388,7 @@ def process_sale(request):
                                     quantity=item['quantity'],
                                     price=0.00,
                                 )
-                                # deduct_current_production_plan(request=request, meal=None, dish=None, product=product.name, quantity=item['quantity'], staff=True)
+                                deduct_current_production_plan(request=request, meal=None, dish=None, product=product.name, quantity=item['quantity'], staff=True)
                             else:
                                 sale_item = SaleItem.objects.create(
                                     sale=sale,
@@ -396,7 +396,7 @@ def process_sale(request):
                                     quantity=item['quantity'],
                                     price=product.price,
                                 )
-                                # deduct_current_production_plan(request=request, meal=None, dish=None, product=product.name, quantity=item['quantity'], staff=None)
+                                deduct_current_production_plan(request=request, meal=None, dish=None, product=product.name, quantity=item['quantity'], staff=None)
                             logger.info(f'Saved sale item: {sale_item}')
                             
                             Logs.objects.create(
@@ -484,9 +484,14 @@ def deduct_current_production_plan(request, meal, dish, product, quantity, staff
 
     if not product:
         if not today_plans.exists():
-            # messages.warning(request, "No production plans available for today. Please declare one.")
+            messages.warning(request, "No production plans available for today. Please declare one.")
             raise Exception("No production plans available for today. Please declare one.")
 
+    if '1 piece' in dish.lower():
+        dish_strip = dish.lower().replace('1 piece', '').strip()
+        logger.info({'Dish is 1 piece': dish_strip})
+        dish = dish_strip
+        
     deduction_successful = False
     count = 0
     new_quantity = 0

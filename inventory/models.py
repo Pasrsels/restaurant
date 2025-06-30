@@ -63,6 +63,14 @@ class ProductionRawMaterials(models.Model):
     def __str__(self) -> str:
         return self.product.name
 
+class ProductionVariance(models.Model):
+    production = models.ForeignKey('Production', on_delete=models.CASCADE)
+    ingredient = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.FloatField()
+    
+    def __str__(self) -> str:
+        return f'{self.ingredient.name} - {self.quantity}'
+
 class Production(models.Model):
     date_created = models.DateField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)
