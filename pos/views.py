@@ -131,15 +131,13 @@ def product_meal_json(request):
 
         combined_items = meal_data + product_data + dish_data
 
-        logger.info(dish_data)
-        logger.info(product_data)
         data = {
             'items': combined_items
         }
     
         return JsonResponse(data)
-    
-    return JsonResponse('Invalid requesnt', status=500)
+
+    return JsonResponse('Invalid request', status=500)
 
 @login_required
 def sales_list(request):
@@ -972,7 +970,6 @@ def void_sales(request, user_id):
 def void_authenticate(request):
     if request.method == "POST":
         try:
-            logger.info('here')
             data = json.loads(request.body)
 
             username = data.get("username")
@@ -1109,10 +1106,6 @@ def cash_up(request, cashier_id):
         for items in staff_meals_portions_list:
             staff_total += items['Total']
         
-
-        logger.info(sales_portions_list)
-        logger.info(void_sales_portions_list)
-        logger.info(staff_meals_portions_list)
         
         variance_list = []
 
@@ -1123,7 +1116,7 @@ def cash_up(request, cashier_id):
             'total_sold',
             'expected',
         ) 
-        logger.info(eod_list)
+        # logger.info(eod_list)
         # eod_dict = { name:eod.dish_name for eod in eod_list}
 
         change = Change.objects.filter(cashier__id=cashier_id, timestamp__date=datetime.datetime.today(), collected=False).values('amount')
@@ -1138,14 +1131,12 @@ def cash_up(request, cashier_id):
                 previous_change_given_by_cashier_list.append({'Name': item.name, 'Amount': item.amount})
 
         expenses = CashierExpense.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today())
-        logger.info(expenses)
+       
         expenses_list = []
         for item in expenses:
             name = item.name
-            logger.info(name)
             if name:
-                expenses_list.append({'Name': item.name, 'Amount': item.amount})
-        logger.info(expenses_list)    
+                expenses_list.append({'Name': item.name, 'Amount': item.amount})  
         
         total_sales = sales.filter(staff=False).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
         total_staff_sales = sales.filter(staff=True).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
@@ -1178,7 +1169,6 @@ def cash_up(request, cashier_id):
             )
 
             finished_product = finishedProduct(cashier_id)
-            logger.info(finished_product)
 
             data = {
                 "total_sales":total_sales,
