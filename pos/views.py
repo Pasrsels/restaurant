@@ -97,7 +97,7 @@ def product_meal_json(request):
 
         meal_data = [
             {
-                'image': meal.image.url.replace('/media/', '', 1),
+                # 'image': meal.image.url.replace('/media/', '', 1),
                 'name':meal.name,
                 'price':meal.price,
                 'category':meal.category.name,
@@ -346,17 +346,17 @@ def process_sale(request):
                                         """    
                             if meal:
                                 if staff:
-                                    deduct_current_production_plan(request, meal=meal.name, dish=None, product=None, quantity=item['quantity'], staff=True)
+                                    # deduct_current_production_plan(request, meal=meal.name, dish=None, product=None, quantity=item['quantity'], staff=True)
                                     sale_item.meal=meal
                                 else:
-                                    deduct_current_production_plan(request, meal=meal.name, dish=None, product=None, quantity=item['quantity'], staff=None)
+                                    # deduct_current_production_plan(request, meal=meal.name, dish=None, product=None, quantity=item['quantity'], staff=None)
                                     sale_item.meal=meal
                             elif dish:
                                 if staff:
-                                    deduct_current_production_plan(request=request, meal=None, dish=dish.name, product=None, quantity=item['quantity'], staff=True)
+                                    # deduct_current_production_plan(request=request, meal=None, dish=dish.name, product=None, quantity=item['quantity'], staff=True)
                                     sale_item.dish=dish
                                 else:
-                                    deduct_current_production_plan(request=request, meal=None, dish=dish.name, product=None, quantity=item['quantity'], staff=None)
+                                    # deduct_current_production_plan(request=request, meal=None, dish=dish.name, product=None, quantity=item['quantity'], staff=None)
                                     sale_item.dish=dish
                             
                             sale_item.save()
@@ -388,7 +388,7 @@ def process_sale(request):
                                     quantity=item['quantity'],
                                     price=0.00,
                                 )
-                                deduct_current_production_plan(request=request, meal=None, dish=None, product=product.name, quantity=item['quantity'], staff=True)
+                                # deduct_current_production_plan(request=request, meal=None, dish=None, product=product.name, quantity=item['quantity'], staff=True)
                             else:
                                 sale_item = SaleItem.objects.create(
                                     sale=sale,
@@ -396,7 +396,7 @@ def process_sale(request):
                                     quantity=item['quantity'],
                                     price=product.price,
                                 )
-                                deduct_current_production_plan(request=request, meal=None, dish=None, product=product.name, quantity=item['quantity'], staff=None)
+                                # deduct_current_production_plan(request=request, meal=None, dish=None, product=product.name, quantity=item['quantity'], staff=None)
                             logger.info(f'Saved sale item: {sale_item}')
                             
                             Logs.objects.create(
