@@ -97,7 +97,7 @@ def product_meal_json(request):
 
         meal_data = [
             {
-                # 'image': meal.image.url.replace('/media/', '', 1),
+                'image': meal.image.url.replace('/media/', '', 1),
                 'name':meal.name,
                 'price':meal.price,
                 'category':meal.category.name,
