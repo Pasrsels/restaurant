@@ -2260,7 +2260,6 @@ def create_meal_category(request):
         for items in dish_categories:
             dish_category_list.append(items)
 
-        logger.info({'Meal': categories, 'Product': product_categories, 'Dish': dish_categories})
         return JsonResponse({'product':product_category_list, 'meal':meal_category_list, 'dish': dish_category_list}, safe=False, status = 200)
     
     if request.method == 'POST':
@@ -2285,16 +2284,11 @@ def CategoryMeal(request):
         category_name = request.GET.get('category')
         logger.info(category_name)
         
-        meal_filter = Meal.objects.filter(category__name = category_name).values('id', 'name', 'price', 'image', 'meal')
+        meal_filter = Meal.objects.filter(category__name = category_name, deactivate = False).values('id', 'name', 'price', 'image', 'meal')
         product_filter = Product.objects.filter(category__name = category_name, finished_product=True).values('id', 'name', 'quantity', 'price', 'finished_product', 'image')
         dish_filter = Dish.objects.filter(category = category_name).values('id', 'name', 'price', 'dish', 'image')
-        
-        logger.info(meal_filter)
-        logger.info(product_filter)
-        logger.info(dish_filter)
 
         if not meal_filter and not dish_filter:
-            product_filter_list = list(product_filter)
             product_data = [
                 {
                     "id": f'p-{product['id']}',
@@ -2306,10 +2300,8 @@ def CategoryMeal(request):
                 }
                 for product in product_filter
             ]
-            logger.info(product_data)
             return JsonResponse(product_data, safe=False, status = 200)
-        elif not product_filter and not meal_filter:
-            dish_filter_list = list(dish_filter)
+        else:
             dish_data = [
                 {
                     "id": f'd-{dish['id']}',
@@ -2320,10 +2312,7 @@ def CategoryMeal(request):
                 }
                 for dish in dish_filter
             ]
-            logger.info(dish_data)
-            return JsonResponse(dish_data, safe=False, status = 200)
-        else:
-            meal_filter_list = list(meal_filter) 
+        
             meal_data = [
                 {
                     "id": f'm-{meal['id']}',
@@ -2334,8 +2323,9 @@ def CategoryMeal(request):
                 }
                 for meal in meal_filter
             ]
-            logger.info(meal_data)
-            return JsonResponse(meal_data, safe=False, status = 200)
+
+            final_data = meal_data + dish_data
+            return JsonResponse(final_data, safe=False, status = 200)
     else:
         return JsonResponse({'sucess': False, 'message': 'Invalid request'}, status = 500)
 
