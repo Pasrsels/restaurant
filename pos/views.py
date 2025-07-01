@@ -699,7 +699,7 @@ def change_list(request):
         timestamp__lte=end_date
     ).order_by('-timestamp')
     
-    paginator = Paginator(changes, 20) 
+    paginator = Paginator(changes, 10000) 
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
