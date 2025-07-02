@@ -15,16 +15,8 @@ SECRET_KEY = 'django-insecure-3m$$5om_jd5=rk*1x9(@=-=o8(j!^y(@!)iz^38q6*^w#6v+4n
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1', 
-    'web-production-20d8.up.railway.app',
-    '192.168.10.156',
-    '192.168.10.173',
-    '192.168.10.38',
-    '192.168.10.181',
-    'c845-196-27-126-114.ngrok-free.app',
-    '192.168.1.146',
-    '192.168.1.145'
+    '192.168.1.136',
+    '196.27.126.114'
 ]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -119,19 +111,11 @@ DATABASES = {
     # )
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'urban-eats-export',  
+        'NAME': 'restaurant',  
         'USER': 'postgres',
-        'PASSWORD': '5052',
-        # 'HOST': '192.168.1.147',
+        'PASSWORD': 'neverfail',
         'PORT': '5432',
     }
-    # 'default': {
-    #     'ENGINE': 'django.db.backends.postgresql',
-    #     'NAME': 'test',  
-    #     'USER': 'postgres',
-    #     'PASSWORD': 'neverfail',
-    #     'PORT': '5432',
-    # }
 }
 
 AUTH_USER_MODEL = 'users.User'
