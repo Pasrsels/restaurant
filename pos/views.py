@@ -198,7 +198,9 @@ def process_sale(request):
                 staff = data['staff']
                 change_data = data.get('change_data')
                 order_type = data['order_type']
+                cash_type = data['cash_type']
                 logger.info(order_type)
+                logger.info(cash_type)
                 logger.info(items)
                 received_amount = data.get('received_amount')
                 meal_bool = data.get('meal')
@@ -238,7 +240,8 @@ def process_sale(request):
                             cashier=request.user,
                             staff=False,
                             change=balance,
-                            amount_paid=received_amount
+                            amount_paid=received_amount,
+                            cash_type= cash_type
                         )
 
                     logger.info(sale)
@@ -1009,7 +1012,7 @@ def cash_up(request, cashier_id):
     if request.method == 'GET':
         cash_in_hand = 0
 
-        sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=False).values('total_amount')
+        sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=False).values('total_amount', 'cash_type', 'staff')
         sales_items = SaleItem.objects.filter(sale__cashier__id=cashier_id, sale__date=datetime.datetime.today())
         void_sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=True).values('total_amount')
 
@@ -1099,6 +1102,8 @@ def cash_up(request, cashier_id):
         
         sale_total = 0
         staff_total = 0
+        eco_cash_total = 0
+        eco_cash_tax = 0
 
         for items in sales_portions_list:
             sale_total += items['Total']
@@ -1106,7 +1111,15 @@ def cash_up(request, cashier_id):
         for items in staff_meals_portions_list:
             staff_total += items['Total']
         
-        
+        for items in sales:
+            logger.info(items)
+            if items['cash_type'] == 'eco-cash' and items['staff'] == False:
+                eco_cash_total += items['total_amount']
+
+        logger.info(f'Eco cash total: {eco_cash_total}')
+
+        eco_cash_tax = Decimal(0.02) * Decimal(eco_cash_total)
+        logger.info(f'Eco cash tax: {eco_cash_tax}')
         variance_list = []
 
         eod_list = EndOfDayItems.objects.filter(end_of_day__date=datetime.datetime.today()).values(
@@ -1153,6 +1166,7 @@ def cash_up(request, cashier_id):
 
         logger.info(f'Sales totals: total: {total_sales}, staff_sales: {total_staff_sales}')
 
+
         try:
 
             CashUp.objects.create(
@@ -1187,7 +1201,9 @@ def cash_up(request, cashier_id):
                 'finished_product': finished_product,
                 'sales_summary': sales_summary,
                 'total_summary_sales':total_summary_sales,
-                'staff_sales_summary':staff_sales_summary
+                'staff_sales_summary':staff_sales_summary,
+                'eco_cash_total': eco_cash_total,
+                'eco_cash_tax': Decimal(eco_cash_tax),
             }
 
             accountantreport(request)

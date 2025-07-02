@@ -1712,6 +1712,100 @@ def new_declare_production(request, pp_id):
 
 
 @login_required
+def latest_declare_production(request):
+    if request.method == 'GET':
+        try:
+            latest_declared_plan = (
+                Production.objects
+                .filter(declared=True)
+                .order_by('-date_created', '-time_created')
+                .select_related()
+                .first()
+            )
+            
+            if not latest_declared_plan:
+                return JsonResponse({'success': False, 'message': 'No declared production plan found.'}, status=404)
+
+            logger.info(f'Latest Declared Plan: {latest_declared_plan.date_created} {latest_declared_plan.time_created}')
+            production_plan_items = ProductionItems.objects.filter(production=latest_declared_plan)
+
+            raw_materials = []
+            dish_details = []
+            dishes_serialized = []
+            total_cost = Decimal(0)
+            total_price = Decimal(0)
+            total_portions = 0
+
+            for item in production_plan_items:
+                total_portions += item.portions
+
+                # Dish total price for this item
+                dish_total_price = round(item.dish.price * Decimal(item.portions), 2)
+                total_price += dish_total_price
+
+                # Add to serialized dish list (JS expects dish.dish.name, etc.)
+                dishes_serialized.append({
+                    'dish': {
+                        'name': item.dish.name,
+                        'price': float(item.dish.price),
+                        'cost': float(item.dish.cost),
+                        'portion_multiplier': float(item.dish.portion_multiplier)
+                    },
+                    'portions': item.portions
+                })
+
+                # For price row below the table
+                dish_details.append({
+                    'name': item.dish.name,
+                    'cost': float(item.dish.cost),
+                    'total_price': float(dish_total_price)
+                })
+
+                # Handle ingredient calculations
+                ingredients = Ingredient.objects.filter(dish=item.dish)
+                for ing in ingredients:
+                    quantity = round(ing.quantity * (item.portions / item.dish.portion_multiplier), 3)
+
+                    # Prevent duplicates: merge quantities and costs
+                    existing = next((rm for rm in raw_materials if rm['id'] == ing.minor_raw_material.id), None)
+
+                    if existing:
+                        existing['quantity'] += round(float(quantity), 3)
+                        existing['cost'] = round(Decimal(existing['quantity']) * ing.minor_raw_material.cost, 2)
+                    else:
+                        raw_materials.append({
+                            'id': ing.minor_raw_material.id,
+                            'name': ing.minor_raw_material.name,
+                            'quantity': round(float(quantity), 3),
+                            'unit': ing.minor_raw_material.unit.unit_name,
+                            'cost': round(Decimal(ing.minor_raw_material.cost) * Decimal(quantity), 2)
+                        })
+
+            # Compute total cost of ingredients
+            for rm in raw_materials:
+                total_cost += rm['cost']
+
+            # Final JSON-safe payload
+            data_content = {
+                'production_plan': dishes_serialized,
+                'total_price': dish_details,
+                'ingridients': raw_materials,
+                'production_plan_id': latest_declared_plan.id,
+                'total': float(round(total_cost, 2)),
+                'total_portions': total_portions,
+                'price': float(round(total_price, 2))
+            }
+
+            return JsonResponse({'success': True, 'data': data_content}, status=200)
+
+        except Exception as e:
+            logger.error(f"Error in latest_declare_production: {e}")
+            return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+    return JsonResponse({'success': False, 'message': 'Invalid request method'}, status=405)
+
+
+@login_required
 def production_raw_materials(request):
     raw_materials = ProductionRawMaterials.objects.all()
     return render(request, 'inventory/production_rm.html', {'raw_materials':raw_materials})
@@ -3060,7 +3154,64 @@ def check_check_list(request):
     
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)}, status=400)
+
+@login_required
+def check_list_finished_products(request):
+    products = CheckList.objects.filter(date=datetime.datetime.today())
+    non_production_products = Product.objects.filter(raw_material = False)
     
+    check_list = []
+    for product in non_production_products:
+        if not products.filter(product=product).exists():
+            check_list.append(CheckList(
+                product = product,
+                status = False
+            ))
+
+    CheckList.objects.bulk_create(check_list)
+    
+    products = CheckList.objects.filter(date=datetime.datetime.today(), product__raw_material=False)
+
+    return JsonResponse({'success': True, 'products': list(products.values('product__name', 'product__quantity', 'status', 'product__id'))}, status=200)
+
+
+@login_required
+def check_list_raw_products(request):
+    products = CheckList.objects.filter(date=datetime.datetime.today())
+    non_production_products = Product.objects.filter(raw_material = True)
+    
+    check_list = []
+    for product in non_production_products:
+        if not products.filter(product=product).exists():
+            check_list.append(CheckList(
+                product = product,
+                status = False
+            ))
+
+    CheckList.objects.bulk_create(check_list)
+    
+    products = CheckList.objects.filter(date=datetime.datetime.today(), product__raw_material=True)
+
+    return JsonResponse({'success': True, 'products': list(products.values('product__name', 'product__quantity', 'status', 'product__id'))}, status=200)
+
+@login_required
+def check_list_all_products(request):
+    products = CheckList.objects.filter(date=datetime.datetime.today())
+    non_production_products = Product.objects.all()
+    
+    check_list = []
+    for product in non_production_products:
+        if not products.filter(product=product).exists():
+            check_list.append(CheckList(
+                product = product,
+                status = False
+            ))
+
+    CheckList.objects.bulk_create(check_list)
+    
+    products = CheckList.objects.filter(date=datetime.datetime.today())
+
+    return JsonResponse({'success': True, 'products': list(products.values('product__name', 'product__quantity', 'status', 'product__id'))}, status=200)
 
 @login_required
 def budget(request):
