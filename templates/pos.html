@@ -351,6 +351,11 @@
                     <button id="sitting-btn" class="order-type-btn btn btn-outline-dark w-100">Sitting (S)</button>
                     <button id="takeaway-btn" class="order-type-btn btn btn-outline-dark w-100 mt-2">Takeaway (T)</button>
                     <input type="hidden" id="order-type-input">
+                    <input type="hidden" id="cash-type-input">
+                   <div class="d-flex justify-content-between mt-2">
+                        <button class="btn btn-outline-dark w-50 me-2" id="eco-cash">ECO CASH</button>
+                        <button class="btn btn-outline-dark w-50" id="solid-cash">CASH</button>
+                    </div>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
@@ -473,6 +478,32 @@
             </div>
         </div>
     </div>
+
+    <div class="modal fade" id="cashTypeModal" tabindex="-1" aria-labelledby="cashTypeModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cashTypeModalLabel">Select Cash Type</h5>
+                </div>
+                <div class="modal-body">
+                    <div class="btn-selection">
+                        <span>
+                            <a class="btn btn-primary" id="eco-cash">
+                                ECO CASH
+                            </a>
+                        </span>
+
+                        <span>
+                            <a class="btn btn-primary" id="solid-cash">
+                                CASH
+                            </a>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
     <script src="https://unpkg.com/imask"></script>
     <script>
@@ -486,6 +517,7 @@
         let changeAmount = 0;
         const changeData = []
 
+        // const cashModal = document.getElementById('cashTypeModal');
         const chargeModal = new bootstrap.Modal(document.getElementById('chargeModal'));
         const staffModal = new bootstrap.Modal(document.getElementById('staffModal'));
         const staffChargeModal = new bootstrap.Modal(document.getElementById('staffChargeModal'));
@@ -705,11 +737,15 @@
 
         document.addEventListener("DOMContentLoaded", function() {
             let selectedOrderType = null;
-        
+            let selectedCashType = null;
+
             const sittingBtn = document.getElementById("sitting-btn");
             const takeawayBtn = document.getElementById("takeaway-btn");
+            const ecocashBtn = document.getElementById("eco-cash");
+            const solidcashBtn = document.getElementById("solid-cash");
             const chargeBtn = document.querySelector(".btn-primary");
             const orderTypeInput = document.getElementById("order-type-input");
+            const cashTypeInput = document.getElementById("cash-type-input");
             const totalAmountInput = document.getElementById("totalAmountInput");
         
             function activateButton(button) {
@@ -727,7 +763,7 @@
         
                 chargeBtn.disabled = false;
             }
-        
+            
             sittingBtn.addEventListener("click", function() {
                 activateButton(sittingBtn);
             });
@@ -735,11 +771,39 @@
             takeawayBtn.addEventListener("click", function() {
                 activateButton(takeawayBtn);
             });
+            
+
+            function cashButton(button) {
+                ecocashBtn.classList.remove("btn-dark");
+                solidcashBtn.classList.remove("btn-dark");
+
+                ecocashBtn.classList.remove("text-light");
+                solidcashBtn.classList.remove("text-light");
+                
+                button.classList.add("btn-dark");
+                button.classList.add("text-light");
+
+                selectedCashType = button.id === "eco-cash" ? "eco-cash" : "solid-cash";
+                cashTypeInput.value = selectedCashType;
+
+                chargeBtn.disabled = false;
+            }
+
+            ecocashBtn.addEventListener("click", function() {
+                cashButton(ecocashBtn);
+            });
         
+            solidcashBtn.addEventListener("click", function() {
+                cashButton(solidcashBtn);
+            });
+
             window.finalizeSale = function(staff) {
                 const amountField = document.getElementById('totalAmountInput');
                 const changeDisplay = document.getElementById('changeDisplay');
                 const orderTypeInput = document.getElementById('order-type-input');
+                const cashTypeInput = document.getElementById('cash-type-input');
+
+                console.log('Finalizing sale with staff:', cashTypeInput.value, 'and order type:', orderTypeInput.value);
 
                 setTimeout(() => {
                     totalAmountInput.focus();
@@ -748,8 +812,10 @@
 
                 if (staff) {
                     selectedOrderType = 'sitting';
+                    selectedCashType = 'solid-cash';
                 } else {
                     selectedOrderType = selectedOrderType;
+                    selectedCashType = selectedCashType;
                 }
 
                 const totalAmount = parseFloat(totalAmountInput.value);
@@ -776,10 +842,20 @@
                     return;
                 }
 
+                if (!selectedCashType) {
+                    Swal.fire({
+                        title: "Error",
+                        text: "Please select a cash type before finalizing the sale.",
+                        icon: "error"
+                    });
+                    return;
+                }
+
                 const saleData = {
                     received_amount: totalAmount,
                     staff: staff,
                     order_type: selectedOrderType,
+                    cash_type: selectedCashType,
                     items: cart.map(meal => ({
                         meal_id: meal.id,
                         quantity: meal.quantity,
@@ -1123,6 +1199,7 @@
         const amountField = document.getElementById('totalAmountInput');
         const changeDisplay = document.getElementById('changeDisplay');
         const orderTypeInput = document.getElementById('order-type-input');
+        const cashTypeInput = document.getElementById("cash-type-input");
 
         setTimeout(() => {
             amountField.focus();
@@ -1800,7 +1877,9 @@ function generateAccountantCashUp(userId) {
             variance, 
             sales_total, 
             staff_total,
-            finished_product
+            finished_product,
+            eco_cash_total,
+            eco_cash_tax
         } = cashUpData; 
         
         //finished products
@@ -2088,7 +2167,12 @@ function generateAccountantCashUp(userId) {
                     </div>
                     <hr>
                     <div class="line" style='margin-top:10px;'>
-                        <span style="font-size:10;"><span style="font-weight:bold;"">Nb</span>+-+ Total Change In Sytem: $${total_accumulated_change}</span>
+                        <span style="font-size:10;"><span style="font-weight:bold;"">Nb</span>Total Change In Sytem: $${total_accumulated_change}</span>
+                    </div>
+                    <hr>
+                    <div class="line" style='margin-top:10px;'>
+                        <span style="font-size:10;"><span style="font-weight:bold;"">Nb</span>Total Eco Cash Sales: $${eco_cash_total}</span>
+                        <span style="font-size:10;"><span style="font-weight:bold;"">Nb</span>Total Eco Cash Tax: $${parseFloat(eco_cash_tax).toFixed(2)}</span>
                     </div>
 
             </div>

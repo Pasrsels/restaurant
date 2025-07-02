@@ -38,7 +38,8 @@ urlpatterns = [
     path('override/raw-material', overrideBf , name='override'),
     path('production-plan/delete/<int:id>/', production_plan_delete, name="production_plan_delete"),
     path('declare-production-plan/<int:pp_id>/', new_declare_production, name="declare_production"),
-    
+    path('latest-declare-production-plan/', latest_declare_production, name="latest_declare_production"),
+
     # supplier
     path('suppliers/list', suppliers, name='suppliers'),
     path('edit/supplier/', edit_supplier, name='edit_supplier'),
@@ -104,6 +105,9 @@ urlpatterns = [
     
     # check_list
     path('check_list/', check_check_list, name='check_check_list'),
+    path('check_list/all', check_list_all_products, name='check_list_all_products'),
+    path('check_list/finished', check_list_finished_products, name='check_list_finished_products'),
+    path('check_list/raw', check_list_raw_products, name='check_list_raw_products'),
 
     #budgets
     path('budgets/', budget, name='budget'),
