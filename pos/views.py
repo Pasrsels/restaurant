@@ -819,7 +819,7 @@ def collect_change(request):
         try:
             data = json.loads(request.body)
             change_id = data.get('change_id')
-            amount = data.get('amount')
+            amount = Decimal(data.get('amount'))
             cashier_id = request.user.id
             
             change = Change.objects.get(id=change_id)
