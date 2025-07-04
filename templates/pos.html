@@ -2247,22 +2247,27 @@ function filterItemsByCategory(categoryName) {
         itemsContainer.innerHTML = '';
 
         data.forEach(item => {
+            console.log({here:item.image})
+            console.log(item.meal, item.dish)
             const itemCard = document.createElement('div');
             itemCard.className = 'col-md-3';
-            
             itemCard.innerHTML = `
-                <div class="card mb-4">
+                <div class="card mb-4 position-relative overflow-hidden">
                     <img src="${item.image ? '/media/' + item.image : '/media/' + 'placeholder.png'}" 
-                        class="card-img-top" 
-                        alt="${item.name}" 
+                    class="card-img-top" 
+                    style = "object-fit: center;"
+                    alt="${item.name}" 
+                    onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
+                    
+                    <div class="card-body text-center rounded-0 d-flex justify-content-center align-items-center bg-warning position-absolute bottom-0 w-100"
+                        style="height: 50px; padding: 0; margin: 0; line-height: 50px; margin-top:-10px;"
                         onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
-                    <div class="card-body p-3 d-flex align-items-center bg-warning" style="height:50px;" 
-                        onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
-                        <p class="card-text text text-center">${item.name}</p>
+                        
+                        <span class="">${item.name} $${item.price}</span>
                     </div>
                 </div>
-            `;
 
+            `;
             itemsContainer.appendChild(itemCard);
         });
     });
