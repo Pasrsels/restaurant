@@ -160,6 +160,7 @@ class Dish(models.Model):
         ('Salad', 'Salad')
     ])
     dish = models.BooleanField(default=True)
+    low_stock = models.IntegerField(default=10)
     image = models.ImageField(upload_to='meal_images/', default='placeholder.png', null=True)
 
     def __str__(self) -> str:

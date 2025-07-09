@@ -70,12 +70,21 @@ from django.contrib import messages
 from .tasks import lowStockNotifications, updateTakeAway
 from collections import defaultdict
 from django.core.cache import cache
-
+from inventory.forms import ProductionPlanInlineForm
+from django.views.decorators.csrf import csrf_exempt
 today = localdate()
+
+@csrf_exempt
+def lowStockNotification(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        logger.info(data)
+        return JsonResponse({'success': True, 'data': data})
 
 @login_required
 def pos(request):
-    return render(request, 'pos.html')
+    form = ProductionPlanInlineForm()
+    return render(request, 'pos.html', {'form': form})
 
 @login_required
 def check_authorization(request):

@@ -25,9 +25,14 @@
         background-color: #f8f9fa;
     }
 
+    .you{
+        background-color: rgb(224, 214, 200);
+        background-color: rgb(224, 182, 127);
+    }
+
 </style>
 
-<!-- HTML -->
+
 <div class="container-fluid">
 
     <div class='production-plan mt-2 d-flex justify-content-between align-items-center'>
@@ -73,7 +78,7 @@
                         <th>Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="dishTableBody">
                     {% for dish in production_plan %}
                         <tr class="py-1 px-1">
                             <td class="dish-name py-1 px-1">
@@ -95,12 +100,16 @@
                                     {% endfor %}
                                 </small>
                             </td>
-                            <td class="py-1 px-1">
+                            <td class="py-1 px-1 onchange">
                                 <small>
                                     <input type="number" class="form-control declared-portions fs-6 py-1 px-1 w-50">
                                 </small>
                             </td>
-                            <td class="py-1 px-1"></td>
+                            <td class="py-1 px-1 note-portions">
+                                <small class="note-text">
+
+                                </small>
+                            </td>
                             <td class="py-1 px-1">
                                 <small>
                                     <a class="disable-btn" onclick="declared(this)">
@@ -110,6 +119,11 @@
                                 <small>
                                     <a class="disabled-btn-edit d-none" onclick="Edit(this)">
                                         <i class="btn btn-primary bx bx-edit fs-6 "> Edit</i>
+                                    </a>
+                                </small>
+                                <small>
+                                    <a class="disabled-btn-add-portions d-none" onclick="addPM(this)">
+                                        <i class="btn btn-primary bx bx-plus-circle fs-6 "> Add Portions</i>
                                     </a>
                                 </small>
                             </td>
@@ -232,16 +246,81 @@
             </a>
         </div>
     </div>
+
+    <div class="modal fade" id="AddPortionsModal" tabindex="-1" aria-labelledby="AddPortionsModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-body">
+                        <h5 class="modal-title text-center">ADD EXTRA PORTIONS</h5>
+                        <hr>
+                        <form>
+                            <div class="mb-3">
+                                <label for="extraPortions" class="form-label">Extra Portions</label>
+                                <input type="number" class="form-control" id="extraPortions" placeholder="Enter extra portions" required>
+                            </div>
+                            <div class="d-flex justify-content-end">
+                                <a class="btn btn-primary d-flex align-items-center gap-2 py-2 px-2" onclick="confirmAddPortions()">
+                                    <i class="bx bx-plus-circle"></i>
+                                    <span class="text-light">Submit</span>
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!--JS-->
 <script>
+    const addPortionModal = new bootstrap.Modal(document.getElementById('AddPortionsModal'));
+    let addPortionElementUpdate = null;
+
+    function addPM(element){
+        addPortionElementUpdate = element;
+        const row = element.closest('tr');
+        const dishName = row.querySelector('.dish-name').textContent.trim();
+        const declaredInput = row.querySelector('.declared-portions');
+
+        console.log({Dish: dishName, Declared: declaredInput.value});
+        addPortionModal.show();
+    }
+
+    function confirmAddPortions() {
+        const extraPortionsInput = document.getElementById('extraPortions');
+        const extraPortions = parseInt(extraPortionsInput.value);
+        const row = addPortionElementUpdate.closest('tr');
+        const declaredInput = row.querySelector('.declared-portions');
+        const note = row.querySelector('.note-portions .note-text');
+
+        const currentDeclared = parseInt(declaredInput.value) || 0;
+        declaredInput.value = currentDeclared + extraPortions;
+        declaredInput.disabled = true;
+
+        if(note.innerHTML.trim() === ''){
+            console.log('here');
+            note.innerHTML = `Extra Portions: ${extraPortions}`;
+        }else{
+            previousNote = note.innerHTML.replace('Extra Portions: ', '').trim();
+            console.log({previous: previousNote});
+            updatedNote = parseFloat(previousNote) + extraPortions;
+            note.innerHTML = `Extra Portions: ${updatedNote}`;
+        }
+        console.log({extra:extraPortions});
+
+        addPortionModal.hide();
+        updateDishCount();
+        portionChange(addPortionElementUpdate);
+    }
+
     updateDishCount();
     document.addEventListener('DOMContentLoaded', function () {
         const inputs = document.querySelectorAll('.declared-portions');
         inputs.forEach(input => input.value = '');
 
         updateDishCount();
+
     });
 
     function updateDishCount() {
@@ -263,6 +342,115 @@
         }
     }
 
+    function portionChange(element) {
+        console.log('Edit Function Called');
+        let totalVarianceCost = 0;
+
+        const row = element.closest('tr');
+
+        const pp = document.getElementById('prod_id').textContent.trim();
+        
+        const dishName = row.querySelector('.dish-name').textContent.trim();
+        const declaredInput = row.querySelector('.declared-portions');
+        const declaredPortions = row.querySelector('.declared-portions').value;
+        const plannedPortions = row.querySelector('.dish-portions').innerText;
+        const btnDisable = row.querySelector('.disable-btn');
+        const btnEnable = row.querySelector('.disabled-btn-edit');
+        const btnAddPortions = row.querySelector('.disabled-btn-add-portions');
+
+        /*
+        btnEnable.classList.add('d-none');
+        btnAddPortions.classList.add('d-none');
+        btnDisable.classList.remove('d-none');
+        declaredInput.disabled = false;
+        */
+
+        data = {
+            dish_name: dishName,
+            portions: declaredPortions,
+        };
+
+        console.log(
+            {
+                data_log: data,
+            }
+        );
+
+        fetch("{% url 'inventory:declare_production' 0 %}".replace('0', parseInt(pp)),{
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken':  getCSRFToken()
+            },
+            body: JSON.stringify(data)
+        }).then(response => response.json())
+        .then(info => {
+            if(info.success){
+                
+                updateDishCount();
+                info.ingridient.forEach(item => {
+                    const name = item.ingridient_name;
+                    const qnty = item.ingridient_qnty;
+                    actual_temp = 0;
+                    finalQntyFormatted = 0;
+                    variance = 0;
+
+                    const rows = document.querySelectorAll('#table_ing tr');
+
+                    rows.forEach(row => {
+                        const ingName = row.querySelector('.ing-name');
+                        const ingPop = row.querySelector('.ing-pop');
+                        const ingQnty = row.querySelector('.ing-qnty');
+                        const ingVar = row.querySelector('.ing-variance');
+                        const ingCost = row.querySelector('.ing-cost');
+                        const ingVarCost = row.querySelector('.ing-v-costs');
+                        const ingActCost = row.querySelector('.ing-a-costs');
+                        
+                        if (ingName && ingName.textContent.trim() === name) {
+                            if (ingPop) {
+                                qntyFormatted = parseFloat(qnty);
+                                const plannedText = ingQnty.textContent.trim();
+                                
+                                if(ingPop.textContent.trim() === ''){
+                                    console.log('Actual Quantity is not populate');
+                                    ingPop.innerHTML = `<small>${qntyFormatted}</small>`;
+                                    variance = (parseFloat(plannedText) - parseFloat(qnty));
+                                    console.log({Variance: variance});
+
+                                }else{
+                                    console.log('Actual Quantity is populate');
+                                    actual_temp = parseFloat(ingPop.textContent.trim());
+
+                                    actual_temp_formatted = parseFloat(actual_temp);
+                                    finalQntyFormatted = parseFloat(qntyFormatted);
+
+
+                                    ingPop.innerHTML = `<small>${parseFloat(finalQntyFormatted).toFixed(3)}</small>`;
+                                    variance = (parseFloat(plannedText) - parseFloat(finalQntyFormatted));
+                                    console.log({Variance: variance});
+
+
+                                }
+
+                                ingVar.innerHTML = `<small></small>`;
+
+                                console.log({IngVar: ingVar.textContent,
+                                    IngPop: ingPop.textContent,
+                                    IngCost: ingCost.textContent.trim()
+                                });
+
+                                actcost_cal = parseFloat(parseFloat(ingPop.textContent.trim())/parseFloat(ingQnty.textContent.trim())) * parseFloat(ingCost.textContent.replace('$', '').trim());
+                                ingActCost.innerHTML = `<small>$${parseFloat(actcost_cal).toFixed(2)}</small>`;
+                            }
+                        }
+                    });
+                });
+                updateTotalVarianceAndActualCosts();
+            }
+        }) 
+    }
+
+
     function Edit(element) {
         console.log('Edit Function Called');
         let totalVarianceCost = 0;
@@ -277,8 +465,10 @@
         const plannedPortions = row.querySelector('.dish-portions').innerText;
         const btnDisable = row.querySelector('.disable-btn');
         const btnEnable = row.querySelector('.disabled-btn-edit');
+        const btnAddPortions = row.querySelector('.disabled-btn-add-portions');
 
         btnEnable.classList.add('d-none');
+        btnAddPortions.classList.add('d-none');
         btnDisable.classList.remove('d-none');
         declaredInput.disabled = false;
 
@@ -376,6 +566,7 @@
         const plannedPortions = row.querySelector('.dish-portions').innerText;
         const btnDisable = row.querySelector('.disable-btn');
         const btnEnable = row.querySelector('.disabled-btn-edit');
+        const btnAddPortions = row.querySelector('.disabled-btn-add-portions');
 
         console.log('Dish:', dishName);
         console.log('Declared Portions:', declaredPortions);
@@ -404,6 +595,7 @@
                     declaredInput.disabled = true;
                     btnDisable.classList.add('d-none');
                     btnEnable.classList.remove('d-none');
+                    btnAddPortions.classList.remove('d-none');
 
                     updateDishCount();
                     info.ingridient.forEach(item => {
@@ -565,6 +757,7 @@
         const countElement = document.getElementById('dishCount');
         updated_count = countElement.textContent.trim();
         const data = [];
+        const data_dish = [];
 
         console.log({
             UPDATE_COUNT: updated_count
@@ -608,8 +801,41 @@
                     });
                 }
             });
+
+            const rows_dish = document.querySelectorAll('#dishTableBody tr');
+
+            rows_dish.forEach(row => {
+                const dishNameCell = row.querySelector('.dish-name');
+                const dishPorCell = row.querySelector('.dish-portions');
+                const dishportionsCell = row.querySelector('.declared-portions');
+                const notePortionsCell = row.querySelector('.note-portions');
+                
+
+                if (dishNameCell && dishportionsCell && dishPorCell && notePortionsCell) {
+                    const dishName = dishNameCell.textContent.trim();
+                    const dishPor = dishPorCell.textContent.trim();
+                    const dishportions= dishportionsCell.value.trim();
+                    const notePortions = notePortionsCell.textContent.trim();
+
+                    console.log({
+                        Name: dishName,
+                        Planned_Portions: dishPor,
+                        Declared: dishportions,
+                        Note: notePortions,
+                    });
+
+                    data_dish.push({
+                        'dish_name': dishName,
+                        'planned_portions': dishPor,
+                        'declared': dishportions,
+                        'note': notePortions,
+                    });
+                }
+            });
+
             console.log({
-                DATA: data
+                DATA: data,
+                DATA_DISH: data_dish
             });
 
             id = document.getElementById('prod_id').textContent.trim();
@@ -620,7 +846,7 @@
                     'Content-Type': 'application/json',
                     'X-CSRFToken': getCSRFToken()
                 },
-                body: JSON.stringify(data)
+                body: JSON.stringify({data, data_dish})
             }).then(response => response.json())
             .then(info => {
                 if(info.success){
@@ -681,7 +907,7 @@
                     const ingPop = parseFloat(row.querySelector(".ing-pop").innerText.trim()) || 0;
                     const ingACost = parseFloat(row.querySelector(".ing-a-costs").innerText.replace("$", "").trim()) || 0;
 
-                    if(input.value.trim() === '' || isNaN(parseFloat(input.value.trim())) || parseFloat(input.value.trim()) > plannedUnits) {
+                    if(input.value.trim() === '' || isNaN(parseFloat(input.value.trim())) /*|| parseFloat(input.value.trim()) > plannedUnits*/) {
                         Swal.fire({
                             icon: 'warning',
                             title: 'Invalid Input',
@@ -726,6 +952,7 @@
                     Dish: row.querySelector('.dish-name').textContent.trim(),
                     Portions: row.querySelector('.declared-portions').value,
                     Price: row.querySelector('.dish-portions').textContent.trim(),
+                    Note: row.querySelector('.note-portions note-text')
                 });
             }
         });
@@ -755,14 +982,16 @@
             const portions = row.querySelector('.dish-portions');
             const declared = row.querySelector('.declared-portions');
             const dishPrice = row.querySelector('.dish-price');
+            const note = row.querySelector('.note-portions')
 
             if (dish && portions && declared && dishPrice) {
                 return `
                     <tr>
-                        <td style="border: 1px solid black; padding: 8px; text-align: center;">${dish.textContent.trim()}</td>
-                        <td style="border: 1px solid black; padding: 8px; text-align: center;">${portions.textContent.trim()}</td>
-                        <td style="border: 1px solid black; padding: 8px; text-align: center;">${dishPrice.textContent.trim()}</td>
-                        <td style="border: 1px solid black; padding: 8px; text-align: center;">${declared.value}</td>
+                        <td style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 214, 200);">${dish.textContent.trim()}</td>
+                        <td style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 214, 200);">${portions.textContent.trim()}</td>
+                        <td style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 214, 200);">${dishPrice.textContent.trim()}</td>
+                        <td style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 214, 200);">${declared.value}</td>
+                        <td style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 214, 200);">${note.textContent.trim()}</td>
                     </tr>
                 `;
             } else {
@@ -785,15 +1014,11 @@
             if (ingName && ingQnty && ingCost && ingPop && ingSysCost && ingSysInput && ingACosts && ingVariance && ingVCosts) {
                 return `
                     <tr>
-                        <td style="border: 1px solid black; padding: 8px; text-align: center;">${ingName.textContent.trim()}</td>
-                        <td style="border: 1px solid black; padding: 8px; text-align: center;">${ingQnty.textContent.trim()}</td>
-                        <td style="border: 1px solid black; padding: 8px; text-align: center;">${ingCost.textContent.trim()}</td>
-                        <td style="border: 1px solid black; padding: 8px; text-align: center;">${ingPop.textContent.trim()}</td>
-                        <td style="border: 1px solid black; padding: 8px; text-align: center;">${ingSysCost.textContent.trim()}</td>
-                        <td style="border: 1px solid black; padding: 8px; text-align: center;">${ingSysInput.value}</td>
-                        <td style="border: 1px solid black; padding: 8px; text-align: center;">${ingACosts.textContent.trim()}</td>
-                        <td style="border: 1px solid black; padding: 8px; text-align: center;">${ingVariance.textContent.trim()}</td>
-                        <td style="border: 1px solid black; padding: 8px; text-align: center;">${ingVCosts.textContent.trim()}</td>
+                        <td style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 214, 200);">${ingName.textContent.trim()}</td>
+                        <td style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 214, 200);">${ingQnty.textContent.trim()}[${ingCost.textContent.trim()}]</td>
+                        <td style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 214, 200);">${ingPop.textContent.trim()}[${ingSysCost.textContent.trim()}]</td>
+                        <td style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 214, 200);">${ingSysInput.value}[${ingACosts.textContent.trim()}]</td>
+                        <td style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 214, 200);">${ingVariance.textContent.trim()}[${ingVCosts.textContent.trim()}]</td>
                     </tr>
                 `;
             } else {
@@ -815,10 +1040,11 @@
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead>
                         <tr>
-                            <th style="border: 1px solid black; padding: 8px; text-align: center;">Dish</th>
-                            <th style="border: 1px solid black; padding: 8px; text-align: center;">Planned Portions</th>
-                            <th style="border: 1px solid black; padding: 8px; text-align: center;">Value(Price)</th>
-                            <th style="border: 1px solid black; padding: 8px; text-align: center;">Declared Portions</th>
+                            <th style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 182, 127);">Dish</th>
+                            <th style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 182, 127);">Planned Portions</th>
+                            <th style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 182, 127);">Value(Price)</th>
+                            <th style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 182, 127);">Declared Portions</th>
+                            <th style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 182, 127);">Note</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -830,15 +1056,11 @@
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead>
                         <tr>
-                            <th style="border: 1px solid black; padding: 8px; text-align: center;">Ingredients</th>
-                            <th style="border: 1px solid black; padding: 8px; text-align: center;">Planned Units</th>
-                            <th style="border: 1px solid black; padding: 8px; text-align: center;">Planned Cost</th>
-                            <th style="border: 1px solid black; padding: 8px; text-align: center;">System Units</th>
-                            <th style="border: 1px solid black; padding: 8px; text-align: center;">System Cost</th>
-                            <th style="border: 1px solid black; padding: 8px; text-align: center;">Actual Units</th>
-                            <th style="border: 1px solid black; padding: 8px; text-align: center;">Actual Cost</th>
-                            <th style="border: 1px solid black; padding: 8px; text-align: center;">Variance Units</th>
-                            <th style="border: 1px solid black; padding: 8px; text-align: center;">Variance Cost</th>
+                            <th style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 182, 127);">Ingredients</th>
+                            <th style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 182, 127);">Planned Units</th>
+                            <th style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 182, 127);">System Units</th>
+                            <th style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 182, 127);">Actual Units</th>
+                            <th style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 182, 127);">Variance Units</th>
                         </tr>
                     </thead>
                     <tbody>

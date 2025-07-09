@@ -41,7 +41,8 @@ from .tasks import (
     send_production_creation_notification,
     transfer_notification,
     supplier_email,
-    sendProductHistory
+    sendProductHistory,
+    autoConfirmProdPlan
 )
 from . forms import (
     MealForm,
@@ -871,8 +872,8 @@ def production_plans(request):
     
     plans = Production.objects.all().order_by('date_created') 
     transfer_count = Transfer.objects.filter(status=False).count()
-    
-    return render(request, 'inventory/production_plans.html', {'plans':plans, 'transfer_count':transfer_count})
+
+    return render(request, 'inventory/production_plans.html', {'plans': plans, 'transfer_count': transfer_count})
 
 @login_required
 @transaction.atomic
@@ -947,8 +948,20 @@ def create_production_plan(request):
         CheckList.objects.bulk_create(new_checklists)
 
         send_production_creation_notification(production_plan.id)
+        logger.info(data)
+        auto_confirm = data.get('auto', '')
+        if auto_confirm:
+            # call task to declare production plan
+            autoConfirmProdPlan(production_plan.id)
 
-        return JsonResponse({'success': True, 'message': 'Production plan created successfully'}, status=201)
+        return JsonResponse(
+            {
+                'success': True, 
+                'message': 'Production plan created successfully', 
+                'p_plan_id': production_plan.id
+            }, 
+            status=201
+        )
 
     elif request.method == 'GET':
         form = ProductionPlanInlineForm()
@@ -1351,9 +1364,11 @@ def process_production_plan_confirmation(request, pp_id):
         messages.warning(request, f'Production Plan With ID: {pp_id}, doesn\'t exist.')
         return redirect('inventory:process_production_plan', pp_id)
     
-    production_plan.status = True
-    production_plan.save()
-    
+    with transaction.atomic():
+        production_plan.status = True
+        if production_plan.declared == True:
+            production_plan.declared = False
+        production_plan.save()
     messages.success(request, f'Production plan: {production_plan.production_plan_number.upper()}, successfully confirmed')
     return redirect('inventory:production_plans')
 
@@ -1531,6 +1546,27 @@ def production_plan_delete(request, id):
         messages.warning(request, e)
         return redirect('inventory:production_plans')
 
+
+def editProdPlan(prod_id, data):
+    production_plan =  Production.objects.get(id = prod_id)
+
+    for items in data:
+        try:
+            with transaction.atomic():
+                pplan_items = ProductionItems.objects.get(production = production_plan, dish__name = items['name'].split('@')[0].strip())
+                pplan_items.portions += items['portions']
+                pplan_items.save()
+
+                logger.info(items['name'].split('@')[0].strip())
+        except Exception as e:
+            return print(f'Encountered an error: {e}')
+        
+    production_plan.status = False
+    production_plan.save()
+    
+    return print(f'Successfully completed')
+
+
 @login_required
 def new_declare_production(request, pp_id):
     # pp_id = 25
@@ -1638,40 +1674,49 @@ def new_declare_production(request, pp_id):
     elif request.method == 'PUT':
         try:
             data = json.loads(request.body)
-            logger.info(data)
+            ing_data = data.get('data', '')
+            dish_data = data.get('data_dish', '')
+            
+            logger.info({
+                'ING': ing_data,
+                'DISH': dish_data
+            })
 
             try:
                 production= Production.objects.get(id=pp_id)
             except ProductionItems.DoesNotExist:
                 return JsonResponse({'success': False, 'message': f'Production Plan with ID: {pp_id} doesn\'t exist'}, status=404)
 
-            for ing_data in data:
+            edit_pplan_portions = []
+
+            for ing in ing_data:
                 logger.info({
-                    'name': ing_data.get('ingridient_name'),
-                    'used_qnty': ing_data.get('system'),
-                    'variance': ing_data.get('variance')
+                    'name': ing.get('ingridient_name'),
+                    'used_qnty': ing.get('system'),
+                    'variance': ing.get('variance')
                 })
+            
                 try:
-                    allocated = AllocatedRawMaterials.objects.get(raw_material__name=ing_data.get('ingridient_name'), production=production)
+                    allocated = AllocatedRawMaterials.objects.get(raw_material__name=ing.get('ingridient_name'), production=production)
                 except ProductionItems.DoesNotExist:
-                    return JsonResponse({'success': False, 'message': f'Raw Material with ID: {ing_data.get('ingridient_name')} doesn\'t exist'}, status=404)
+                    return JsonResponse({'success': False, 'message': f'Raw Material with ID: {ing.get('ingridient_name')} doesn\'t exist'}, status=404)
 
                 try:
-                    product = Product.objects.get(name=ing_data.get('ingridient_name'))
+                    product = Product.objects.get(name=ing.get('ingridient_name'))
                     p_rm_variance = ProductionVariance.objects.create(
                         production=production,
                         ingredient=product,
-                        quantity=float(ing_data.get('variance'))
+                        quantity=float(ing.get('variance'))
                     )
                 except ProductionVariance.DoesNotExist:
-                    return JsonResponse({'success': False, 'message': f'Variance for Raw Material with ID: {ing_data.get('ingridient_name')} doesn\'t exist'}, status=404)
+                    return JsonResponse({'success': False, 'message': f'Variance for Raw Material with ID: {ing.get('ingridient_name')} doesn\'t exist'}, status=404)
                 
                 with transaction.atomic():
-                    p_rm = ProductionRawMaterials.objects.get(product__name=ing_data.get('ingridient_name'))
-                    p_rm.quantity -= float(ing_data.get('system'))
+                    p_rm = ProductionRawMaterials.objects.get(product__name=ing.get('ingridient_name'))
+                    p_rm.quantity -= float(ing.get('system'))
                     
                     
-                    allocated.remaining_quantity = allocated.quantity - float(ing_data.get('system'))
+                    allocated.remaining_quantity = allocated.quantity - float(ing.get('system'))
                     allocated.save()
                     
                     ProductionLogs.objects.create(
@@ -1704,7 +1749,28 @@ def new_declare_production(request, pp_id):
                     
                     production.declared = True
                     production.save()
-                
+            
+            for dish in dish_data:
+                logger.info({
+                    'name': dish.get('dish_name'),
+                    'p_portions': dish.get('planned_portions'),
+                    'declared': dish.get('declared'),
+                    'note': dish.get('note', '')
+                })
+                if dish.get('note'):
+                    note = dish.get('note', '')
+                    extra_portions = Decimal(note.split(':')[1].strip())
+                    edit_pplan_portions.append(
+                        {
+                            'name': dish.get('dish_name'),
+                            'portions': extra_portions
+                        }
+                    )
+
+            logger.info(edit_pplan_portions)
+            if edit_pplan_portions:
+                editProdPlan(prod_id=pp_id, data=edit_pplan_portions)
+
             return JsonResponse({'success': True})
         except Exception as e:
             logger.info(f'Error: {e}')
@@ -1722,20 +1788,39 @@ def latest_declare_production(request):
                 .select_related()
                 .first()
             )
-            
+            pr_variance = ProductionVariance.objects.filter(production=latest_declared_plan).select_related('ingredient')
+
             if not latest_declared_plan:
                 return JsonResponse({'success': False, 'message': 'No declared production plan found.'}, status=404)
 
             logger.info(f'Latest Declared Plan: {latest_declared_plan.date_created} {latest_declared_plan.time_created}')
+            pr_variance = ProductionVariance.objects.filter(production=latest_declared_plan).select_related('ingredient')
             production_plan_items = ProductionItems.objects.filter(production=latest_declared_plan)
 
             raw_materials = []
+            raw_material_variance = []
             dish_details = []
             dishes_serialized = []
             total_cost = Decimal(0)
             total_price = Decimal(0)
             total_portions = 0
 
+
+            for item in pr_variance:
+                if raw_material_variance:
+                    existing = next((rm for rm in raw_material_variance if rm['name'] == item.ingredient.name), None)
+                    if existing:
+                        existing['quantity'] += float(item.quantity)
+                        existing['cost'] = float(item.ingredient.cost)
+                        existing['total_cost'] += float(item.quantity * item.ingredient.cost)
+                    else:
+                        raw_material_variance.append({
+                            'name': item.ingredient.name,
+                            'quantity': float(item.quantity),
+                            'cost': float(item.ingredient.cost),
+                            'total_cost': float(item.quantity * item.ingredient.cost)
+                        })
+            
             for item in production_plan_items:
                 total_portions += item.portions
 
@@ -1793,7 +1878,8 @@ def latest_declare_production(request):
                 'production_plan_id': latest_declared_plan.id,
                 'total': float(round(total_cost, 2)),
                 'total_portions': total_portions,
-                'price': float(round(total_price, 2))
+                'price': float(round(total_price, 2)),
+                'raw_material_variance': raw_material_variance,
             }
 
             return JsonResponse({'success': True, 'data': data_content}, status=200)
@@ -2459,6 +2545,40 @@ def end_of_day_pdf(request):
         )
     return JsonResponse({'success': False, "message": "Failed to download PDF"}, status = 500)
 
+@login_required
+def end_of_day_view_json(request):
+    if request.method == 'GET':
+        today = localdate()
+        
+        try:
+            e_o_d = EndOfDay.objects.get(date=today)
+        except EndOfDay.DoesNotExist:
+            e_o_d = None
+
+        productions_today = Production.objects.filter(date_created=today, declared=True)
+        production_items_today = ProductionItems.objects.filter(production__in=productions_today, end_of_day_status = False)
+
+        productions_today = production_items_today.values('dish__name').annotate(
+            total_portions=Sum('portions'),
+            total_sold=Sum('portions_sold'),
+            total_staff_portions=Sum('staff_portions')
+        )
+        logger.info(productions_today)
+        production_data = []
+        for items in productions_today:
+            production_data.append(
+                {
+                    'name': items['dish__name'],
+                    'total_portions': items['total_portions'],
+                    'total_sold': items['total_sold'],
+                    'total_staff_portions': items['total_staff_portions']
+                }
+            )
+        logger.info(production_data)
+
+        return JsonResponse({'success':True, 'production_today': production_data}, status = 200)
+    else:
+        return JsonResponse({'success': False}, status = 400)
 
 @login_required
 def end_of_day_view(request):
@@ -2470,7 +2590,7 @@ def end_of_day_view(request):
         except EndOfDay.DoesNotExist:
             e_o_d = None
 
-        productions_today = Production.objects.filter(date_created=today, status=True, declared=True)
+        productions_today = Production.objects.filter(date_created=today, declared=True)
         production_items_today = ProductionItems.objects.filter(production__in=productions_today, end_of_day_status = False)
 
         productions_today = production_items_today.values('dish__name').annotate(
@@ -3158,11 +3278,11 @@ def check_check_list(request):
 @login_required
 def check_list_finished_products(request):
     products = CheckList.objects.filter(date=datetime.datetime.today())
-    non_production_products = Product.objects.filter(raw_material = False)
-    
+    non_production_products = ProductionRawMaterials.objects.filter(product__raw_material=False)
+
     check_list = []
     for product in non_production_products:
-        if not products.filter(product=product).exists():
+        if not products.filter(product=product.product).exists():
             check_list.append(CheckList(
                 product = product,
                 status = False
@@ -3178,11 +3298,11 @@ def check_list_finished_products(request):
 @login_required
 def check_list_raw_products(request):
     products = CheckList.objects.filter(date=datetime.datetime.today())
-    non_production_products = Product.objects.filter(raw_material = True)
-    
+    non_production_products = ProductionRawMaterials.objects.filter(product__raw_material=True)
+
     check_list = []
     for product in non_production_products:
-        if not products.filter(product=product).exists():
+        if not products.filter(product=product.product).exists():
             check_list.append(CheckList(
                 product = product,
                 status = False
@@ -3197,11 +3317,11 @@ def check_list_raw_products(request):
 @login_required
 def check_list_all_products(request):
     products = CheckList.objects.filter(date=datetime.datetime.today())
-    non_production_products = Product.objects.all()
+    non_production_products = ProductionRawMaterials.objects.all()
     
     check_list = []
     for product in non_production_products:
-        if not products.filter(product=product).exists():
+        if not products.filter(product=product.product).exists():
             check_list.append(CheckList(
                 product = product,
                 status = False
