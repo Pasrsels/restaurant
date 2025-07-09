@@ -2,7 +2,7 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from django.db.models import Sum, Count
 from datetime import date, timedelta, datetime
-from finance.models import Sale, SaleItem, Change
+from finance.models import Sale, SaleItem, Change, CashierExpense
 from loguru import logger
 from django.http import JsonResponse
 from django.db.models import Sum
@@ -11,6 +11,11 @@ from django.db.models.functions import ExtractHour
 from collections import defaultdict
 import decimal
 from permisions.permisions import admin_required
+import csv
+import pandas as pd
+from matplotlib import pyplot as plt
+import numpy as np
+from sklearn.linear_model import LinearRegression
 
 @admin_required
 def analytics_view(request):
@@ -236,3 +241,155 @@ def analytics_view(request):
 @admin_required
 def analytics_index(request):
     return render(request, 'analytics.html')
+
+
+def analysis(request):
+    sales_list = []
+
+    sales_by_day = Sale.objects.filter(void = False)
+
+    for sales in sales_by_day:
+        logger.info(sales.date)
+        
+        combined_sales = sales.date.strftime('%m-%Y')
+
+        found = False
+        if sales_list:
+            for items in sales_list:
+                items_date = datetime.strptime(items['Date'], '%m-%Y')
+                
+                combined = items_date.strftime('%m-%Y')
+                                              
+                if combined == combined_sales:
+                    items['Total_Amount'] += sales.total_amount
+                    found = True
+                    break
+        
+        if not found:
+            sales_list.append(
+                {
+                    'Date': sales.date.strftime('%m-%Y'),
+                    'Total_Amount': sales.total_amount
+                }
+            )
+    
+    if sales_list:
+        with open('analytics.csv', 'w', newline='') as file:
+            fieldnames = sales_list[0].keys()
+
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
+        
+            writer.writeheader()
+            writer.writerows(sales_list)
+    
+    try:
+        df = pd.read_csv('analytics.csv')
+        print(df.head())
+
+        X = df.iloc[0:,0].values
+        print(X[0:5])
+
+        y = df.iloc[0:,1].values
+        print(y[0:5])
+
+        plt.scatter(X,y)
+        plt.title('Income: Sales')
+        plt.savefig('Sales_plot.png')
+
+        df['Date'] = pd.to_datetime(df['Date'], format='%m-%Y')
+        df['Month_Index'] = (df['Date'] - df['Date'].min()).dt.days // 30
+
+        X= df[['Month_Index']]
+        y = df['Total_Amount']
+
+        model = LinearRegression()
+        model.fit(X,y)
+
+        future_dates = pd.to_datetime(['08-2025', '09-2025', '10-2025'], format='%m-%Y')
+
+        future_months = (future_dates - df['Date'].min()).days // 30
+
+        future_predictions = model.predict(np.array(future_months).reshape(-1, 1))
+
+        for date, pred in zip(future_dates.strftime('%m-%Y'), future_predictions):
+            print(f"Predicted earnings for {date}: ${pred:.2f}")
+
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False})
+
+
+def analysisExpenses(request):
+    expenses_list = []
+
+    expenses_by_month = CashierExpense.objects.all()
+
+    for expenses in expenses_by_month:
+        logger.info(expenses.date)
+        
+        combined_sales = expenses.date.strftime('%m-%Y')
+
+        found = False
+        if expenses_list:
+            for items in expenses_list:
+                items_date = datetime.strptime(items['Date'], '%m-%Y')
+                
+                combined = items_date.strftime('%m-%Y')
+                                              
+                if combined == combined_sales:
+                    items['Total_Amount'] += expenses.amount
+                    found = True
+                    break
+        
+        if not found:
+            expenses_list.append(
+                {
+                    'Date': expenses.date.strftime('%m-%Y'),
+                    'Total_Amount': expenses.amount
+                }
+            )
+    
+    if expenses_list:
+        with open('analytics_expenses.csv', 'w', newline='') as file:
+            fieldnames = expenses_list[0].keys()
+
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
+        
+            writer.writeheader()
+            writer.writerows(expenses_list)
+    
+    try:
+        df = pd.read_csv('analytics_expenses.csv')
+        print(df.head())
+
+        X = df.iloc[0:,0].values
+        print(X[0:5])
+
+        y = df.iloc[0:,1].values
+        print(y[0:5])
+
+        plt.scatter(X,y)
+        plt.title('Expenses')
+        plt.savefig('Expense_plot.png')
+
+        df['Date'] = pd.to_datetime(df['Date'], format='%m-%Y')
+        df['Month_Index'] = (df['Date'] - df['Date'].min()).dt.days // 30
+
+        X= df[['Month_Index']]
+        y = df['Total_Amount']
+
+        model = LinearRegression()
+        model.fit(X,y)
+
+        future_dates = pd.to_datetime(['08-2025', '09-2025', '10-2025'], format='%m-%Y')
+
+        future_months = (future_dates - df['Date'].min()).days // 30
+
+        future_predictions = model.predict(np.array(future_months).reshape(-1, 1))
+
+        for date, pred in zip(future_dates.strftime('%m-%Y'), future_predictions):
+            print(f"Predicted earnings for {date}: ${pred:.2f}")
+
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False})
