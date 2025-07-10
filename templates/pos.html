@@ -1084,19 +1084,32 @@
                         style = "object-fit: center;"
                         alt="${item.name}" 
                         onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
-                        ${!item.count ? `
-                            <div class="spinner-border spinner-border-sm text-danger position-absolute top-0 end-0 m-2" role="status">
-                                
+                        ${item.image === 'placeholder.png' ? `
+                            <div class="bg-white position-absolute top-0 w-100 text-center py-2"
+                                onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})"
+                            ">
+                                <span class="text-dark fs-5"
+                                    readonly
+                                >
+                                    ${item.name}
+                                </span>
                             </div>
-                            ` : `<div class="badge bg-success rounded-circle position-absolute top-0 end-0 m-2" style="width: 15px; height: 15px;">
-                                
+                            ` : 
+                            `<div class="bg-dark position-absolute top-0 w-100 text-center py-2"
+                                onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})"
+                            ">
+                                <span class="text-light fs-5 fw-bold"
+                                    readonly
+                                >
+                                    ${item.name}
+                                </span>
                             </div>`
                         }
                         <div class="card-body text-center rounded-0 d-flex justify-content-center align-items-center bg-warning position-absolute bottom-0 w-100"
                             style="height: 50px; padding: 0; margin: 0; line-height: 50px; margin-top:-10px;"
                             onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
                             
-                            <span class="">${item.name} $${parseFloat(item.price).toFixed(2)}</span>
+                            <span class="fw-bold fs-5">$${parseFloat(item.price).toFixed(2)}</span>
                         </div>
                     </div>
 
@@ -2308,7 +2321,7 @@ function generateAccountantCashUp(userId) {
             itemsContainer.innerHTML = '';
 
             data.forEach(item => {
-                console.log({here:item.image})
+                console.log({Image:item.image})
                 console.log(item.meal, item.dish)
                 const itemCard = document.createElement('div');
                 itemCard.className = 'col-md-3';
@@ -2319,19 +2332,32 @@ function generateAccountantCashUp(userId) {
                         style = "object-fit: center;"
                         alt="${item.name}" 
                         onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
-                        ${!item.count ? `
-                            <div class="spinner-border spinner-border-sm text-danger position-absolute top-0 end-0 m-2" role="status">
-                                
+                        ${item.image === 'placeholder.png' ? `
+                            <div class="bg-white position-absolute top-0 w-100 text-center py-2"
+                                onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})"
+                            ">
+                                <span class="text-dark fs-5"
+                                    readonly
+                                >
+                                    ${item.name}
+                                </span>
                             </div>
-                            ` : `<div class="badge bg-success rounded-circle position-absolute top-0 end-0 m-2" style="width: 15px; height: 15px;">
-                                
+                            ` : 
+                            `<div class="bg-dark position-absolute top-0 w-100 text-center py-2"
+                                onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})"
+                            ">
+                                <span class="text-light fs-5 fw-bold"
+                                    readonly
+                                >
+                                    ${item.name}
+                                </span>
                             </div>`
                         }
                         <div class="card-body text-center rounded-0 d-flex justify-content-center align-items-center bg-warning position-absolute bottom-0 w-100"
                             style="height: 50px; padding: 0; margin: 0; line-height: 50px; margin-top:-10px;"
                             onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
                             
-                            <span class="">${item.name} $${parseFloat(item.price).toFixed(2)}</span>
+                            <span class="fw-bold fs-5">$${parseFloat(item.price).toFixed(2)}</span>
                         </div>
                     </div>
 
