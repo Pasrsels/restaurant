@@ -4,6 +4,12 @@
 {% block title %}Pos{% endblock title %}
 {% block content %}
 <style>
+    .bt-end{
+        margin-right: 5px;
+    }
+    .bt-left{
+        margin-left: 25px;
+    }
     #autoConfirmProdPlan{
         overflow-y: auto;
     }
@@ -133,7 +139,7 @@
                         >
                     </div>
                     <div class="mt-4">
-                        <div class="row" id="itemsContainer" style='height:70vh; overflow-y: auto;'></div>
+                        <div class="row bg-light border py-1 rounded mx-1" id="itemsContainer" style='height:70vh; overflow-y: auto;'></div>
                     </div>
                 </div>
 
@@ -1079,37 +1085,29 @@
                 itemCard.className = 'col-md-3';
                 itemCard.innerHTML = `
                     <div class="card mb-4 position-relative overflow-hidden">
-                        <img src="${item.image ? '/media/' + item.image : '/media/' + 'placeholder.png'}" 
+                        <img src="${item.image ? '/media/' + item.image : '/media/' + 'placeholder.jpg'}" 
                         class="card-img-top" 
                         style = "object-fit: center;"
                         alt="${item.name}" 
                         onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
-                        ${item.image === 'placeholder.png' ? `
-                            <div class="bg-white position-absolute top-0 w-100 text-center py-2"
-                                onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})"
-                            ">
-                                <span class="text-dark fs-5"
-                                    readonly
-                                >
-                                    ${item.name}
-                                </span>
-                            </div>
-                            ` : 
-                            `<div class="bg-dark position-absolute top-0 w-100 text-center py-2"
-                                onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})"
-                            ">
-                                <span class="text-light fs-5 fw-bold"
-                                    readonly
-                                >
-                                    ${item.name}
-                                </span>
-                            </div>`
-                        }
-                        <div class="card-body text-center rounded-0 d-flex justify-content-center align-items-center bg-warning position-absolute bottom-0 w-100"
+                        
+                        <div class="bg-warning position-absolute top-0 w-100 text-center py-2"
+                            onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})"
+                        ">
+                            <span class="text-dark fs-5 fw-bold"
+                                readonly
+                            >
+                                ${item.name}
+                            </span>
+                        </div>
+                        
+                        <div class="border border-dark border-rounded card-body text-center rounded-0 d-flex justify-content-center align-items-center bg-warning position-absolute bottom-0 w-100"
                             style="height: 50px; padding: 0; margin: 0; line-height: 50px; margin-top:-10px;"
                             onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
                             
-                            <span class="fw-bold fs-5">$${parseFloat(item.price).toFixed(2)}</span>
+                            <span class="bt-end fw-bold fs-3">$${parseFloat(item.price).toFixed(2)}</span>
+                            <span class="bt-left text-success fw-bold fs-5">4 left</span>
+
                         </div>
                     </div>
 
@@ -2327,33 +2325,23 @@ function generateAccountantCashUp(userId) {
                 itemCard.className = 'col-md-3';
                 itemCard.innerHTML = `
                     <div class="card mb-4 position-relative overflow-hidden">
-                        <img src="${item.image ? '/media/' + item.image : '/media/' + 'placeholder.png'}" 
+                        <img src="${item.image ? '/media/' + item.image : '/media/' + 'placeholder.jpg'}" 
                         class="card-img-top" 
                         style = "object-fit: center;"
                         alt="${item.name}" 
                         onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
-                        ${item.image === 'placeholder.png' ? `
-                            <div class="bg-white position-absolute top-0 w-100 text-center py-2"
-                                onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})"
-                            ">
-                                <span class="text-dark fs-5"
-                                    readonly
-                                >
-                                    ${item.name}
-                                </span>
-                            </div>
-                            ` : 
-                            `<div class="bg-dark position-absolute top-0 w-100 text-center py-2"
-                                onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})"
-                            ">
-                                <span class="text-light fs-5 fw-bold"
-                                    readonly
-                                >
-                                    ${item.name}
-                                </span>
-                            </div>`
-                        }
-                        <div class="card-body text-center rounded-0 d-flex justify-content-center align-items-center bg-warning position-absolute bottom-0 w-100"
+                         
+                        <div class="bg-warning position-absolute top-0 w-100 text-center py-2"
+                            onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})"
+                        ">
+                            <span class="text-dark fs-5 fw-bold"
+                                readonly
+                            >
+                                ${item.name}
+                            </span>
+                        </div>
+
+                        <div class="border border-dark border-rounded card-body text-center rounded-0 d-flex justify-content-center align-items-center bg-warning position-absolute bottom-0 w-100"
                             style="height: 50px; padding: 0; margin: 0; line-height: 50px; margin-top:-10px;"
                             onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
                             

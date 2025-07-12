@@ -83,6 +83,7 @@
         .notifications li:hover {
             background-color: #f8f9fa; 
         }
+
     </style>
     
 </head>
@@ -122,9 +123,9 @@
                     </div>
                                        
                 </nav>
-                    <div class="row">
+                    <div class="row container-fluid">
                         {% if request.resolver_match.url_name == 'pos' %}
-                        <div class="col-2 d-flex justify-content-center">
+                        <div class="col-2 mt-3 d-flex justify-content-center border rounded">
                             {% include 'base/Possidebar.html' %}
                         </div>
                         {% elif request.resolver_match.url_name == 'confirm_production_plan' or request.resolver_match.url_name == 'declare_production' %}
