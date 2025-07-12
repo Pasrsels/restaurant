@@ -2,7 +2,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db.models import Q
 from django.http import JsonResponse
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from loguru import logger
 from utils.authenticate import authenticate_user
 from .models import User 
@@ -14,6 +14,7 @@ from .models import Company, User, Branch
 from .forms import CompanyForm, CustomUserCreationForm
 from settings.models import Modules
 from django.db import transaction
+import json
 
 def create_company(request):
     if Company.objects.exists():
@@ -209,7 +210,45 @@ def createBranch(request):
             return redirect('users:create_branch') #create url with name = 'create_branch'
         
         #invalid form
-        messages.warning(request, f'Failed to save {branch.name}')
+        messages.warning(request, f'Failed to save')
         return redirect('users:create_branch')#create url with name = 'create_branch'
     elif request.method == 'PUT':
-        pass
+        try:
+            data = json.loads(request.body)
+            branch_id = data.get('id')  # Or use 'name' if you're identifying by name
+            if not branch_id:
+                messages.warning(request, 'No branch ID provided')
+                return redirect('users:create_branch')
+
+            branch_instance = get_object_or_404(Branch, id=branch_id)
+            branch_form = BranchForm(data, instance=branch_instance)
+
+            if branch_form.is_valid():
+                branch = branch_form.save(commit=False)
+                branch.company = Company.objects.first()
+                branch.save()
+
+                messages.success(request, f'Successfully updated {branch.name}')
+                return redirect('users:create_branch')
+            else:
+                messages.warning(request, 'Invalid form data')
+                return redirect('users:create_branch')
+        except json.JSONDecodeError:
+            messages.error(request, 'Invalid JSON')
+            return redirect('users:create_branch')
+
+    elif request.method == 'DELETE':
+        try:
+            body = json.loads(request.body)
+            name = body.get('name')
+            if name:
+                branch_info = Branch.objects.get(name=name)
+                branch_info.delete()
+                messages.success(request, f'Successfully deleted branch: {name}')
+            else:
+                messages.warning(request, 'No branch name provided')
+        except Branch.DoesNotExist:
+            messages.error(request, 'Branch not found')
+        except json.JSONDecodeError:
+            messages.error(request, 'Invalid JSON')
+        return redirect('users:create_branch')
