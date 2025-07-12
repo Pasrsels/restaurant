@@ -36,7 +36,7 @@ def get_current_year():
 
 @login_required
 def sale(request):
-    sales = Sale.objects.all()
+    sales = Sale.objects.filter(branch = request.user.branch)
     return render(request, 'finance/sales.html', 
         {
             'sales':sales
@@ -46,12 +46,12 @@ def sale(request):
 @admin_required
 @login_required   
 def finance(request):
-    sales = Sale.objects.filter(date__month = get_current_month(), void=False).order_by('-date')[:8]
-    expenses = Expense.objects.filter(date__month = get_current_month()).order_by('-date')[:8]
+    sales = Sale.objects.filter(date__month = get_current_month(), void=False, branch = request.user.branch).order_by('-date')[:8]
+    expenses = Expense.objects.filter(date__month = get_current_month(), branch = request.user.branch).order_by('-date')[:8]
     current_month = get_current_month()
 
-    sales = Sale.objects.filter(date__month = current_month, staff=False, void=False)
-    cogs = COGS.objects.filter(date__month = current_month)
+    sales = Sale.objects.filter(date__month = current_month, staff=False, void=False, branch = request.user.branch)
+    cogs = COGS.objects.filter(date__month = current_month, branch = request.user.branch)
     
     return render(request, 'finance/finance.html', 
         {
@@ -63,12 +63,13 @@ def finance(request):
  
 @login_required   
 def get_expense(request, expense_id):
-    expense = get_object_or_404(Expense, id=expense_id)
+    expense = get_object_or_404(Expense, id=expense_id, branch=request.user.branch)
     data = {
         'id': expense.id,
         'amount': expense.amount,
         'description': expense.description,
-        'category': expense.category.id
+        'category': expense.category.id,
+        'branch': expense.branch
     }
     return JsonResponse({'success': True, 'data': data})
 
@@ -108,7 +109,7 @@ def expenses(request):
             start_date = now - - timedelta(days=now.weekday())
             end_date = now
             
-        expenses = Expense.objects.filter(date__gte=start_date, date__lte=end_date).order_by('date')
+        expenses = Expense.objects.filter(date__gte=start_date, date__lte=end_date, branch = request.user.branch).order_by('date')
         
         if download:
             logger.info('download')
@@ -172,10 +173,11 @@ def expenses(request):
                 user = request.user,
                 cancel = False,
                 description = description,
-                status = True
+                status = True,
+                branch = request.user.branch
             )
             if data.get('debit') == 'True':
-                cashier_expenses_update = CashierExpense.objects.get(id = data.get('expense'))
+                cashier_expenses_update = CashierExpense.objects.get(id = data.get('expense'), branch = request.user.branch)
                 if cashier_expenses_update.track_amount < amount:
                     return JsonResponse({'success': False, 'message': 'approoved amount is greater than amount left'}, status = 400)
                 else:
@@ -190,14 +192,16 @@ def expenses(request):
                     amount = amount,
                     expense = expense,
                     credit = True,
-                    description=f'Expense ({expense.description[:20]})'
+                    description=f'Expense ({expense.description[:20]})',
+                    branch = request.user.branch
                 )
             else:
                 CashBook.objects.create(
                     amount = amount,
                     expense = expense,
                     credit = True,
-                    description=f'Expense ({expense.description[:20]})'
+                    description=f'Expense ({expense.description[:20]})',
+                    branch = request.user.branch
                 )
 
             send_expense_creation_notification(expense.id)
@@ -255,7 +259,7 @@ def add_or_edit_expense(request):
 def delete_expense(request, expense_id):
     if request.method == 'DELETE':
         try:
-            expense = get_object_or_404(Expense, id=expense_id)
+            expense = get_object_or_404(Expense, id=expense_id, branch=request.user.branch)
             expense.cancel = True
             expense.save()
             
@@ -263,7 +267,8 @@ def delete_expense(request, expense_id):
                 amount=expense.amount,
                 debit=True,
                 credit=False,
-                description=f'Expense ({expense.description}): cancelled'
+                description=f'Expense ({expense.description}): cancelled',
+                branch=request.user.branch
             )
             return JsonResponse({'success': True, 'message': 'Expense successfully deleted'})
         except Exception as e:
@@ -298,7 +303,7 @@ def cashbook(request):
         start_date = now - timedelta(days=now.weekday())
         end_date = now
 
-    entries = CashBook.objects.filter(date__gte=start_date, date__lte=end_date).order_by('date')
+    entries = CashBook.objects.filter(date__gte=start_date, date__lte=end_date, branch=request.user.branch).order_by('date')
     
     total_debit = entries.filter(debit=True).aggregate(Sum('amount'))['amount__sum'] or 0
     total_credit = entries.filter(credit=True).aggregate(Sum('amount'))['amount__sum'] or 0
@@ -339,7 +344,7 @@ def cashbook_note(request):
             entry_id = data.get('entry_id')
             note = data.get('note')
             
-            entry = CashBook.objects.get(id=entry_id)
+            entry = CashBook.objects.get(id=entry_id, branch=request.user.branch)
             entry.note = note
             
             entry.save()
@@ -350,7 +355,7 @@ def cashbook_note(request):
 
 @login_required
 def cashbook_note_view(request, entry_id):
-    entry = get_object_or_404(CashBook, id=entry_id)
+    entry = get_object_or_404(CashBook, id=entry_id, branch=request.user.branch)
     
     if request.method == 'GET':
         notes = entry.notes.all().order_by('timestamp')
@@ -364,7 +369,7 @@ def cashbook_note_view(request, entry_id):
         try:
             data = json.loads(request.body)
             note_text = data.get('note')
-            CashBookNote.objects.create(entry=entry, user=request.user, note=note_text)
+            CashBookNote.objects.create(entry=entry, user=request.user, note=note_text, branch=request.user.branch)
             return JsonResponse({'success': True, 'message': 'Note successfully added.'}, status=201)
         except Exception as e:
             return JsonResponse({'success': False, 'message': str(e)}, status=400)
@@ -383,7 +388,7 @@ def cancel_transaction(request):
         
         logger.info(entry_id)
         
-        entry = CashBook.objects.get(id=entry_id)
+        entry = CashBook.objects.get(id=entry_id, branch=request.user.branch)
         
         logger.info(entry)
         entry.cancelled = True
@@ -428,7 +433,7 @@ def download_cashbook_report(request):
         start_date = now - timedelta(days=now.weekday())
         end_date = now
 
-    entries = CashBook.objects.filter(date__gte=start_date, date__lte=end_date).order_by('date')
+    entries = CashBook.objects.filter(date__gte=start_date, date__lte=end_date, branch=request.user.branch).order_by('date')
 
     # Create a CSV response
     response = HttpResponse(content_type='text/csv')
@@ -486,9 +491,9 @@ def income_json(request):
     day = request.GET.get('day', today.day)
     
     if request.GET.get('filter') == 'today':
-        sales_total = Sale.objects.filter(date=today, void=False).aggregate(Sum('total_amount'))
+        sales_total = Sale.objects.filter(date=today, void=False, branch=request.user.branch).aggregate(Sum('total_amount'))
     else:
-        sales_total = Sale.objects.filter(date__month=month, void=False).aggregate(Sum('total_amount'))
+        sales_total = Sale.objects.filter(date__month=month, void=False, branch=request.user.branch).aggregate(Sum('total_amount'))
     
     logger.info(f'Sales: {sales_total}')
     return JsonResponse({'sales_total': sales_total['total_amount__sum'] or 0})
@@ -503,9 +508,9 @@ def expense_json(request):
     day = request.GET.get('day', today.day)
     
     if request.GET.get('filter') == 'today':
-        expense_total = Expense.objects.filter(date=today, cancel=False).aggregate(Sum('amount'))
+        expense_total = Expense.objects.filter(date=today, cancel=False, branch=request.user.branch).aggregate(Sum('amount'))
     else:
-        expense_total = Expense.objects.filter(date__month=month, cancel=False).aggregate(Sum('amount'))
+        expense_total = Expense.objects.filter(date__month=month, cancel=False, branch=request.user.branch).aggregate(Sum('amount'))
     
     
     return JsonResponse({'expense_total': expense_total['amount__sum'] or 0})
@@ -513,7 +518,7 @@ def expense_json(request):
 
 def income_graph(request):
     current_year = get_current_year()
-    monthly_sales = Sale.objects.filter(date__year=current_year, void=False).values('date__month').annotate(total=Sum('total_amount')).order_by('date__month')
+    monthly_sales = Sale.objects.filter(date__year=current_year, void=False, branch=request.user.branch).values('date__month').annotate(total=Sum('total_amount')).order_by('date__month')
     data = {month['date__month']: month['total'] for month in monthly_sales}
     return JsonResponse(data)
 
@@ -521,7 +526,7 @@ def income_graph(request):
 @login_required
 def expense_graph(request):
     current_year = get_current_year()
-    monthly_expenses = Expense.objects.filter(date__year=current_year).values('date__month').annotate(total=Sum('amount')).order_by('date__month')
+    monthly_expenses = Expense.objects.filter(date__year=current_year, branch=request.user.branch).values('date__month').annotate(total=Sum('amount')).order_by('date__month')
     data = {month['date__month']: month['total'] for month in monthly_expenses}
     return JsonResponse(data)
 
@@ -535,7 +540,7 @@ def calculate_percentage_change(current_value, previous_value):
 
 @login_required
 def cogs_list(request):
-    cogs = COGS.objects.all()
+    cogs = COGS.objects.filter(branch=request.user.branch)
     return render(request, 'finance/cogs.html', {'cogs':cogs})
 
 
@@ -562,21 +567,21 @@ def pl_overview(request):
         date_filter = (datetime.date(current_year, current_month, 1), today)
 
     if filter_option == 'today':
-        current_month_sales = Sale.objects.filter(date=date_filter, void=False).aggregate(total_sales=Sum('total_amount'))['total_sales'] or 0
-        current_month_expenses = Expense.objects.filter(date=date_filter, cancel=False).aggregate(total_expenses=Sum('amount'))['total_expenses'] or 0
-        cogs_total = COGS.objects.filter(date=date_filter).aggregate(total_cogs=Sum('amount'))['total_cogs'] or 0
+        current_month_sales = Sale.objects.filter(date=date_filter, void=False, branch=request.user.branch).aggregate(total_sales=Sum('total_amount'))['total_sales'] or 0
+        current_month_expenses = Expense.objects.filter(date=date_filter, cancel=False, branch=request.user.branch).aggregate(total_expenses=Sum('amount'))['total_expenses'] or 0
+        cogs_total = COGS.objects.filter(date=date_filter, branch=request.user.branch).aggregate(total_cogs=Sum('amount'))['total_cogs'] or 0
     elif filter_option == 'last_week':
-        current_month_sales = Sale.objects.filter(date__range=date_filter, void=False).aggregate(total_sales=Sum('total_amount'))['total_sales'] or 0
-        current_month_expenses = Expense.objects.filter(date__range=date_filter, cancel=False).aggregate(total_expenses=Sum('amount'))['total_expenses'] or 0
-        cogs_total = COGS.objects.filter(date__range=date_filter).aggregate(total_cogs=Sum('amount'))['total_cogs'] or 0
+        current_month_sales = Sale.objects.filter(date__range=date_filter, void=False, branch=request.user.branch).aggregate(total_sales=Sum('total_amount'))['total_sales'] or 0
+        current_month_expenses = Expense.objects.filter(date__range=date_filter, cancel=False, branch=request.user.branch).aggregate(total_expenses=Sum('amount'))['total_expenses'] or 0
+        cogs_total = COGS.objects.filter(date__range=date_filter, branch=request.user.branch).aggregate(total_cogs=Sum('amount'))['total_cogs'] or 0
     else:
-        current_month_sales = Sale.objects.filter(date__range=date_filter, void=False).aggregate(total_sales=Sum('total_amount'))['total_sales'] or 0
-        current_month_expenses = Expense.objects.filter(date__range=date_filter, cancel=False).aggregate(total_expenses=Sum('amount'))['total_expenses'] or 0
-        cogs_total = COGS.objects.filter(date__range=date_filter).aggregate(total_cogs=Sum('amount'))['total_cogs'] or 0
+        current_month_sales = Sale.objects.filter(date__range=date_filter, void=False, branch=request.user.branch).aggregate(total_sales=Sum('total_amount'))['total_sales'] or 0
+        current_month_expenses = Expense.objects.filter(date__range=date_filter, cancel=False, branch=request.user.branch).aggregate(total_expenses=Sum('amount'))['total_expenses'] or 0
+        cogs_total = COGS.objects.filter(date__range=date_filter, branch=request.user.branch).aggregate(total_cogs=Sum('amount'))['total_cogs'] or 0
 
-    previous_month_sales = Sale.objects.filter(date__year=current_year, date__month=previous_month, void=False).aggregate(total_sales=Sum('total_amount'))['total_sales'] or 0
-    previous_month_expenses = Expense.objects.filter(date__year=current_year, date__month=previous_month, cancel=False).aggregate(total_expenses=Sum('amount'))['total_expenses'] or 0
-    previous_cogs =  COGS.objects.filter(date__year=current_year, date__month=previous_month).aggregate(total_cogs=Sum('amount'))['total_cogs'] or 0
+    previous_month_sales = Sale.objects.filter(date__year=current_year, date__month=previous_month, void=False, branch=request.user.branch).aggregate(total_sales=Sum('total_amount'))['total_sales'] or 0
+    previous_month_expenses = Expense.objects.filter(date__year=current_year, date__month=previous_month, cancel=False, branch=request.user.branch).aggregate(total_expenses=Sum('amount'))['total_expenses'] or 0
+    previous_cogs =  COGS.objects.filter(date__year=current_year, date__month=previous_month, branch=request.user.branch).aggregate(total_cogs=Sum('amount'))['total_cogs'] or 0
     
     current_net_income = current_month_sales
     previous_net_income = previous_month_sales 
@@ -634,9 +639,9 @@ def generate_report(request):
         start_date = datetime.datetime.strptime(request.GET.get('startDate'), '%Y-%m-%d')
         end_date = datetime.datetime.strptime(request.GET.get('endDate'), '%Y-%m-%d')
 
-    sales_total = Sale.objects.filter(date__range=(start_date, end_date), void=False).aggregate(total_sales=Sum('total_amount'))['total_sales'] or 0
-    expenses_total = Expense.objects.filter(date__range=(start_date, end_date), cancel=False).aggregate(total_expenses=Sum('amount'))['total_expenses'] or 0
-    cogs_total = COGS.objects.filter(date__range=(start_date, end_date)).aggregate(total_cogs=Sum('amount'))['total_cogs'] or 0
+    sales_total = Sale.objects.filter(date__range=(start_date, end_date), void=False, branch=request.user.branch).aggregate(total_sales=Sum('total_amount'))['total_sales'] or 0
+    expenses_total = Expense.objects.filter(date__range=(start_date, end_date), cancel=False, branch=request.user.branch).aggregate(total_expenses=Sum('amount'))['total_expenses'] or 0
+    cogs_total = COGS.objects.filter(date__range=(start_date, end_date), branch=request.user.branch).aggregate(total_cogs=Sum('amount'))['total_cogs'] or 0
     net_profit = sales_total - expenses_total - cogs_total
     gross_profit = sales_total - cogs_total
 
@@ -695,7 +700,7 @@ def cash_up(request):
             start_date = now - - timedelta(days=now.weekday())
             end_date = now
             
-        cashups = CashUp.objects.filter(date__gte=start_date, date__lte=end_date).order_by('date')
+        cashups = CashUp.objects.filter(date__gte=start_date, date__lte=end_date, branch=request.user.branch).order_by('date')
         
         if download:
             response = HttpResponse(content_type='text/csv')
@@ -739,7 +744,7 @@ def cash_up(request):
             if cashed_amount < 0:
                 return JsonResponse({'success':False, 'message':f'Cashed amount cannot be less than zero.'}, status=400)
             
-            cash_up = CashUp.objects.get(cashier__id=cashier, cashed=False)
+            cash_up = CashUp.objects.get(cashier__id=cashier, cashed=False, branch=request.user.branch)
             cash_up.cashed_amount = Decimal(cashed_amount)
 
             cash_up.difference = cash_up.cashed_amount - (cash_up.sales - cash_up.void_amount - cash_up.expenses + cash_up.change)
@@ -760,7 +765,7 @@ def claim_cashup_difference(request, cashup_id):
             cashup_id = data.get('cashup_id')
             claim_amount = data.get('claim_amount')
 
-            cash_up = CashUp.objects.select_for_update().get(id=cashup_id)
+            cash_up = CashUp.objects.select_for_update().get(id=cashup_id, branch=request.user.branch)
             
             if cash_up.status:
                 return JsonResponse({'success': False, 'message': f'Cash up already processed'}, status=400)
@@ -773,6 +778,7 @@ def claim_cashup_difference(request, cashup_id):
                 debit=True,
                 credit=False,
                 description='Over cash up claim',
+                branch=request.user.branch
             )
 
         except Exception as e:
@@ -790,7 +796,7 @@ def charge_cashup_difference(request):
             charge_amount = data.get('charge_amount')
 
             logger.info(charge_amount)
-            cash_up = CashUp.objects.select_for_update().get(id=cashup_id)
+            cash_up = CashUp.objects.select_for_update().get(id=cashup_id, branch=request.user.branch)
             
             if cash_up.status:
                 return JsonResponse({'success': False, 'message': f'Cash up already processed'}, status=400)
@@ -802,7 +808,8 @@ def charge_cashup_difference(request):
                 cashier = cash_up.cashier,
                 cash_up = cash_up,
                 amount=charge_amount,
-                status = False
+                status = False,
+                branch=request.user.branch
             )
 
         except Exception as e:
@@ -814,7 +821,7 @@ def charge_cashup_difference(request):
 def cashiers_list(request):
     
     if request.method == 'GET':
-        cashiers = CashierAccount.objects.all()
+        cashiers = CashierAccount.objects.filter(branch=request.user.branch)
         logger.info(cashiers)
         return render(request, 'finance/cashiers.html', {'cashiers':cashiers})
 
@@ -824,8 +831,8 @@ def cashiers_list(request):
             cashier_id = data.get('cashier_id')
             amount = Decimal(data.get('amount'))
             
-            cashier = CashierAccount.objects.get(id=cashier_id)
-            cashups = CashUp.objects.filter(cashier=cashier.cashier).order_by('-id')
+            cashier = CashierAccount.objects.get(id=cashier_id, branch=request.user.branch)
+            cashups = CashUp.objects.filter(cashier=cashier.cashier, branch=request.user.branch).order_by('-id')
             
             for cashup in cashups:
                 outstanding_balance = cashup.sales - cashup.cashed_amount
@@ -858,7 +865,7 @@ def cashiers_list(request):
 @login_required
 def update_transaction_status(request, pk):
     if request.method == 'POST':
-        entry = get_object_or_404(CashBook, pk=pk)
+        entry = get_object_or_404(CashBook, pk=pk, branch=request.user.branch)
         
         data = json.loads(request.body)
         
@@ -883,7 +890,7 @@ def update_expense_status(request):
             expense_id = data.get('id')
             status = data.get('status')
 
-            expense = Expense.objects.get(id=expense_id)
+            expense = Expense.objects.get(id=expense_id, branch=request.user.branch)
             expense.status = status
             expense.save()
 
@@ -905,8 +912,8 @@ def days_data(request):
     current_month = today.month
     year = today.year
 
-    sales = Sale.objects.filter(date__month=current_month, staff=False, void=False)
-    cogs = COGS.objects.filter(date__month=current_month)
+    sales = Sale.objects.filter(date__month=current_month, staff=False, void=False, branch=request.user.branch)
+    cogs = COGS.objects.filter(date__month=current_month, branch=request.user.branch)
 
     first_day = date(year, current_month, 1)
     _, last_day = monthrange(year, current_month)
@@ -936,8 +943,8 @@ def days_data(request):
 
 @login_required
 def transaction_logs(request):
-    transactions = Logs.objects.filter(sale__date = datetime.date.today())
-    sale_items = SaleItem.objects.filter(sale__date = datetime.date.today())
+    transactions = Logs.objects.filter(sale__date = datetime.date.today(), branch = request.user.branch)
+    sale_items = SaleItem.objects.filter(sale__date = datetime.date.today(), sale__branch = request.user.branch)
 
     return render(request, 'transaction_logs.html', {
         'sale_items':sale_items,
@@ -950,9 +957,9 @@ def cashier_expenses(request, cashier_id):
         expense_category = ExpenseCategory.objects.all()
 
         if request.user.role in ['manager', 'superviser', 'admin', 'accountant']:
-            expenses = CashierExpense.objects.select_related('cashier').all()
+            expenses = CashierExpense.objects.select_related('cashier').filter(branch=request.user.branch)
         else:
-            expenses = CashierExpense.objects.select_related('cashier').filter(cashier__id=cashier_id)
+            expenses = CashierExpense.objects.select_related('cashier').filter(cashier__id=cashier_id, branch=request.user.branch)
 
         grouped_expenses = defaultdict(list)
         for expense in expenses.order_by('-date'):
@@ -995,7 +1002,8 @@ def cashier_expenses(request, cashier_id):
             track_amount = amount,
             description=description,
             cashier=request.user,
-            status = False
+            status = False,
+            branch=request.user.branch
         )
         
         return JsonResponse({'success':True, 'message':'Cashier expense successfully created.'}, status=201)
@@ -1013,7 +1021,7 @@ def cashier_expenses(request, cashier_id):
 
         logger.info(type(amount))
         try:
-            expense = CashierExpense.objects.get(id=expense_id)
+            expense = CashierExpense.objects.get(id=expense_id, branch=request.user.branch)
             
             expense.name = name
             expense.amount = amount
@@ -1036,7 +1044,7 @@ def cashier_expenses(request, cashier_id):
         expense_id = data.get('expense_id')
         
         try:
-            expense = CashierExpense.objects.get(id=expense_id)
+            expense = CashierExpense.objects.get(id=expense_id, branch=request.user.branch)
             expense.delete()
             return JsonResponse({'success':True, 'message':'Cashier expense successfully updated.'}, status=201)
         except CashierExpense.DoesNotExist:
