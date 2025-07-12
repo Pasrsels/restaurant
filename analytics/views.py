@@ -327,14 +327,14 @@ def analysisExpenses(request):
     for expenses in expenses_by_month:
         logger.info(expenses.date)
         
-        combined_sales = expenses.date.strftime('%m-%Y')
+        combined_sales = expenses.date.strftime('%d-%m-%Y')
 
         found = False
         if expenses_list:
             for items in expenses_list:
-                items_date = datetime.strptime(items['Date'], '%m-%Y')
+                items_date = datetime.strptime(items['Date'], '%d-%m-%Y')
                 
-                combined = items_date.strftime('%m-%Y')
+                combined = items_date.strftime('%d-%m-%Y')
                                               
                 if combined == combined_sales:
                     items['Total_Amount'] += expenses.amount
@@ -344,7 +344,7 @@ def analysisExpenses(request):
         if not found:
             expenses_list.append(
                 {
-                    'Date': expenses.date.strftime('%m-%Y'),
+                    'Date': expenses.date.strftime('%d-%m-%Y'),
                     'Total_Amount': expenses.amount
                 }
             )
@@ -372,7 +372,7 @@ def analysisExpenses(request):
         plt.title('Expenses')
         plt.savefig('Expense_plot.png')
 
-        df['Date'] = pd.to_datetime(df['Date'], format='%m-%Y')
+        df['Date'] = pd.to_datetime(df['Date'], format='%d-%m-%Y')
         df['Month_Index'] = (df['Date'] - df['Date'].min()).dt.days // 30
 
         X= df[['Month_Index']]
@@ -381,13 +381,13 @@ def analysisExpenses(request):
         model = LinearRegression()
         model.fit(X,y)
 
-        future_dates = pd.to_datetime(['08-2025', '09-2025', '10-2025'], format='%m-%Y')
+        future_dates = pd.to_datetime(['01-08-2025', '01-09-2025', '01-10-2025'], format='%d-%m-%Y')
 
         future_months = (future_dates - df['Date'].min()).days // 30
 
         future_predictions = model.predict(np.array(future_months).reshape(-1, 1))
 
-        for date, pred in zip(future_dates.strftime('%m-%Y'), future_predictions):
+        for date, pred in zip(future_dates.strftime('%d-%m-%Y'), future_predictions):
             print(f"Predicted earnings for {date}: ${pred:.2f}")
 
         return JsonResponse({'success': True})

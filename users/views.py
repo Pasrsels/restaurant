@@ -5,12 +5,12 @@ from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from loguru import logger
 from utils.authenticate import authenticate_user
-from .models import User
-from .forms import UserRegistrationForm, UserDetailsForm, UserDetailsForm2
+from .models import User 
+from .forms import UserRegistrationForm, UserDetailsForm, UserDetailsForm2, BranchForm
 from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.hashers import make_password
-from .models import Company, User
+from .models import Company, User, Branch
 from .forms import CompanyForm, CustomUserCreationForm
 from settings.models import Modules
 from django.db import transaction
@@ -22,17 +22,23 @@ def create_company(request):
     if request.method == 'POST':
         company_form = CompanyForm(request.POST)
         user_form = CustomUserCreationForm(request.POST)
+        branch_form = BranchForm(request.POST)
         
-        if company_form.is_valid() and user_form.is_valid():
+        if company_form.is_valid() and user_form.is_valid() and branch_form.is_valid():
 
             with transaction.atomic():
-                # Save the company
+                # Save the company and branch
                 company = company_form.save()
-                
+
+                branch = branch_form.save(commit=False)
+                branch.company = company
+                branch.save()
+
                 # Create the user with the company
                 user = user_form.save(commit=False)
                 user.company = company
-                user.role = 'owner'  
+                user.branch = branch
+                user.role = 'owner'
                 user.save()
                 
                 # create modules
@@ -49,8 +55,9 @@ def create_company(request):
     else:
         company_form = CompanyForm()
         user_form = CustomUserCreationForm()
+        branch_form = BranchForm()
 
-    return render(request, 'create_company.html', {'company_form': company_form, 'user_form': user_form})
+    return render(request, 'create_company.html', {'company_form': company_form, 'user_form': user_form, 'branch_form':branch_form})
 
 
 def users(request):
@@ -182,3 +189,27 @@ def get_user_data(request, user_id):
 def logout_view(request):
     logout(request)
     return redirect('users:login')
+
+
+def createBranch(request):
+    if request.method == 'GET':
+        branch_info = Branch.objects.all()
+        branch_form = BranchForm()
+        return #return html page with data context
+    elif request.method == 'POST':
+        branch_form = BranchForm(request.POST)
+        company_info = Company.objects.all().first()
+
+        if branch_form.is_valid():
+            branch = branch_form.save(commit=False)
+            branch.company = company_info
+            branch.save()
+
+            messages.success(request, f'Successfully saved {branch.name}')
+            return redirect('users:create_branch') #create url with name = 'create_branch'
+        
+        #invalid form
+        messages.warning(request, f'Failed to save {branch.name}')
+        return redirect('users:create_branch')#create url with name = 'create_branch'
+    elif request.method == 'PUT':
+        pass
