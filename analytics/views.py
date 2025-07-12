@@ -40,12 +40,12 @@ def analytics_view(request):
 
     elif filter_by == 'day':
 
-        today_sales = Sale.objects.filter(date=today, void=False).aggregate(total=Sum('total_amount'))
-        yesterday_sales = Sale.objects.filter(date=yesterday, void=False).aggregate(total=Sum('total_amount'))
+        today_sales = Sale.objects.filter(date=today, void=False, staff=False).aggregate(total=Sum('total_amount'))
+        yesterday_sales = Sale.objects.filter(date=yesterday, void=False, staff=False).aggregate(total=Sum('total_amount'))
         
-        today_void_sales = Sale.objects.filter(date=today, void=True).aggregate(total=Sum('total_amount'))
+        today_void_sales = Sale.objects.filter(date=today, void=True, staff=False).aggregate(total=Sum('total_amount'))
        
-        yesterday_void_sales = Sale.objects.filter(date=yesterday, void=True).aggregate(total=Sum('total_amount'))
+        yesterday_void_sales = Sale.objects.filter(date=yesterday, void=True, staff=False).aggregate(total=Sum('total_amount'))
         
         change_amount = Change.objects.filter(timestamp__date=today, collected=False).aggregate(total=Sum('amount'))
         yesterday_change_amount = Change.objects.filter(timestamp__date=yesterday, collected=False).aggregate(total=Sum('amount'))
@@ -69,12 +69,12 @@ def analytics_view(request):
         data['year_sales'] = year_sales['total'] or 0
 
     # Best-selling dish
-    best_selling_meal = SaleItem.objects.filter(meal__isnull=False, sale__date=today).values('meal__name') \
+    best_selling_meal = SaleItem.objects.filter(meal__isnull=False, sale__date=today, sale__staff=False).values('meal__name') \
     .annotate(total_sold=Sum('quantity')) \
     .order_by('-total_sold') \
     .first()
 
-    best_selling_dish = SaleItem.objects.filter(dish__isnull=False, sale__date=today).values('dish__name') \
+    best_selling_dish = SaleItem.objects.filter(dish__isnull=False, sale__date=today, sale__staff=False).values('dish__name') \
     .annotate(total_sold=Sum('quantity')) \
     .order_by('-total_sold') \
     .first()
