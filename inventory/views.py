@@ -837,7 +837,7 @@ def process_received_order(request):
             if not order_item_id or quantity <= 0:
                 return JsonResponse({'success': False, 'message': 'Invalid data'}, status=400)
 
-            order_item = PurchaseOrderItem.objects.select_related('purchase_order', 'product').get(id=order_item_id, branch=request.user.branch)
+            order_item = PurchaseOrderItem.objects.select_related('purchase_order', 'product').get(id=order_item_id, purchase_order__branch=request.user.branch)
             
             if (quantity + order_item.received_quantity) > order_item.quantity:
                 return JsonResponse({'success': False, 'message': 'Quantity received cannot be more.'})
