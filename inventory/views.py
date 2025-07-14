@@ -3079,7 +3079,7 @@ def order_list(request):
             try:
                 Reorder.objects.get_or_create(
                     product=product,
-                    
+                    product__branch = request.user.branch,
                     defaults={
                         'ordered':False,
                         'approx_days':approx_days,
@@ -3090,7 +3090,7 @@ def order_list(request):
                 logger.info(e)
                 reorder_list = {}
             
-    reorder_list = Reorder.objects.all()
+    reorder_list = Reorder.objects.filter(product__branch = request.user.branch)
     
     return render(request, 'inventory/reorder.html', {'reorders':reorder_list})
 
@@ -3359,7 +3359,7 @@ def check_list_all_products(request):
 def budget(request):
     if request.method == 'GET':
         budgets = Budget.objects.all().select_related('user')
-        reodre = Reorder.objects.all()
+        reodre = Reorder.objects.filter(product__branch = request.user.branch)
         exp = Expense.objects.all()
         logger.info(reodre)
         logger.info(exp)
@@ -3447,7 +3447,7 @@ def budget(request):
 def createBudgetItem(request):
     if request.method == 'GET':
         form = CreateBudgetItemForm()
-        reodre = Reorder.objects.all()
+        reodre = Reorder.objects.filter(product__branch = request.user.branch)
         exp = Expense.objects.all()
     
         reorder_list = []
@@ -3578,7 +3578,7 @@ def ConversionFormula(request):
                     inventory_total += (item.unit_cost * Decimal(item.quantity))
 
 
-        reorder_info = Reorder.objects.filter(ordered = False)
+        reorder_info = Reorder.objects.filter(ordered = False, product__branch = request.user.branch)
         for item in reorder_info:
             name = item.product.name
             for items in inventory_list:

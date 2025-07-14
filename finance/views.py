@@ -51,7 +51,7 @@ def finance(request):
     current_month = get_current_month()
 
     sales = Sale.objects.filter(date__month = current_month, staff=False, void=False, branch = request.user.branch)
-    cogs = COGS.objects.filter(date__month = current_month, branch = request.user.branch)
+    cogs = COGS.objects.filter(date__month = current_month, production__branch = request.user.branch)
     
     return render(request, 'finance/finance.html', 
         {
@@ -369,7 +369,7 @@ def cashbook_note_view(request, entry_id):
         try:
             data = json.loads(request.body)
             note_text = data.get('note')
-            CashBookNote.objects.create(entry=entry, user=request.user, note=note_text, branch=request.user.branch)
+            CashBookNote.objects.create(entry=entry, user=request.user, note=note_text, entry__branch=request.user.branch)
             return JsonResponse({'success': True, 'message': 'Note successfully added.'}, status=201)
         except Exception as e:
             return JsonResponse({'success': False, 'message': str(e)}, status=400)
@@ -540,7 +540,7 @@ def calculate_percentage_change(current_value, previous_value):
 
 @login_required
 def cogs_list(request):
-    cogs = COGS.objects.filter(branch=request.user.branch)
+    cogs = COGS.objects.filter(production__branch=request.user.branch)
     return render(request, 'finance/cogs.html', {'cogs':cogs})
 
 
@@ -569,19 +569,19 @@ def pl_overview(request):
     if filter_option == 'today':
         current_month_sales = Sale.objects.filter(date=date_filter, void=False, branch=request.user.branch).aggregate(total_sales=Sum('total_amount'))['total_sales'] or 0
         current_month_expenses = Expense.objects.filter(date=date_filter, cancel=False, branch=request.user.branch).aggregate(total_expenses=Sum('amount'))['total_expenses'] or 0
-        cogs_total = COGS.objects.filter(date=date_filter, branch=request.user.branch).aggregate(total_cogs=Sum('amount'))['total_cogs'] or 0
+        cogs_total = COGS.objects.filter(date=date_filter, production__branch=request.user.branch).aggregate(total_cogs=Sum('amount'))['total_cogs'] or 0
     elif filter_option == 'last_week':
         current_month_sales = Sale.objects.filter(date__range=date_filter, void=False, branch=request.user.branch).aggregate(total_sales=Sum('total_amount'))['total_sales'] or 0
         current_month_expenses = Expense.objects.filter(date__range=date_filter, cancel=False, branch=request.user.branch).aggregate(total_expenses=Sum('amount'))['total_expenses'] or 0
-        cogs_total = COGS.objects.filter(date__range=date_filter, branch=request.user.branch).aggregate(total_cogs=Sum('amount'))['total_cogs'] or 0
+        cogs_total = COGS.objects.filter(date__range=date_filter, production__branch=request.user.branch).aggregate(total_cogs=Sum('amount'))['total_cogs'] or 0
     else:
         current_month_sales = Sale.objects.filter(date__range=date_filter, void=False, branch=request.user.branch).aggregate(total_sales=Sum('total_amount'))['total_sales'] or 0
         current_month_expenses = Expense.objects.filter(date__range=date_filter, cancel=False, branch=request.user.branch).aggregate(total_expenses=Sum('amount'))['total_expenses'] or 0
-        cogs_total = COGS.objects.filter(date__range=date_filter, branch=request.user.branch).aggregate(total_cogs=Sum('amount'))['total_cogs'] or 0
+        cogs_total = COGS.objects.filter(date__range=date_filter, production__branch=request.user.branch).aggregate(total_cogs=Sum('amount'))['total_cogs'] or 0
 
     previous_month_sales = Sale.objects.filter(date__year=current_year, date__month=previous_month, void=False, branch=request.user.branch).aggregate(total_sales=Sum('total_amount'))['total_sales'] or 0
     previous_month_expenses = Expense.objects.filter(date__year=current_year, date__month=previous_month, cancel=False, branch=request.user.branch).aggregate(total_expenses=Sum('amount'))['total_expenses'] or 0
-    previous_cogs =  COGS.objects.filter(date__year=current_year, date__month=previous_month, branch=request.user.branch).aggregate(total_cogs=Sum('amount'))['total_cogs'] or 0
+    previous_cogs =  COGS.objects.filter(date__year=current_year, date__month=previous_month, production__branch=request.user.branch).aggregate(total_cogs=Sum('amount'))['total_cogs'] or 0
     
     current_net_income = current_month_sales
     previous_net_income = previous_month_sales 
@@ -641,7 +641,7 @@ def generate_report(request):
 
     sales_total = Sale.objects.filter(date__range=(start_date, end_date), void=False, branch=request.user.branch).aggregate(total_sales=Sum('total_amount'))['total_sales'] or 0
     expenses_total = Expense.objects.filter(date__range=(start_date, end_date), cancel=False, branch=request.user.branch).aggregate(total_expenses=Sum('amount'))['total_expenses'] or 0
-    cogs_total = COGS.objects.filter(date__range=(start_date, end_date), branch=request.user.branch).aggregate(total_cogs=Sum('amount'))['total_cogs'] or 0
+    cogs_total = COGS.objects.filter(date__range=(start_date, end_date), production__branch=request.user.branch).aggregate(total_cogs=Sum('amount'))['total_cogs'] or 0
     net_profit = sales_total - expenses_total - cogs_total
     gross_profit = sales_total - cogs_total
 
@@ -913,7 +913,7 @@ def days_data(request):
     year = today.year
 
     sales = Sale.objects.filter(date__month=current_month, staff=False, void=False, branch=request.user.branch)
-    cogs = COGS.objects.filter(date__month=current_month, branch=request.user.branch)
+    cogs = COGS.objects.filter(date__month=current_month, production__branch=request.user.branch)
 
     first_day = date(year, current_month, 1)
     _, last_day = monthrange(year, current_month)
