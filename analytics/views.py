@@ -90,11 +90,11 @@ def analytics_view(request):
     grouped_dishes = defaultdict(lambda: {})
     staff_dishes = defaultdict(lambda: {})
 
-    sales = SaleItem.objects.filter(sale__date = today, sale__void=False, sale__staff=False, branch = request.user.branch).select_related('sale', 'meal', 'dish', 'product').all()
+    sales = SaleItem.objects.filter(sale__date = today, sale__void=False, sale__staff=False, sale__branch = request.user.branch).select_related('sale', 'meal', 'dish', 'product').all()
 
-    staff_sales = SaleItem.objects.filter(sale__date = today, sale__void=False, sale__staff=True, branch = request.user.branch).select_related('sale', 'meal', 'dish', 'product').all()
+    staff_sales = SaleItem.objects.filter(sale__date = today, sale__void=False, sale__staff=True, sale__branch = request.user.branch).select_related('sale', 'meal', 'dish', 'product').all()
 
-    sales_dishes = SaleItem.objects.filter(sale__date = today, sale__void=False, sale__staff=False, branch = request.user.branch)
+    sales_dishes = SaleItem.objects.filter(sale__date = today, sale__void=False, sale__staff=False, sale__branch = request.user.branch)
 
     dishes = defaultdict(lambda: {})
 
