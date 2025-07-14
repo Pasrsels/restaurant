@@ -908,7 +908,7 @@ def create_production_plan(request):
         production_plan = Production.objects.create(status=False, declared=False, branch=request.user.branch)
 
         dish_names = [item.get('dish') for item in items if item.get('dish')]
-        dishes = Dish.objects.filter(name__in=dish_names)
+        dishes = Dish.objects.filter(name__in=dish_names, branch = request.user.branch)
         dish_map = {dish.name: dish for dish in dishes}
 
         if len(dish_map) != len(dish_names):
@@ -930,7 +930,7 @@ def create_production_plan(request):
             if dish is None:
                 return JsonResponse({'success': False, 'message': f'Dish {dish_name} does not exist'}, status=404)
 
-            ingredients = Ingredient.objects.filter(dish=dish).select_related('minor_raw_material')
+            ingredients = Ingredient.objects.filter(dish=dish, minor_raw_material__branch = request.user.branch).select_related('minor_raw_material')
 
             # Add production item to the list for bulk creation
             production_items.append(ProductionItems(
@@ -993,7 +993,7 @@ def dish_json_detail(request):
         dish = Dish.objects.get(id=dish_id, branch=request.user.branch)
         logger.info(dish)
         
-        for ingredient in Ingredient.objects.filter(dish=dish, branch=request.user.branch):
+        for ingredient in Ingredient.objects.filter(dish=dish, minor_raw_material__branch=request.user.branch):
             if dish == ingredient.dish:
                 ingredients.append(
                 {
@@ -1093,7 +1093,7 @@ def process_raw_materials(request, pp_id):
     
     for item in production_plan_items:
         
-        for ingredient in Ingredient.objects.filter(dish=item.dish, branch=request.user.branch):
+        for ingredient in Ingredient.objects.filter(dish=item.dish, minor_raw_material__branch=request.user.branch):
             
             if ingredient.raw_material.name in minor_raw_materials:
                 
@@ -1149,7 +1149,7 @@ def production_plan_detail(request, pp_id):
         try:
             production_plan = Production.objects.get(id=pp_id, branch=request.user.branch)
             production_plan_items = ProductionItems.objects.filter(production=production_plan) 
-            dish_ingredients = Ingredient.objects.filter(branch=request.user.branch) 
+            dish_ingredients = Ingredient.objects.filter(minor_raw_material__branch=request.user.branch) 
             production_plan_minor_items = MinorProductionItems.objects.filter(production=production_plan)
             p_rm_variance = ProductionVariance.objects.filter(production=production_plan, branch=request.user.branch)
 
@@ -1162,7 +1162,7 @@ def production_plan_detail(request, pp_id):
             raw_materials = []
             
             for item in production_plan_items:
-                for ing in Ingredient.objects.filter(dish=item.dish):
+                for ing in Ingredient.objects.filter(dish=item.dish, minor_raw_material__branch = request.user.branch):
                     # Fetch or create ProductionRawMaterials instance
                     p_r_m_bf, created = ProductionRawMaterials.objects.get_or_create(
                         product=ing.minor_raw_material,
@@ -1230,14 +1230,14 @@ def confirm_production_plan(request, pp_id):
         try:
             production_plan = Production.objects.get(id=pp_id, branch=request.user.branch)
             production_plan_items = ProductionItems.objects.filter(production=production_plan)
-            dish_ingridients = Ingredient.objects.filter(branch=request.user.branch)
+            dish_ingridients = Ingredient.objects.filter(minor_raw_material__branch=request.user.branch)
             total_cost_items = production_plan_items.aggregate(total_cost=Sum('total_cost'))['total_cost'] or 0
             total_overrides = 0
             raw_materials = []
             
             for item in production_plan_items:
                 logger.info(item.dish.name)
-                for ing in Ingredient.objects.filter(dish=item.dish, branch=request.user.branch):
+                for ing in Ingredient.objects.filter(dish=item.dish, minor_raw_material__branch=request.user.branch):
                    
                     p_r_m_bf, created = ProductionRawMaterials.objects.get_or_create(
                         product=ing.minor_raw_material,
@@ -1438,7 +1438,7 @@ def declare_production_plan(request, pp_id):
             raw_materials = []
             dish_raw = []
             for item in production_plan_items:
-                for ing in Ingredient.objects.filter(dish=item.dish, branch=request.user.branch):
+                for ing in Ingredient.objects.filter(dish=item.dish, minor_raw_material__branch=request.user.branch):
                     
                     for all_raw_m in allocated_raw_materials:
                         if ing.minor_raw_material.id == all_raw_m.raw_material.id:
@@ -1605,7 +1605,7 @@ def new_declare_production(request, pp_id):
                         }
                     )
                     total_price += round(item.dish.price * Decimal(item.portions), 2)
-                    for ing in Ingredient.objects.filter(dish=item.dish, branch=request.user.branch):
+                    for ing in Ingredient.objects.filter(dish=item.dish, minor_raw_material__branch=request.user.branch):
                         
                         p_r_m_bf, created = ProductionRawMaterials.objects.get_or_create(
                             product=ing.minor_raw_material,
@@ -1662,7 +1662,7 @@ def new_declare_production(request, pp_id):
         portions = data.get('portions')
 
         try:
-            dish_ing = Ingredient.objects.filter(dish__name = dish_name, branch=request.user.branch)
+            dish_ing = Ingredient.objects.filter(dish__name = dish_name, minor_raw_material__branch=request.user.branch)
             logger.info(f'Dish ingridients: {dish_ing}')
 
             ingridient_list = []
@@ -1757,7 +1757,7 @@ def new_declare_production(request, pp_id):
                 COGS.objects.create(
                     production=production,
                     amount=total_cost,
-                    branch=request.user.branch
+                    # branch=request.user.branch
                 )
                 
                 if declaration_flag:
@@ -1862,7 +1862,7 @@ def latest_declare_production(request):
                 })
 
                 # Handle ingredient calculations
-                ingredients = Ingredient.objects.filter(dish=item.dish, branch=request.user.branch)
+                ingredients = Ingredient.objects.filter(dish=item.dish, minor_raw_material__branch=request.user.branch)
                 for ing in ingredients:
                     quantity = round(ing.quantity * (item.portions / item.dish.portion_multiplier), 3)
 
@@ -1940,7 +1940,7 @@ def confirm_declaration(request):
         COGS.objects.create(
             production=production,
             amount=total_cost,
-            branch=request.user.branch
+            # branch=request.user.branch
         )
         
         if declaration_flag:
@@ -1984,7 +1984,7 @@ def raw_material_json(request):
 class DishListView(View):
     def get(self, request):
         dishes = Dish.objects.filter(branch=request.user.branch)
-        ingredients = Ingredient.objects.filter(branch=request.user.branch)
+        ingredients = Ingredient.objects.filter(minor_raw_material__branch=request.user.branch)
 
         # if download:
         #     logger.info('download')
@@ -2061,7 +2061,7 @@ class DishDeleteView(View):
 class IngredientListView(View):
     
     def get(self, request):
-        ingredients = Ingredient.objects.filter(branch=request.user.branch)
+        ingredients = Ingredient.objects.filter(minor_raw_material__branch=request.user.branch)
         return render(request, 'inventory/ingredient_list.html', {'ingredients': ingredients})
 
 class IngredientCreateView(View):
@@ -2080,12 +2080,12 @@ class IngredientCreateView(View):
 class IngredientUpdateView(View):
     
     def get(self, request, pk):
-        ingredient = get_object_or_404(Ingredient, pk=pk, branch=request.user.branch)
+        ingredient = get_object_or_404(Ingredient, pk=pk, minor_raw_material__branch=request.user.branch)
         form = IngredientForm(instance=ingredient)
         return render(request, 'inventory/ingredient_form.html', {'form': form, 'ingredient': ingredient})
 
     def post(self, request, pk):
-        ingredient = get_object_or_404(Ingredient, pk=pk, branch=request.user.branch)
+        ingredient = get_object_or_404(Ingredient, pk=pk, minor_raw_material__branch=request.user.branch)
         form = IngredientForm(request.POST, instance=ingredient)
         if form.is_valid():
             form.save()
@@ -2095,7 +2095,7 @@ class IngredientUpdateView(View):
 class IngredientDeleteView(View):
     
     def get(self, request, pk):
-        ingredient = get_object_or_404(Ingredient, pk=pk, branch=request.user.branch)
+        ingredient = get_object_or_404(Ingredient, pk=pk, minor_raw_material__branch=request.user.branch)
         ingredient.delete()
         return redirect('inventory:ingredient_list')
     
@@ -2106,7 +2106,7 @@ def add_dish(request): # didn't change the name of the template, it caters for b
     dish_form = DishForm()
     
     if request.method == 'GET':
-        r_m = Product.objects.filter(raw_material=True, branch=request.user.branch)
+        r_m = Product.objects.filter(raw_material=True, minor_raw_material__branch=request.user.branch)
         return render(request, 'inventory/ingredient_form.html', 
             {
                 'r_m':r_m,
@@ -2279,7 +2279,7 @@ def get_dish_data(request, dish_id):
             'category',
             'portion_multiplier'
         )
-        ingredients =Ingredient.objects.filter(dish__id = dish_id, branch=request.user.branch).values(
+        ingredients =Ingredient.objects.filter(dish__id = dish_id, minor_raw_material__branch=request.user.branch).values(
             'note',
             'quantity',
             'minor_raw_material__name',
@@ -2345,9 +2345,9 @@ def edit_dish(request, dish_id):
             dish.price = selling_price
             dish.category = dish.category
             dish.image = image
-            existing_ingredients = Ingredient.objects.filter(dish=dish)
+            existing_ingredients = Ingredient.objects.filter(dish=dish, minor_raw_material__branch = request.user.branch)
             existing_ingredient_names = {ing.minor_raw_material.name for ing in existing_ingredients}
-            raw_material_map = {rm.name: rm for rm in Product.objects.all()}
+            raw_material_map = {rm.name: rm for rm in Product.objects.filter(branch = request.user.branch)}
 
             ingredient_updates = []
             ingredients_to_delete = existing_ingredients[:]
@@ -2377,7 +2377,7 @@ def edit_dish(request, dish_id):
 
             if ingredients_to_delete:
                 logger.info(f'Deleting ingredients: {ingredients_to_delete}')
-                Ingredient.objects.filter(id__in=[ing.id for ing in ingredients_to_delete]).delete()
+                Ingredient.objects.filter(id__in=[ing.id for ing in ingredients_to_delete], minor_raw_material__branch = request.user.branch).delete()
 
             if ingredient_updates:
                 logger.info(f'Updating ingredients: {ingredient_updates}')
@@ -2721,13 +2721,13 @@ def end_of_day_view(request):
                     production_items.update(end_of_day_status=True)
                 dish = Dish.objects.get(name=dish_name)
                 
-                ingredient_with_max_quantity = Ingredient.objects.all().order_by('-quantity').first()
+                ingredient_with_max_quantity = Ingredient.objects.filter(minor_raw_material__branch = request.user.branch).order_by('-quantity').first()
                 
                 if ingredient_with_max_quantity:
                     logger.info(f"The ingredient with the greatest quantity is: {ingredient_with_max_quantity.minor_raw_material}")
                     kgs_left = e_o_d_obj.leftovers / dish.portion_multiplier 
                     
-                    prod_rm = ProductionRawMaterials.objects.get(product=ingredient_with_max_quantity.minor_raw_material)
+                    prod_rm = ProductionRawMaterials.objects.get(product=ingredient_with_max_quantity.minor_raw_material, product__branch = request.user.branch)
                     prod_rm.quantity += kgs_left
                     prod_rm.save()
                 else:
@@ -2818,7 +2818,7 @@ def end_of_day_detail(request, e_o_d_id):
             
             logger.info(f'{item}:{item.wastage}')
             
-            for ing in ingredients.filter(dish=item.dish):
+            for ing in ingredients.filter(dish=item.dish, minor_raw_material__branch = request.user.branch):
                 kgs_taken = Decimal(item.portions) / Decimal(item.dish.portion_multiplier)
                 taken_stock_value += Decimal(ing.quantity) * kgs_taken * ing.raw_material.cost
         
@@ -2827,7 +2827,7 @@ def end_of_day_detail(request, e_o_d_id):
                     staff_portions_value += Decimal(ing.quantity) * kgs_staff * ing.raw_material.cost   
         
         
-        cogs_total = COGS.objects.filter(date=datetime.datetime.today(), branch = request.user.branch).aggregate(total_cogs=Sum('amount'))['total_cogs'] or 0
+        cogs_total = COGS.objects.filter(date=datetime.datetime.today(), production__branch = request.user.branch).aggregate(total_cogs=Sum('amount'))['total_cogs'] or 0
         gross_profit = total_amount_sold_today - cogs_total - wastage_cost_value
               
         for end in end_of_day_items:
