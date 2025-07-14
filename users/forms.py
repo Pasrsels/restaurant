@@ -58,7 +58,7 @@ class CompanyForm(forms.ModelForm):
 class BranchForm(forms.ModelForm):
     class Meta:
         model = Branch
-        fields = ['name']
+        fields = ['branch_name']
 
 class CustomUserCreationForm(UserCreationForm):
     first_name = forms.CharField(max_length=30)
@@ -68,7 +68,7 @@ class CustomUserCreationForm(UserCreationForm):
 
     class Meta:
         model = User
-        fields = ('username', 'first_name', 'last_name', 'email', 'phonenumber', 'branch', 'password1', 'password2')
+        fields = ('username', 'first_name', 'last_name', 'email', 'phonenumber', 'password1', 'password2')
 
     def save(self, commit=True):
         user = super().save(commit=False)

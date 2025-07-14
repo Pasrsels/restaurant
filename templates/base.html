@@ -93,8 +93,19 @@
             <div class=" top-bar">
                 <nav class="p-2 border">
                     <div class="d-flex justify-content-between align-items-center w-100">
-                        <div>
-                            <h4 class="fw-bold">{{ request.user.company.name }}</h4>
+                        <div class="text-center py-0 my-0">
+                            <h4 class="fw-bold">
+                                {{ request.user.company.name }}
+                                <br>
+                                <span>
+                                    <button class="btn btn-seconday" onclick="branchSwitch()">
+                                        <i class="bx bx-git-branch"></i>
+                                    </button>
+                                </span>
+                                <span>
+                                    {{ request.user.branch.branch_name }}
+                                </span>
+                            </h4>
                         </div>
                         <div>
                             <ul class="list-unstyled d-flex align-items-center">
@@ -116,7 +127,7 @@
                                     </div>
                                 </li>
                                 <!-- Username -->
-                                <li class="mx-2">{{ request.user }}</li>
+                                <li class="mx-2">{{ request.user.username}}</li>
                                 <li class='btn border btn-danger bx bx-log-out-circle mt-1 fs-3 cursor-pointer' data-bs-toggle="modal" data-bs-target="#logoutModal"></li>
                             </ul>
                         </div>
@@ -174,7 +185,18 @@
                     </div>
                 </div>
             </div>
-        </div>      
+        </div>
+        
+        <div class="modal fade" id="switchBranchModal" tabindex="-1" aria-labelledby="switchBranchModalLabel" aria-hidden="true">
+            <div class="modal-dialog bg modal-dialog-centered">
+                <div class="modal-content p-5">
+                    <h5 class="fw-bold text-center mb-3">Switch Branch</h5>
+                    <div id="branches" class="row gap-2 d-flex justify-content-center">
+                        <!--populate branches-->
+                    </div>
+                </div>
+            </div>
+        </div> 
     </div>
     <script src="{% static 'css/bootstrap/js/bootstrap.bundle.min.js'%}"></script>    
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
@@ -184,6 +206,73 @@
             dropdown.classList.toggle('show');
         });
         
+        const BranchModal = new bootstrap.Modal(document.getElementById('switchBranchModal'));
+
+        function branchSwitch(){
+            fetch("{% url 'users:branches' %}", {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{csrftoken}'
+                }
+            }).then(response => response.json())
+            .then(data => {
+                if(data.success){
+                    console.log(data)
+                    populateBranchModal(data.branch);
+                    BranchModal.show();
+                }else{
+                    console.log('show', data)
+                }
+            })
+        }
+
+        function populateBranchModal(branches){
+            console.log(branches);
+            const container = document.getElementById('branches');
+            container.innerHTML = '';
+
+            branches.forEach(branch => {
+                const branchItem = document.createElement('div');
+                branchItem.className = 'branch-item mb-2 border rounded  text-center col-3 btn btn-primary';
+                branchItem.textContent = branch.name;
+                branchItem.onclick = () => switchToBranch(branch.id);
+                container.appendChild(branchItem);
+            });
+        }
+
+        function switchToBranch(id){
+
+            fetch("{% url 'users:branches' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                },
+                body: JSON.stringify(id)
+            }).then(response => response.json())
+            .then(data => {
+                if(data.success){
+                    BranchModal.show();
+                   window.location.reload();
+                }else{
+
+                }
+            })
+        }
+        
+
+        function getCSRFToken() {
+            const name = 'csrftoken';
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                cookie = cookie.trim();
+                if (cookie.startsWith(name + '=')) {
+                    return decodeURIComponent(cookie.substring(name.length + 1));
+                }
+            }
+            return null;
+        }
         // const ws = new WebSocket('ws://' + window.location.host + '/ws/notifications/');
 
         // function playNotificationSound() {

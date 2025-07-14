@@ -26,7 +26,7 @@ def create_company(request):
         branch_form = BranchForm(request.POST)
         
         if company_form.is_valid() and user_form.is_valid() and branch_form.is_valid():
-
+            logger.info(request.POST)
             with transaction.atomic():
                 # Save the company and branch
                 company = company_form.save()
@@ -252,3 +252,28 @@ def createBranch(request):
         except json.JSONDecodeError:
             messages.error(request, 'Invalid JSON')
         return redirect('users:create_branch')
+
+def getBranches(request):
+    if request.method == 'GET':
+        branch = Branch.objects.all()
+        branch_list = []
+        for info in branch:
+            branch_list.append(
+                {
+                    'id': info.id,
+                    'name': info.branch_name
+                }
+            )
+        logger.info(branch_list)
+        return JsonResponse({'success':True, 'branch': branch_list}, status=200)
+    elif request.method == 'POST':
+        data = json.loads(request.body)
+        logger.info(data)
+        user = request.user
+        if data:
+            branch_info = Branch.objects.get(id = data)
+            user.branch = branch_info
+            user.save()
+            return JsonResponse({'success': True}, status = 200)
+        return JsonResponse({'success': False}, status = 400)
+        

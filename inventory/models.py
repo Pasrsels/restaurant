@@ -164,7 +164,7 @@ class Dish(models.Model):
         ('Meat', 'Meat'),
         ('Starch', 'Starch'),
         ('Salad', 'Salad')
-    ])
+    ], max_length=255)
     dish = models.BooleanField(default=True)
     low_stock = models.IntegerField(default=10)
     image = models.ImageField(upload_to='meal_images/', default='placeholder1.jpg', null=True)
@@ -173,7 +173,7 @@ class Dish(models.Model):
         return self.name
 
 class Ingredient(models.Model):
-    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
+    # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     dish = models.ForeignKey(Dish, on_delete=models.CASCADE, null=True)
     note = models.CharField(max_length=100, null=True)
     quantity = models.FloatField()
@@ -203,7 +203,7 @@ class Meal(models.Model):
         return self.name
 
 class LeftOvers(models.Model):
-    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
+    # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     cashier = models.ForeignKey(User, on_delete=models.CASCADE)
     dish = models.ForeignKey(Dish, on_delete= models.CASCADE, null=True)
     product = models.ForeignKey(Product, on_delete= models.CASCADE, null= True)
@@ -319,7 +319,7 @@ class Logs(models.Model):
     description = models.CharField(max_length=255, null=True)
     
 class MinorRawMaterials(models.Model):
-    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
+    # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     raw_material = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.FloatField()
     quantity_left = models.FloatField()
@@ -352,7 +352,7 @@ class EndOfDayItems(models.Model):
         return f'{self.end_of_day.date}: {self.dish_name}'
     
 class Reorder(models.Model):
-    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
+    # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     ordered = models.BooleanField(default=False)
     approx_days = models.FloatField()

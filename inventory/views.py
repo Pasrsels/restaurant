@@ -102,7 +102,7 @@ def unit_of_measurement(request):
 
 @login_required
 def products(request):
-    raw_materials = Product.objects.filter()
+    raw_materials = Product.objects.filter(branch=request.user.branch)
     return render(request, 'inventory/products.html', 
         {
             'raw_materials':raw_materials,
@@ -197,14 +197,14 @@ def finishedProduct(cashier_id):
 @login_required
 def productHistory(request):
     if request.method == 'GET':
-        product_info = Product.objects.filter(finished_product=True)
+        product_info = Product.objects.filter(finished_product=True, branch=request.user.branch)
 
         today = datetime.datetime.today()
         start_of_day = datetime.datetime.combine(today, time.min)
         end_of_day = datetime.datetime.combine(today, time.max)
 
         p_order_received = PurchaseOrder.objects.filter(
-            order_date__range=(start_of_day, end_of_day)
+            order_date__range=(start_of_day, end_of_day), branch=request.user.branch
         ).filter(
             Q(received=True) | Q(is_partial=True)
         )
@@ -219,7 +219,7 @@ def productHistory(request):
 
             # Get starting stock from yesterday
             try:
-                stock_entry = EndOfDayStock.objects.get(date=previous_day, product=product)
+                stock_entry = EndOfDayStock.objects.get(date=previous_day, product=product, branch=request.user.branch)
                 starting_stock = stock_entry.quantity  # assuming field name is 'quantity'
             except EndOfDayStock.DoesNotExist:
                 starting_stock = 0
@@ -228,7 +228,8 @@ def productHistory(request):
             for order in p_order_received:
                 received_items = PurchaseOrderItem.objects.filter(
                     purchase_order_id=order.id,
-                    product=product
+                    product=product,
+                    branch=request.user.branch
                 )
                 for item in received_items:
                     existing_entry = next(
@@ -249,7 +250,8 @@ def productHistory(request):
             # Handle sales
             product_sales = SaleItem.objects.filter(
                 sale__date=datetime.date.today(),
-                product=product
+                product=product,
+                sale__branch=request.user.branch
             )
             for sale in product_sales:
                 existing_entry = next(
@@ -277,11 +279,11 @@ def productHistory(request):
 
         return JsonResponse({'success': True, 'data': product_list}, status=200)
     elif request.method == "POST":
-        product_data = Product.objects.filter(finished_product = True)
+        product_data = Product.objects.filter(finished_product = True, branch=request.user.branch)
         end_of_day_stock = None
         for product in product_data:
             try:
-                end_of_day_stock = EndOfDayStock.objects.get(product = product, date = datetime.datetime.today())
+                end_of_day_stock = EndOfDayStock.objects.get(product = product, date = datetime.datetime.today(), branch=request.user.branch)
             except Exception as e:
                 logger.info(e)
             if end_of_day_stock:
@@ -290,7 +292,8 @@ def productHistory(request):
             else:
                 log = EndOfDayStock.objects.create(
                     product = product,
-                    quantity = product.quantity
+                    quantity = product.quantity,
+                    branch=request.user.branch
                 )
                 logger.info(log)
         return JsonResponse({'success': True}, status = 200)
@@ -302,7 +305,7 @@ def inventory(request):
     product_name = request.GET.get('name', '')
     if product_name:
         
-        return JsonResponse(list(Product.objects.filter(name=product_name).values(
+        return JsonResponse(list(Product.objects.filter(name=product_name, branch=request.user.branch).values(
                 'unit__unit_name',
                 'name',
                 'id'
@@ -353,7 +356,7 @@ def product(request):
         
         
         # validation for existance
-        if Product.objects.filter(name=data['name']).exists():
+        if Product.objects.filter(name=data['name'], branch=request.user.branch).exists():
             return JsonResponse({'success':False, 'message':f'Product exists'})
 
         try:
@@ -378,6 +381,7 @@ def product(request):
             raw_material = True if data['raw_material'] else False,
             finished_product = True if data['finished_product'] else False,
             unit = unit,
+            branch=request.user.branch
             #image = 
         )
         product.save()
@@ -385,7 +389,7 @@ def product(request):
         return JsonResponse({'success':True})
             
     if request.method == 'GET':
-        products = Product.objects.all().values(
+        products = Product.objects.filter(branch=request.user.branch).values(
             'id',
             'name',
         )
@@ -398,11 +402,11 @@ def product(request):
 def product_detail(request, product_id):
     if request.method == 'GET':
         try: 
-            product = Product.objects.get(id=product_id)
+            product = Product.objects.get(id=product_id, branch=request.user.branch)
         except Product.DoesNotExist:
             messages.warning(request, f'Product with ID: {product_id} doesn\'t exists')
             
-        logs = Logs.objects.filter(product=product)
+        logs = Logs.objects.filter(product=product, branch=request.user.branch)
 
         return render(request, 'inventory/product_detail.html', 
             {
@@ -413,7 +417,7 @@ def product_detail(request, product_id):
     elif request.method == 'DELETE':
         try:
             logger.info(product_id)
-            product = Product.objects.get(id = product_id)
+            product = Product.objects.get(id = product_id, branch=request.user.branch)
             product.delete()
 
             return JsonResponse({"success": True}, status=200)
@@ -425,12 +429,12 @@ def product_detail(request, product_id):
 @login_required
 def production_rm_detail(request, rm_id):
     try: 
-        product = ProductionRawMaterials.objects.get(id=rm_id)
+        product = ProductionRawMaterials.objects.get(id=rm_id, branch=request.user.branch)
         logger.info(product)
     except Product.DoesNotExist:
         messages.warning(request, f'Product with ID: {rm_id} doesn\'t exists')
         
-    logs = ProductionLogs.objects.filter(product=product)
+    logs = ProductionLogs.objects.filter(product=product, branch=request.user.branch)
 
     return render(request, 'inventory/production_rm_detail.html', 
         {
@@ -444,7 +448,7 @@ def production_rm_detail(request, rm_id):
 def edit_inventory(request, product_id):
     
     try: 
-        product = Product.objects.get(id=product_id)
+        product = Product.objects.get(id=product_id, branch=request.user.branch)
     except Product.DoesNotExist:
         messages.warning(request, f'Product with ID: {product_id} doesn\'t exists')
         
@@ -462,6 +466,7 @@ def edit_inventory(request, product_id):
             product=product,
             quantity=request.POST['quantity'],
             total_quantity=product.quantity,
+            branch=request.user.branch
         )
         
         messages.success(request, f'{product.name} update succesfully')
@@ -478,7 +483,7 @@ def edit_inventory(request, product_id):
 @login_required
 def suppliers(request):
     form = AddSupplierForm()
-    suppliers = Supplier.objects.all()
+    suppliers = Supplier.objects.filter(branch=request.user.branch)
     return render(request, 'inventory/suppliers.html', 
         {
             'suppliers':suppliers,
@@ -489,7 +494,7 @@ def suppliers(request):
 
 @login_required
 def supplier_list_json(request):
-    suppliers = Supplier.objects.all().values(
+    suppliers = Supplier.objects.filter(branch=request.user.branch).values(
         'id',
         'name'
     )
@@ -526,7 +531,8 @@ def create_supplier(request):
             contact_name = contact,
             email = email,
             phone = phone,
-            address = address
+            address = address,
+            branch=request.user.branch
         )
         supplier.save()
         logger.info(f'Supplier successfully created {supplier.name}')
@@ -546,7 +552,7 @@ def edit_supplier(request, supplier_id):
         
         if supplier_id:
             try:
-                supplier = Supplier.objects.get(id=supplier_id)
+                supplier = Supplier.objects.get(id=supplier_id, branch=request.user.branch)
             except Exception as e:
                 return JsonResponse({'success': False, 'message':f'{supplier_id} doesn\'t exists'}, status=400)
                 
@@ -562,7 +568,7 @@ def edit_supplier(request, supplier_id):
 def purchase_orders(request):
     form = CreateOrderForm()
     status_form = PurchaseOrderStatus()
-    orders = PurchaseOrder.objects.filter().order_by('-order_date')
+    orders = PurchaseOrder.objects.filter(branch=request.user.branch).order_by('-order_date')
     return render(request, 'inventory/purchase_orders.html', 
         {
             'form':form,
@@ -579,7 +585,7 @@ def create_purchase_order(request):
     if request.method == 'GET':
         supplier_form = AddSupplierForm()
         product_form = AddProductForm()
-        suppliers = Supplier.objects.all()
+        suppliers = Supplier.objects.filter(branch=request.user.branch)
         note_form = noteStatusForm()
         unit_form = UnitOfMeasurementForm()
         
@@ -633,7 +639,8 @@ def create_purchase_order(request):
                     handling_amount=handling_amount,
                     other_amount=other_amount,
                     is_partial = False,
-                    received = False
+                    received = False,
+                    branch=request.user.branch
                 )
                 purchase_order.save()
 
@@ -677,7 +684,8 @@ def create_purchase_order(request):
                         amount = purchase_order.total_cost,
                         user = request.user,
                         description = f'Purchase order{purchase_order.order_number}',
-                        cancel = False
+                        cancel = False,
+                        branch=request.user.branch
                     )
                     
                     CashBook.objects.create(
@@ -685,6 +693,7 @@ def create_purchase_order(request):
                         expense = expense,
                         credit = True,
                         description = f'Expense purchase order{purchase_order.order_number}',
+                        branch=request.user.branch
                     )
 
         except Exception as e:
@@ -697,7 +706,7 @@ def create_purchase_order(request):
 @transaction.atomic
 def change_purchase_order_status(request, order_id):
     try:
-        purchase_order = PurchaseOrder.objects.get(id=order_id)
+        purchase_order = PurchaseOrder.objects.get(id=order_id, branch=request.user.branch)
     except PurchaseOrder.DoesNotExist:
         return JsonResponse({'error': f'Purchase order with ID: {order_id} doesn\'t exist'}, status=404)
 
@@ -719,7 +728,8 @@ def change_purchase_order_status(request, order_id):
                     amount = purchase_order.total_cost - purchase_order.tax_amount,
                     user = request.user,
                     description = f'Expense purchase order{purchase_order.order_number}',
-                    cancel = False
+                    cancel = False,
+                    branch=request.user.branch
                 )
                 
                 CashBook.objects.create(
@@ -727,6 +737,7 @@ def change_purchase_order_status(request, order_id):
                     expense = expense,
                     credit = True,
                     description = f'Expense purchase order{purchase_order.order_number}',
+                    branch=request.user.branch
                 )
             
             return JsonResponse({'success':True}, status=200)
@@ -739,7 +750,7 @@ def change_purchase_order_status(request, order_id):
 @login_required
 def print_purchase_order(request, order_id):
     try:
-        purchase_order = PurchaseOrder.objects.get(id=order_id)
+        purchase_order = PurchaseOrder.objects.get(id=order_id, branch=request.user.branch)
     except PurchaseOrder.DoesNotExist:
         messages.warning(request, f'Purchase order with ID: {order_id} doesn\'t exists')
         return redirect('inventory:purchase_orders')
@@ -761,7 +772,7 @@ def print_purchase_order(request, order_id):
 @login_required
 def purchase_order_detail(request, order_id):
     try:
-        purchase_order = PurchaseOrder.objects.get(id=order_id)
+        purchase_order = PurchaseOrder.objects.get(id=order_id, branch=request.user.branch)
     except PurchaseOrder.DoesNotExist:
         messages.warning(request, f'Purchase order with ID: {order_id} doesn\'t exists')
         return redirect('inventory:purchase_orders')
@@ -786,7 +797,7 @@ def delete_purchase_order(request, purchase_order_id):
         return JsonResponse({'success': False, 'message': 'Invalid request method'}, status=405)
 
     try:
-        purchase_order = PurchaseOrder.objects.get(id=purchase_order_id)
+        purchase_order = PurchaseOrder.objects.get(id=purchase_order_id, branch=request.user.branch)
     except PurchaseOrder.DoesNotExist:
         return JsonResponse({'success': False, 'message': f'Purchase order with ID {purchase_order_id} not found'}, status=404)
 
@@ -800,7 +811,7 @@ def delete_purchase_order(request, purchase_order_id):
 @login_required
 def receive_order(request, order_id):
     try:
-        purchase_order = PurchaseOrder.objects.get(id=order_id)
+        purchase_order = PurchaseOrder.objects.get(id=order_id, branch=request.user.branch)
         purchase_order_items = PurchaseOrderItem.objects.filter(purchase_order=purchase_order)
     except PurchaseOrder.DoesNotExist:
         messages.warning(request, f'Purchase order with ID: {order_id} doesn\'t exists')
@@ -826,7 +837,7 @@ def process_received_order(request):
             if not order_item_id or quantity <= 0:
                 return JsonResponse({'success': False, 'message': 'Invalid data'}, status=400)
 
-            order_item = PurchaseOrderItem.objects.select_related('purchase_order', 'product').get(id=order_item_id)
+            order_item = PurchaseOrderItem.objects.select_related('purchase_order', 'product').get(id=order_item_id, branch=request.user.branch)
             
             if (quantity + order_item.received_quantity) > order_item.quantity:
                 return JsonResponse({'success': False, 'message': 'Quantity received cannot be more.'})
@@ -849,7 +860,8 @@ def process_received_order(request):
                 product=product,
                 quantity=quantity,
                 description=f'Stock in from {purchase_order.order_number}',
-                total_quantity=product.quantity
+                total_quantity=product.quantity,
+                branch=request.user.branch
             )
 
             order_item.receive_items(quantity)
@@ -870,8 +882,8 @@ def process_received_order(request):
 @login_required   
 def production_plans(request):
     
-    plans = Production.objects.all().order_by('date_created') 
-    transfer_count = Transfer.objects.filter(status=False).count()
+    plans = Production.objects.filter(branch=request.user.branch).order_by('date_created') 
+    transfer_count = Transfer.objects.filter(status=False, branch=request.user.branch).count()
 
     return render(request, 'inventory/production_plans.html', {'plans': plans, 'transfer_count': transfer_count})
 
@@ -888,12 +900,12 @@ def create_production_plan(request):
         if not items or not isinstance(items, list):
             return JsonResponse({'success': False, 'message': 'Invalid data: items should be a list'}, status=400)
 
-        if Production.objects.filter(declared=False).exists():
+        if Production.objects.filter(declared=False, branch=request.user.branch).exists():
             pass
             # return JsonResponse({'success': False, 'message': 'Please declare all the production plans you have.'}, status=400)
 
         # Create a new production plan
-        production_plan = Production.objects.create(status=False, declared=False)
+        production_plan = Production.objects.create(status=False, declared=False, branch=request.user.branch)
 
         dish_names = [item.get('dish') for item in items if item.get('dish')]
         dishes = Dish.objects.filter(name__in=dish_names)
@@ -937,7 +949,7 @@ def create_production_plan(request):
         ProductionItems.objects.bulk_create(production_items)
 
         today = datetime.datetime.today()
-        existing_checklists = set(CheckList.objects.filter(date=today, product__in=raw_materials_to_checklist)
+        existing_checklists = set(CheckList.objects.filter(date=today, product__in=raw_materials_to_checklist, product__branch=request.user.branch)
                                   .values_list('product_id', flat=True))
 
         new_checklists = [
@@ -978,10 +990,10 @@ def dish_json_detail(request):
         data = json.loads(request.body)
         dish_id = data.get("dish_id")
         
-        dish = Dish.objects.get(id=dish_id)
+        dish = Dish.objects.get(id=dish_id, branch=request.user.branch)
         logger.info(dish)
         
-        for ingredient in Ingredient.objects.filter(dish=dish):
+        for ingredient in Ingredient.objects.filter(dish=dish, branch=request.user.branch):
             if dish == ingredient.dish:
                 ingredients.append(
                 {
@@ -1070,18 +1082,18 @@ def yeseterdays_left_overs(request):
 
 @login_required
 def minor_raw_materials(request, pp_id):
-    production = Production.objects.get(id=pp_id)
+    production = Production.objects.get(id=pp_id, branch=request.user.branch)
     return render(request, 'inventory/process_minor_raw_materials.html', {'production':production})
 
 
 @login_required
 def process_raw_materials(request, pp_id):
-    production_plan_items = ProductionItems.objects.filter(production__id=pp_id)
+    production_plan_items = ProductionItems.objects.filter(production__id=pp_id, production__branch=request.user.branch)
     minor_raw_materials = {}
     
     for item in production_plan_items:
         
-        for ingredient in Ingredient.objects.filter(dish=item.dish):
+        for ingredient in Ingredient.objects.filter(dish=item.dish, branch=request.user.branch):
             
             if ingredient.raw_material.name in minor_raw_materials:
                 
@@ -1118,7 +1130,7 @@ def confirm_minor_raw_materials(request, pp_id):
     except Exception as e:
         return JsonResponse({'success':False, 'message':f'{e}'}, status=400)
     try:
-        production_plan = Production.objects.get(id=pp_id)
+        production_plan = Production.objects.get(id=pp_id, branch=request.user.branch)
         # production_item = ProductionItem.objects.get(production=production_plan, )
         AllocatedRawMaterials.objects.create(
             production = production_plan,
@@ -1135,11 +1147,11 @@ def production_plan_detail(request, pp_id):
     
     if request.method == 'GET':
         try:
-            production_plan = Production.objects.get(id=pp_id)
+            production_plan = Production.objects.get(id=pp_id, branch=request.user.branch)
             production_plan_items = ProductionItems.objects.filter(production=production_plan) 
-            dish_ingredients = Ingredient.objects.all() 
+            dish_ingredients = Ingredient.objects.filter(branch=request.user.branch) 
             production_plan_minor_items = MinorProductionItems.objects.filter(production=production_plan)
-            p_rm_variance = ProductionVariance.objects.filter(production=production_plan)
+            p_rm_variance = ProductionVariance.objects.filter(production=production_plan, branch=request.user.branch)
 
             total_cost_items = production_plan_items.aggregate(total_cost=Sum('total_cost'))['total_cost'] or 0
             total_cost_minor_items = production_plan_minor_items.aggregate(total_cost=Sum('total_cost'))['total_cost'] or 0
@@ -1159,7 +1171,7 @@ def production_plan_detail(request, pp_id):
 
                     required_quantity = ing.quantity * (item.portions / item.dish.portion_multiplier)
 
-                    production_inventory = ProductionRawMaterials.objects.filter(product=ing.minor_raw_material).first()
+                    production_inventory = ProductionRawMaterials.objects.filter(product=ing.minor_raw_material, product__branch=request.user.branch).first()
                     current_quantity = production_inventory.quantity if production_inventory else 0
 
                     expected_quantity = required_quantity - current_quantity
@@ -1216,22 +1228,22 @@ def production_plan_detail(request, pp_id):
 def confirm_production_plan(request, pp_id):
     if request.method == 'GET':
         try:
-            production_plan = Production.objects.get(id=pp_id)
+            production_plan = Production.objects.get(id=pp_id, branch=request.user.branch)
             production_plan_items = ProductionItems.objects.filter(production=production_plan)
-            dish_ingridients = Ingredient.objects.all()
+            dish_ingridients = Ingredient.objects.filter(branch=request.user.branch)
             total_cost_items = production_plan_items.aggregate(total_cost=Sum('total_cost'))['total_cost'] or 0
             total_overrides = 0
             raw_materials = []
             
             for item in production_plan_items:
                 logger.info(item.dish.name)
-                for ing in Ingredient.objects.filter(dish=item.dish):
+                for ing in Ingredient.objects.filter(dish=item.dish, branch=request.user.branch):
                    
                     p_r_m_bf, created = ProductionRawMaterials.objects.get_or_create(
                         product=ing.minor_raw_material,
                         defaults={'quantity': 0}
                     )
-                    overrided_raw_materials = OverrideHistory.objects.filter(raw_material_overrided = ing.minor_raw_material)
+                    overrided_raw_materials = OverrideHistory.objects.filter(raw_material_overrided = ing.minor_raw_material, raw_material_overrided__branch=request.user.branch)
                     
                     total_overrides_up = sum(item.up if item.up else 0 for item in overrided_raw_materials)
                     total_overrides_down = sum(item.down if item.down else 0 for item in overrided_raw_materials)
@@ -1242,7 +1254,7 @@ def confirm_production_plan(request, pp_id):
                     required_quantity = ing.quantity * (item.portions / item.dish.portion_multiplier)
                     logger.info(ing.minor_raw_material.name)
 
-                    production_inventory = ProductionRawMaterials.objects.filter(product=ing.minor_raw_material).first()
+                    production_inventory = ProductionRawMaterials.objects.filter(product=ing.minor_raw_material, product__branch=request.user.branch).first()
                     current_quantity = production_inventory.quantity if production_inventory else 0
                 
                     expected_quantity = required_quantity - current_quantity
@@ -1289,7 +1301,7 @@ def confirm_production_plan(request, pp_id):
 def overrideBf(request):
     if request.method == "GET":
         try:
-            override_history = OverrideHistory.objects.all()
+            override_history = OverrideHistory.objects.filter(raw_material_overrided__branch=request.user.branch)
             o_history = []
             for items in override_history:
                 o_history.append(
@@ -1309,7 +1321,7 @@ def overrideBf(request):
             data = json.loads(request.body)
             logger.info(data)
             logger.info(int(data.get('id')))
-            product_info = Product.objects.get(id = int(data.get('id')))
+            product_info = Product.objects.get(id = int(data.get('id')), branch=request.user.branch)
             logger.info({'Product': product_info})
 
             production_raw_material_info = ProductionRawMaterials.objects.get(product = product_info)
@@ -1340,7 +1352,7 @@ def overrideBf(request):
             with transaction.atomic():
                 for items in data:
                     print(items)
-                    product_info = Product.objects.get(name = items)
+                    product_info = Product.objects.get(name = items, branch=request.user.branch)
                     production_raw_material = ProductionRawMaterials.objects.get(product = product_info)
                     production_raw_material.quantity = 0
                     production_raw_material.save()
@@ -1358,7 +1370,7 @@ def overrideBf(request):
 @transaction.atomic
 def process_production_plan_confirmation(request, pp_id):
     try:
-        production_plan = Production.objects.select_related().get(id=pp_id)
+        production_plan = Production.objects.select_related().get(id=pp_id, branch=request.user.branch)
         production_plan_items = ProductionItems.objects.filter(production=production_plan).select_related('raw_material')
     except Production.DoesNotExist:
         messages.warning(request, f'Production Plan With ID: {pp_id}, doesn\'t exist.')
@@ -1378,7 +1390,7 @@ def update_production_plan(request, pp_id):
     if request.method == 'GET':
         form = ProductionPlanInlineForm()
         try:
-            production_plan = Production.objects.select_related().get(id=pp_id)
+            production_plan = Production.objects.select_related().get(id=pp_id, branch=request.user.branch)
         except Production.DoesNotExist:
             messages.warning(request, f'Production Plan With ID: {pp_id}, doesn\'t exist.')
 
@@ -1398,7 +1410,7 @@ def update_production_plan(request, pp_id):
         production_plan_id = data['production_plan_id'] 
             
         try:
-            production_plan = Production.objects.select_related().get(id=production_plan_id)
+            production_plan = Production.objects.select_related().get(id=production_plan_id, branch=request.user.branch)
             production_plan_items = ProductionItems.objects.filter(production=production_plan).values(
                 'raw_material__name'
                 'dish__name'
@@ -1419,14 +1431,14 @@ def update_production_plan(request, pp_id):
 def declare_production_plan(request, pp_id):
     if request.method == 'GET':
         try:
-            production_plan = Production.objects.select_related().get(id=pp_id)
+            production_plan = Production.objects.select_related().get(id=pp_id, branch=request.user.branch)
             production_plan_items = ProductionItems.objects.filter(production=production_plan)
             allocated_raw_materials = AllocatedRawMaterials.objects.filter(production=production_plan)
             
             raw_materials = []
             dish_raw = []
             for item in production_plan_items:
-                for ing in Ingredient.objects.filter(dish=item.dish):
+                for ing in Ingredient.objects.filter(dish=item.dish, branch=request.user.branch):
                     
                     for all_raw_m in allocated_raw_materials:
                         if ing.minor_raw_material.id == all_raw_m.raw_material.id:
@@ -1502,7 +1514,7 @@ def declare_production_plan(request, pp_id):
                 return JsonResponse({'success': False, 'message': 'Missing Data: Raw Material quantity used'}, status=400)
             
             try:
-                production= Production.objects.get(id=pp_item_id)
+                production= Production.objects.get(id=pp_item_id, branch=request.user.branch)
             except ProductionItems.DoesNotExist:
                 return JsonResponse({'success': False, 'message': f'Production Plan with ID: {pp_item_id} doesn\'t exist'}, status=404)
             
@@ -1526,6 +1538,7 @@ def declare_production_plan(request, pp_id):
                 product=p_rm,
                 quantity=p_rm.quantity,
                 total_quantity=p_rm.quantity,
+                branch=request.user.branch
             )
             p_rm.save()
             
@@ -1538,7 +1551,7 @@ def declare_production_plan(request, pp_id):
 @login_required
 def production_plan_delete(request, id):
     try:
-        p_p_delete = Production.objects.get(id = id)
+        p_p_delete = Production.objects.get(id = id, branch=request.user.branch)
         p_p_delete.delete()
         messages.success(request, f'Successfully deleted production plan with id :{id}')
         return redirect('inventory:production_plans')
@@ -1548,7 +1561,7 @@ def production_plan_delete(request, id):
 
 
 def editProdPlan(prod_id, data):
-    production_plan =  Production.objects.get(id = prod_id)
+    production_plan =  Production.objects.get(id = prod_id, branch=request.user.branch)
 
     for items in data:
         try:
@@ -1572,7 +1585,7 @@ def new_declare_production(request, pp_id):
     # pp_id = 25
     if request.method == 'GET':
         try:
-            production_plan = Production.objects.select_related().get(id=pp_id)
+            production_plan = Production.objects.select_related().get(id=pp_id, branch=request.user.branch)
             production_plan_items = ProductionItems.objects.filter(production=production_plan)
             allocated_raw_materials = AllocatedRawMaterials.objects.filter(production=production_plan)
             
@@ -1592,7 +1605,7 @@ def new_declare_production(request, pp_id):
                         }
                     )
                     total_price += round(item.dish.price * Decimal(item.portions), 2)
-                    for ing in Ingredient.objects.filter(dish=item.dish):
+                    for ing in Ingredient.objects.filter(dish=item.dish, branch=request.user.branch):
                         
                         p_r_m_bf, created = ProductionRawMaterials.objects.get_or_create(
                             product=ing.minor_raw_material,
@@ -1649,7 +1662,7 @@ def new_declare_production(request, pp_id):
         portions = data.get('portions')
 
         try:
-            dish_ing = Ingredient.objects.filter(dish__name = dish_name)
+            dish_ing = Ingredient.objects.filter(dish__name = dish_name, branch=request.user.branch)
             logger.info(f'Dish ingridients: {dish_ing}')
 
             ingridient_list = []
@@ -1683,7 +1696,7 @@ def new_declare_production(request, pp_id):
             })
 
             try:
-                production= Production.objects.get(id=pp_id)
+                production= Production.objects.get(id=pp_id, branch=request.user.branch)
             except ProductionItems.DoesNotExist:
                 return JsonResponse({'success': False, 'message': f'Production Plan with ID: {pp_id} doesn\'t exist'}, status=404)
 
@@ -1702,7 +1715,7 @@ def new_declare_production(request, pp_id):
                     return JsonResponse({'success': False, 'message': f'Raw Material with ID: {ing.get('ingridient_name')} doesn\'t exist'}, status=404)
 
                 try:
-                    product = Product.objects.get(name=ing.get('ingridient_name'))
+                    product = Product.objects.get(name=ing.get('ingridient_name'), branch=request.user.branch)
                     p_rm_variance = ProductionVariance.objects.create(
                         production=production,
                         ingredient=product,
@@ -1726,11 +1739,12 @@ def new_declare_production(request, pp_id):
                         product=p_rm,
                         quantity=p_rm.quantity,
                         total_quantity=p_rm.quantity,
+                        branch=request.user.branch
                     )
                     p_rm.save()
             
             try:
-                production = Production.objects.get(id=pp_id)  
+                production = Production.objects.get(id=pp_id, branch=request.user.branch)  
                 production_plan_items = ProductionItems.objects.filter(production=production)
                 total_cost = production_plan_items.aggregate(total_cost=Sum('total_cost'))['total_cost'] or 0
             except Production.DoesNotExist:
@@ -1742,7 +1756,8 @@ def new_declare_production(request, pp_id):
             with transaction.atomic():
                 COGS.objects.create(
                     production=production,
-                    amount=total_cost
+                    amount=total_cost,
+                    branch=request.user.branch
                 )
                 
                 if declaration_flag:
@@ -1783,7 +1798,7 @@ def latest_declare_production(request):
         try:
             latest_declared_plan = (
                 Production.objects
-                .filter(declared=True)
+                .filter(declared=True, branch=request.user.branch)
                 .order_by('-date_created', '-time_created')
                 .select_related()
                 .first()
@@ -1847,7 +1862,7 @@ def latest_declare_production(request):
                 })
 
                 # Handle ingredient calculations
-                ingredients = Ingredient.objects.filter(dish=item.dish)
+                ingredients = Ingredient.objects.filter(dish=item.dish, branch=request.user.branch)
                 for ing in ingredients:
                     quantity = round(ing.quantity * (item.portions / item.dish.portion_multiplier), 3)
 
@@ -1893,7 +1908,7 @@ def latest_declare_production(request):
 
 @login_required
 def production_raw_materials(request):
-    raw_materials = ProductionRawMaterials.objects.all()
+    raw_materials = ProductionRawMaterials.objects.filter(product__branch=request.user.branch)
     return render(request, 'inventory/production_rm.html', {'raw_materials':raw_materials})
 
 
@@ -1914,7 +1929,7 @@ def confirm_declaration(request):
             return JsonResponse({'success': False, 'message': 'Missing Data: Production Plan ID'}, status=400)
         
         try:
-            production = Production.objects.get(id=pp_id)  
+            production = Production.objects.get(id=pp_id, branch=request.user.branch)  
             production_plan_items = ProductionItems.objects.filter(production=production)
             total_cost = production_plan_items.aggregate(total_cost=Sum('total_cost'))['total_cost'] or 0
         except Production.DoesNotExist:
@@ -1924,7 +1939,8 @@ def confirm_declaration(request):
         
         COGS.objects.create(
             production=production,
-            amount=total_cost
+            amount=total_cost,
+            branch=request.user.branch
         )
         
         if declaration_flag:
@@ -1954,7 +1970,7 @@ def raw_material_json(request):
         data = json.loads(request.body)
         raw_material_id = data.get('raw_material_id')
         
-        r_m = Product.objects.filter(id=raw_material_id).values(
+        r_m = Product.objects.filter(id=raw_material_id, branch=request.user.branch).values(
             'cost',
             'unit__unit_name'
         )
@@ -1967,8 +1983,8 @@ def raw_material_json(request):
     
 class DishListView(View):
     def get(self, request):
-        dishes = Dish.objects.all()
-        ingredients = Ingredient.objects.all()
+        dishes = Dish.objects.filter(branch=request.user.branch)
+        ingredients = Ingredient.objects.filter(branch=request.user.branch)
 
         # if download:
         #     logger.info('download')
@@ -2007,7 +2023,7 @@ def p_home(request):
 class DishCreateView(View):
     def get(self, request):
         form = DishForm()
-        r_m = Product.objects.filter(raw_material=True)
+        r_m = Product.objects.filter(raw_material=True, branch=request.user.branch)
         return render(request, 'inventory/dish_form.html', {'form': form, 'r_m':r_m})
 
     def post(self, request):
@@ -2020,14 +2036,14 @@ class DishCreateView(View):
 class DishUpdateView(View):
     
     def get(self, request, pk):
-        dish = get_object_or_404(Dish, pk=pk)
+        dish = get_object_or_404(Dish, pk=pk, branch=request.user.branch)
         dish_form = DishForm(instance=dish)
         return render(request, 'inventory/dish_form.html', {'dish_form': dish_form, 'dish': dish})
         dish_form = DishForm(instance=dish)
         return render(request, 'inventory/dish_form.html', {'dish_form': dish_form, 'dish': dish})
 
     def post(self, request, pk):
-        dish = get_object_or_404(Dish, pk=pk)
+        dish = get_object_or_404(Dish, pk=pk, branch=request.user.branch)
         form = DishForm(request.POST, instance=dish)
         if form.is_valid():
             form.save()
@@ -2037,7 +2053,7 @@ class DishUpdateView(View):
 class DishDeleteView(View):
     
     def get(self, request, pk):
-        dish = get_object_or_404(Dish, pk=pk)
+        dish = get_object_or_404(Dish, pk=pk, branch=request.user.branch)
         dish.delete()
         return redirect('inventory:dish_list')
 
@@ -2045,7 +2061,7 @@ class DishDeleteView(View):
 class IngredientListView(View):
     
     def get(self, request):
-        ingredients = Ingredient.objects.all()
+        ingredients = Ingredient.objects.filter(branch=request.user.branch)
         return render(request, 'inventory/ingredient_list.html', {'ingredients': ingredients})
 
 class IngredientCreateView(View):
@@ -2064,12 +2080,12 @@ class IngredientCreateView(View):
 class IngredientUpdateView(View):
     
     def get(self, request, pk):
-        ingredient = get_object_or_404(Ingredient, pk=pk)
+        ingredient = get_object_or_404(Ingredient, pk=pk, branch=request.user.branch)
         form = IngredientForm(instance=ingredient)
         return render(request, 'inventory/ingredient_form.html', {'form': form, 'ingredient': ingredient})
 
     def post(self, request, pk):
-        ingredient = get_object_or_404(Ingredient, pk=pk)
+        ingredient = get_object_or_404(Ingredient, pk=pk, branch=request.user.branch)
         form = IngredientForm(request.POST, instance=ingredient)
         if form.is_valid():
             form.save()
@@ -2079,7 +2095,7 @@ class IngredientUpdateView(View):
 class IngredientDeleteView(View):
     
     def get(self, request, pk):
-        ingredient = get_object_or_404(Ingredient, pk=pk)
+        ingredient = get_object_or_404(Ingredient, pk=pk, branch=request.user.branch)
         ingredient.delete()
         return redirect('inventory:ingredient_list')
     
@@ -2090,7 +2106,7 @@ def add_dish(request): # didn't change the name of the template, it caters for b
     dish_form = DishForm()
     
     if request.method == 'GET':
-        r_m = Product.objects.filter(raw_material=True)
+        r_m = Product.objects.filter(raw_material=True, branch=request.user.branch)
         return render(request, 'inventory/ingredient_form.html', 
             {
                 'r_m':r_m,
@@ -2144,6 +2160,7 @@ def add_dish(request): # didn't change the name of the template, it caters for b
                     portion_multiplier = portion_multiplier,
                     price = selling_price,
                     category=category,
+                    branch=request.user.branch
                 )
                 
                 """if category exists in meal category return else create and assign to the dish"""
@@ -2160,13 +2177,14 @@ def add_dish(request): # didn't change the name of the template, it caters for b
                 # meal.save()
 
                 for item in cart:
-                    raw_material = Product.objects.get(name=item.get('raw_material'))
+                    raw_material = Product.objects.get(name=item.get('raw_material'), branch=request.user.branch)
                     Ingredient.objects.create(
                         dish=dish,
                         note=item.get('note'),
                         minor_raw_material=raw_material,
                         quantity=item.get('quantity'),
-                        cost=item.get('cost'),  
+                        cost=item.get('cost'),
+                        branch=request.user.branch
                     )
 
         except Exception as e:
@@ -2177,7 +2195,7 @@ def add_dish(request): # didn't change the name of the template, it caters for b
 
 @login_required
 def meal_list(request):
-    meals = Meal.objects.filter(deactivate=False)
+    meals = Meal.objects.filter(deactivate=False, branch=request.user.branch)
     dish_list = []
     dish_count =  0
     logger.info(meals)
@@ -2217,7 +2235,7 @@ def meal_list(request):
 
 @login_required  
 def add_meal(request):
-    dishes = Dish.objects.all()
+    dishes = Dish.objects.filter(branch=request.user.branch)
     meal_categories = MealCategory.objects.all()
 
     logger.info(meal_categories)
@@ -2254,14 +2272,14 @@ def add_meal(request):
 @login_required
 def get_dish_data(request, dish_id):
     try:
-        dish = Dish.objects.filter(id=dish_id).values(
+        dish = Dish.objects.filter(id=dish_id, branch=request.user.branch).values(
             'name',
             'cost',
             'price',
             'category',
             'portion_multiplier'
         )
-        ingredients =Ingredient.objects.filter(dish__id = dish_id).values(
+        ingredients =Ingredient.objects.filter(dish__id = dish_id, branch=request.user.branch).values(
             'note',
             'quantity',
             'minor_raw_material__name',
@@ -2277,9 +2295,9 @@ def get_dish_data(request, dish_id):
 def edit_dish(request, dish_id):
     if request.method == 'GET':
         try:
-            dish = Dish.objects.get(id=dish_id)
+            dish = Dish.objects.get(id=dish_id, branch=request.user.branch)
             dish_form = DishForm()
-            r_m = Product.objects.filter(raw_material=True)
+            r_m = Product.objects.filter(raw_material=True, branch=request.user.branch)
 
             return render(request, 'inventory/edit_dish.html',{
                 'r_m':r_m,
@@ -2318,8 +2336,8 @@ def edit_dish(request, dish_id):
             logger.info(image)
 
 
-            cat, _= MealCategory.objects.get_or_create(name=category) 
-            dish = Dish.objects.get(id=dish_id)
+            cat, _= MealCategory.objects.get_or_create(name=category, branch=request.user.branch) 
+            dish = Dish.objects.get(id=dish_id, branch=request.user.branch)
             logger.info(f'Dish name: {dish_name}')
             dish.name = dish_name
             dish.portion_multiplier = portion_multiplier
@@ -2377,9 +2395,9 @@ def edit_dish(request, dish_id):
 
 @login_required
 def edit_meal(request, meal_id):
-    meal = get_object_or_404(Meal, id=meal_id)
+    meal = get_object_or_404(Meal, id=meal_id, branch=request.user.branch)
     meal_categories = MealCategory.objects.all()
-    dishes = Dish.objects.all()
+    dishes = Dish.objects.filter(branch=request.user.branch)
     if request.method == 'POST':
         form = MealForm(request.POST, request.FILES, instance=meal)
         if form.is_valid():
@@ -2411,7 +2429,7 @@ def edit_meal(request, meal_id):
 @login_required
 def delete_meal(request, meal_id):
     try:
-        meal = Meal.objects.get(id=meal_id)
+        meal = Meal.objects.get(id=meal_id, branch=request.user.branch)
         meal.deactivate = True
         meal.save()
         return JsonResponse({'success': True}, status=200)
@@ -2424,8 +2442,8 @@ def delete_meal(request, meal_id):
 def create_meal_category(request):
     if request.method == 'GET':
         categories = MealCategory.objects.all().values()
-        product_categories = Product.objects.filter(finished_product=True).values('category__name', 'category__id')
-        dish_categories = Dish.objects.filter(dish=True).values()
+        product_categories = Product.objects.filter(finished_product=True, branch = request.user.branch).values('category__name', 'category__id')
+        dish_categories = Dish.objects.filter(dish=True, branch = request.user.branch).values()
 
         meal_category_list = []
         product_category_list = []
@@ -2464,9 +2482,9 @@ def CategoryMeal(request):
         category_name = request.GET.get('category')
         logger.info(category_name)
         
-        meal_filter = Meal.objects.filter(category__name = category_name, deactivate = False).values('id', 'name', 'price', 'image', 'meal')
-        product_filter = Product.objects.filter(category__name = category_name, finished_product=True).values('id', 'name', 'quantity', 'price', 'finished_product', 'image')
-        dish_filter = Dish.objects.filter(category = category_name).values('id', 'name', 'price', 'dish', 'image')
+        meal_filter = Meal.objects.filter(category__name = category_name, deactivate = False, branch = request.user.branch).values('id', 'name', 'price', 'image', 'meal')
+        product_filter = Product.objects.filter(category__name = category_name, finished_product=True, branch = request.user.branch).values('id', 'name', 'quantity', 'price', 'finished_product', 'image')
+        dish_filter = Dish.objects.filter(category = category_name, branch = request.user.branch).values('id', 'name', 'price', 'dish', 'image')
 
         if not meal_filter and not dish_filter:
             product_data = [
@@ -2514,7 +2532,7 @@ def end_of_day_pdf(request):
     if request.method == "GET":
         today = localdate()
 
-        e_o_d = EndOfDay.objects.filter(date=today, done=True).first()
+        e_o_d = EndOfDay.objects.filter(date=today, done=True, branch = request.user.branch).first()
 
         if not e_o_d:
             messages.warning(request,'No end of day completed')
@@ -2551,11 +2569,11 @@ def end_of_day_view_json(request):
         today = localdate()
         
         try:
-            e_o_d = EndOfDay.objects.get(date=today)
+            e_o_d = EndOfDay.objects.get(date=today, branch = request.user.branch)
         except EndOfDay.DoesNotExist:
             e_o_d = None
 
-        productions_today = Production.objects.filter(date_created=today, declared=True)
+        productions_today = Production.objects.filter(date_created=today, declared=True, branch = request.user.branch)
         production_items_today = ProductionItems.objects.filter(production__in=productions_today, end_of_day_status = False)
 
         productions_today = production_items_today.values('dish__name').annotate(
@@ -2586,11 +2604,11 @@ def end_of_day_view(request):
         today = localdate()
         
         try:
-            e_o_d = EndOfDay.objects.get(date=today)
+            e_o_d = EndOfDay.objects.get(date=today, branch = request.user.branch)
         except EndOfDay.DoesNotExist:
             e_o_d = None
 
-        productions_today = Production.objects.filter(date_created=today, declared=True)
+        productions_today = Production.objects.filter(date_created=today, declared=True, branch = request.user.branch)
         production_items_today = ProductionItems.objects.filter(production__in=productions_today, end_of_day_status = False)
 
         productions_today = production_items_today.values('dish__name').annotate(
@@ -2602,7 +2620,7 @@ def end_of_day_view(request):
         # sales_data = SaleItem.objects.filter(sale__date = datetime.datetime.today())
 
 
-        sales_items = SaleItem.objects.filter(sale__void=False, sale__date=datetime.datetime.today())
+        sales_items = SaleItem.objects.filter(sale__void=False, sale__date=datetime.datetime.today(), sale__branch = request.user.branch)
         sales_portions_list = []
         staff_meals_portions_list = []
 
@@ -2681,6 +2699,7 @@ def end_of_day_view(request):
                 e_o_d, _ = EndOfDay.objects.get_or_create(
                     date=datetime.datetime.today(),
                     done = False,
+                    branch = request.user.branch
                 )
                 
                 e_o_d_obj = EndOfDayItems.objects.create(
@@ -2694,7 +2713,7 @@ def end_of_day_view(request):
                     expected = expected
                 )
 
-                production_plan = Production.objects.filter(date_created=datetime.date.today())
+                production_plan = Production.objects.filter(date_created=datetime.date.today(), branch = request.user.branch)
                 dish_info = Dish.objects.get(name=dish_name)
 
                 for production in production_plan:
@@ -2744,7 +2763,8 @@ def confirm_end_of_day(request):
             cashed_amount = amount,
             sales = sales,
             user = request.user, 
-            status = True if amount == sales else False
+            status = True if amount == sales else False,
+            branch = request.user.branch
         )
 
         buffer = generate_end_of_day_report(e_o_d, end_of_day_items, total_amount_staff_sold_today)
@@ -2764,7 +2784,7 @@ def supplier_prices(request, raw_material_name):
     """
     try:
         
-        best_three_prices = best_price(raw_material_name)
+        best_three_prices = best_price(raw_material_name, request.user.branch)
         logger.info(best_three_prices)
         return JsonResponse({'success': True, 'suppliers': best_three_prices})
 
@@ -2776,11 +2796,11 @@ def supplier_prices(request, raw_material_name):
 @login_required
 def end_of_day_detail(request, e_o_d_id):
     try:
-        end_of_day = EndOfDay.objects.get(id=e_o_d_id)
+        end_of_day = EndOfDay.objects.get(id=e_o_d_id, branch = request.user.branch)
         end_of_day_items = EndOfDayItems.objects.filter(end_of_day=end_of_day)
         
-        total_amount_sold_today = Sale.objects.filter(date=localdate(), staff=False).aggregate(total_amount=Sum('total_amount'))['total_amount'] or 0
-        total_amount_staff_sold_today = Sale.objects.filter(date=localdate(), staff=True).aggregate(total_amount=Sum('total_amount'))['total_amount'] or 0
+        total_amount_sold_today = Sale.objects.filter(date=localdate(), staff=False, branch = request.user.branch).aggregate(total_amount=Sum('total_amount'))['total_amount'] or 0
+        total_amount_staff_sold_today = Sale.objects.filter(date=localdate(), staff=True, branch = request.user.branch).aggregate(total_amount=Sum('total_amount'))['total_amount'] or 0
         total_quantity_sold_today = SaleItem.objects.filter(sale__date=localdate(),).aggregate(total_quantity=Sum('quantity'))['total_quantity'] or 0
         total_staff_portions = SaleItem.objects.filter(sale__date=localdate(), sale__staff=True).aggregate(total_staff_portions=Sum('quantity'))['total_staff_portions'] or 0
         difference =  end_of_day.cashed_amount - (total_amount_sold_today - total_amount_staff_sold_today) 
@@ -2790,9 +2810,9 @@ def end_of_day_detail(request, e_o_d_id):
         portion_cost_value = Decimal(0)
         wastage_cost_value = Decimal(0)
         
-        production_items = ProductionItems.objects.filter(production__date_created=end_of_day.date)
+        production_items = ProductionItems.objects.filter(production__date_created=end_of_day.date, production__branch = request.user.branch)
         
-        ingredients = Ingredient.objects.select_related('raw_material').all()
+        ingredients = Ingredient.objects.select_related('raw_material').filter(minor_raw_materials__branch = request.user.branch)
 
         for item in production_items:
             
@@ -2807,7 +2827,7 @@ def end_of_day_detail(request, e_o_d_id):
                     staff_portions_value += Decimal(ing.quantity) * kgs_staff * ing.raw_material.cost   
         
         
-        cogs_total = COGS.objects.filter(date=datetime.datetime.today()).aggregate(total_cogs=Sum('amount'))['total_cogs'] or 0
+        cogs_total = COGS.objects.filter(date=datetime.datetime.today(), branch = request.user.branch).aggregate(total_cogs=Sum('amount'))['total_cogs'] or 0
         gross_profit = total_amount_sold_today - cogs_total - wastage_cost_value
               
         for end in end_of_day_items:
@@ -2953,7 +2973,7 @@ def send_end_of_day_report(request, buffer):
 
 @login_required
 def end_of_day_list(request):
-    end_of_days = EndOfDay.objects.filter(done=True)
+    end_of_days = EndOfDay.objects.filter(done=True, branch = request.user.branch)
     logger.info(end_of_days)
     return render(request, 'end_of_day_list.html', {'eods':end_of_days})
  
@@ -2977,12 +2997,13 @@ def confirm_minor_raw(request):
         quantity = float(quantity)
         
         with transaction.atomic():
-            raw_material = Product.objects.select_for_update().get(id=raw_material_id)
-            production = Production.objects.get(id=production_id)
+            raw_material = Product.objects.select_for_update().get(id=raw_material_id, branch = request.user.branch)
+            production = Production.objects.get(id=production_id, branch = request.user.branch)
             production_plan_item = ProductionItems.objects.filter(production=production, )
             
             p_raw_materials, created = ProductionRawMaterials.objects.get_or_create(
                 product=raw_material,
+                product__branch = request.user.branch,
                 defaults={
                     "quantity": quantity,
                     "quantity_left": 0.0
@@ -3043,7 +3064,7 @@ def calculate_reorder_point(product):
 
 @login_required
 def order_list(request):
-    products = Product.objects.all()
+    products = Product.objects.filter(branch = request.user.branch)
     six_days_ago = timezone.now() - timedelta(days=6)
     lead_time = 1 # 1 days to be put to settings
     
@@ -3076,13 +3097,13 @@ def order_list(request):
 
 @login_required
 def transfers(request):
-    trans = Transfer.objects.all().order_by('-created_at')
+    trans = Transfer.objects.filter(branch = request.user.branch).order_by('-created_at')
     return render(request, 'inventory/transfers.html', {'transfers':trans})
 
 
 @login_required
 def production_transfers(request):
-    trans = Transfer.objects.all().order_by('-created_at')
+    trans = Transfer.objects.filter(branch = request.user.branch).order_by('-created_at')
     
     return render(request, 'inventory/production_transfers.html', {'transfers':trans})
 
@@ -3091,7 +3112,7 @@ def production_transfers(request):
 def transfer_to_production(request):
     if request.method == 'GET':
         form = TransferForm()
-        products = Product.objects.all()
+        products = Product.objects.filter(branch = request.user.branch)
         return render(request, 'inventory/add_transfer.html', {'form':form, 'products':products})
 
     if request.method == 'POST':
@@ -3100,14 +3121,14 @@ def transfer_to_production(request):
             items = data.get('cart')
             
             with transaction.atomic():
-                transfer = Transfer.objects.create(status=False)
+                transfer = Transfer.objects.create(status=False, branch = request.user.branch)
                 
                 for item in items:
                     product_id = item['product_id']
                     quantity = float(item['quantity'])
                     logger.info(f'Processing quantity: {quantity}')
                     
-                    product = Product.objects.get(id=product_id)
+                    product = Product.objects.get(id=product_id, branch= request.user.branch)
                     
                     TransferItems.objects.create(
                         transfer=transfer,
@@ -3136,12 +3157,13 @@ def accept_transfer(request, transfer_id):
     try:
         with transaction.atomic():
 
-            transfer = Transfer.objects.get(id=transfer_id)
+            transfer = Transfer.objects.get(id=transfer_id, branch = request.user.branch)
             transfer_items = TransferItems.objects.filter(transfer=transfer)
 
             for item in transfer_items:
                 product, created = ProductionRawMaterials.objects.get_or_create(
                     product=item.product,
+                    product__branch = request.user.branch,
                     defaults={
                         'quantity': item.quantity
                     }
@@ -3164,7 +3186,7 @@ def accept_transfer(request, transfer_id):
 @login_required
 def receive_transfers_detail(request, transfer_id):
     try:
-        transfer = Transfer.objects.get(id=transfer_id)
+        transfer = Transfer.objects.get(id=transfer_id, branch = request.user.branch)
         transfer_items = TransferItems.objects.filter(transfer=transfer)
         logger.info('one')
         return render(request, 'inventory/receive_transfer_detail.html', 
@@ -3207,7 +3229,7 @@ def production_sales(request):
 
     if filter_option == 'custom':
         production_data = ProductionItems.objects.filter(
-            production__date_created__range=[start_date, end_date]
+            production__date_created__range=[start_date, end_date], production__branch = request.user.branch
         ).values(
             'dish__name'
         ).annotate(
@@ -3219,7 +3241,7 @@ def production_sales(request):
         ).order_by('dish__name')
     else:
         production_data = ProductionItems.objects.filter(
-            production__date_created__gte=start_date
+            production__date_created__gte=start_date, production__branch = request.user.branch
         ).values(
             'dish__name'
         ).annotate(
@@ -3261,7 +3283,7 @@ def check_check_list(request):
         if not check_list_id:
             return JsonResponse({'success': False, 'message': 'Missing check_list_id'}, status=400)
         
-        check_list_item = get_object_or_404(CheckList, id=check_list_id)
+        check_list_item = get_object_or_404(CheckList, id=check_list_id, product__branch = request.user.branch)
         
         check_list_item.status = not check_list_item.status
         
@@ -3277,8 +3299,8 @@ def check_check_list(request):
 
 @login_required
 def check_list_finished_products(request):
-    products = CheckList.objects.filter(date=datetime.datetime.today())
-    non_production_products = ProductionRawMaterials.objects.filter(product__raw_material=False)
+    products = CheckList.objects.filter(date=datetime.datetime.today(), product__branch = request.user.branch)
+    non_production_products = ProductionRawMaterials.objects.filter(product__raw_material=False, product__branch = request.user.branch)
 
     check_list = []
     for product in non_production_products:
@@ -3290,15 +3312,15 @@ def check_list_finished_products(request):
 
     CheckList.objects.bulk_create(check_list)
     
-    products = CheckList.objects.filter(date=datetime.datetime.today(), product__raw_material=False)
+    products = CheckList.objects.filter(date=datetime.datetime.today(), product__raw_material=False, product__branch = request.user.branch)
 
     return JsonResponse({'success': True, 'products': list(products.values('product__name', 'product__quantity', 'status', 'product__id'))}, status=200)
 
 
 @login_required
 def check_list_raw_products(request):
-    products = CheckList.objects.filter(date=datetime.datetime.today())
-    non_production_products = ProductionRawMaterials.objects.filter(product__raw_material=True)
+    products = CheckList.objects.filter(date=datetime.datetime.today(), product__branch = request.user.branch)
+    non_production_products = ProductionRawMaterials.objects.filter(product__raw_material=True, product__branch = request.user.branch)
 
     check_list = []
     for product in non_production_products:
@@ -3310,14 +3332,14 @@ def check_list_raw_products(request):
 
     CheckList.objects.bulk_create(check_list)
     
-    products = CheckList.objects.filter(date=datetime.datetime.today(), product__raw_material=True)
+    products = CheckList.objects.filter(date=datetime.datetime.today(), product__raw_material=True, product__branch = request.user.branch)
 
     return JsonResponse({'success': True, 'products': list(products.values('product__name', 'product__quantity', 'status', 'product__id'))}, status=200)
 
 @login_required
 def check_list_all_products(request):
-    products = CheckList.objects.filter(date=datetime.datetime.today())
-    non_production_products = ProductionRawMaterials.objects.all()
+    products = CheckList.objects.filter(date=datetime.datetime.today(), product__branch = request.user.branch)
+    non_production_products = ProductionRawMaterials.objects.filter(product__branch = request.user.branch)
     
     check_list = []
     for product in non_production_products:
@@ -3329,7 +3351,7 @@ def check_list_all_products(request):
 
     CheckList.objects.bulk_create(check_list)
     
-    products = CheckList.objects.filter(date=datetime.datetime.today())
+    products = CheckList.objects.filter(date=datetime.datetime.today(), product__branch = request.user.branch)
 
     return JsonResponse({'success': True, 'products': list(products.values('product__name', 'product__quantity', 'status', 'product__id'))}, status=200)
 

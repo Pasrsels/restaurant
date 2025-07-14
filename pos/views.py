@@ -100,9 +100,9 @@ def check_authorization(request):
 def product_meal_json(request):
     if request.method == 'GET':
         
-        meals = Meal.objects.filter(deactivate=False)
-        products = Product.objects.filter(raw_material=False).values('id', 'name', 'price', 'finished_product', 'image')
-        dishes = Dish.objects.all().values('id', 'name', 'price', 'dish', 'image')
+        meals = Meal.objects.filter(deactivate=False, branch = request.user.branch)
+        products = Product.objects.filter(raw_material=False, branch = request.user.branch).values('id', 'name', 'price', 'finished_product', 'image')
+        dishes = Dish.objects.filter(branch = request.user.branch).values('id', 'name', 'price', 'dish', 'image')
 	
         meal_data = [
             {
@@ -151,7 +151,7 @@ def product_meal_json(request):
 @login_required
 def sales_list(request):
     today = datetime.datetime.today()
-    sales = Sale.objects.filter(date=today)
+    sales = Sale.objects.filter(date=today, branch = request.user.branch)
     
     total_sales = sum(sale.total_amount for sale in sales) 
     
@@ -167,7 +167,7 @@ def sales_list(request):
 def meal_detail_json(request, meal_id):
     if request.method == 'POST':
         try:
-            meal = Meal.objects.filter(id=meal_id)
+            meal = Meal.objects.filter(id=meal_id, branch = request.user.branch)
             meal_data = {
                 'id':meal.id,
                 'name':meal.name,
@@ -233,6 +233,7 @@ def process_sale(request):
                     if staff:
                         logger.info(f'sale is staff: {staff} : {total_amount}')
                         sale = Sale.objects.create(
+                            branch = request.user.branch,
                             total_amount=total_amount,
                             tax=tax,
                             sub_total=sub_total,
@@ -243,6 +244,7 @@ def process_sale(request):
                         )
                     else:
                         sale = Sale.objects.create(
+                            branch = request.user.branch,
                             total_amount=total_amount,
                             tax=tax,
                             sub_total=sub_total,
@@ -273,11 +275,11 @@ def process_sale(request):
                             if item.get('meal'): 
                                 meal_id = item['meal_id'].split('-')[1]
 
-                                meal = get_object_or_404(Meal, id=meal_id)
+                                meal = get_object_or_404(Meal, id=meal_id, branch = request.user.branch)
                                 logger.info(f'Sale for meal: {meal}')
                             elif item.get('dish'):
                                 dish_id = item['meal_id'].split('-')[1] 
-                                dish = get_object_or_404(Dish, id=dish_id)
+                                dish = get_object_or_404(Dish, id=dish_id, branch = request.user.branch)
                                 logger.info(f'Sale for dish: {dish}')
                             else:
                                 raise ValueError('Invalid item type: Neither meal nor dish specified.')
@@ -338,7 +340,7 @@ def process_sale(request):
                                             }
                                         )
                                     else:
-                                        take_away = Product.objects.get(name__icontains=name)
+                                        take_away = Product.objects.get(name__icontains=name, branch = request.user.branch)
                                         logger.info({f'Product Takeaway Stuff': take_away.name})
 
                                         take_away.quantity -= item['quantity']
@@ -376,6 +378,7 @@ def process_sale(request):
                             def log(products, sale_item):
                                 for product in products:
                                     ProductionLogs.objects.create(
+                                        branch = request.user.branch,
                                         user=request.user, 
                                         action='sale',
                                         product=product,
@@ -387,7 +390,7 @@ def process_sale(request):
                         else:
                             logger.info('Finished goods')
                             product_id = item['meal_id'].split('-')[1]
-                            product = get_object_or_404(Product, id=product_id)
+                            product = get_object_or_404(Product, id=product_id,branch = request.user.branch)
                             product.quantity -= item['quantity']
 
                             logger.info(f'finished product {product}')
@@ -410,6 +413,7 @@ def process_sale(request):
                             logger.info(f'Saved sale item: {sale_item}')
                             
                             Logs.objects.create(
+                                branch = request.user.branch,
                                 user=request.user, 
                                 action='sale',
                                 product=product,
@@ -489,7 +493,7 @@ def deduct_current_production_plan(request, meal, dish, product, quantity, staff
     logger.info(f"Deduction request — Meal: {meal}, Dish: {dish}, Product: {product}, Quantity: {quantity}, Staff: {staff}")
 
     today_plans = Production.objects.filter(
-        date_created=datetime.date.today(), declared=True, status=True
+        date_created=datetime.date.today(), declared=True, status=True, branch = request.user.branch
     ).order_by('time_created')
 
     if not product:
@@ -508,7 +512,7 @@ def deduct_current_production_plan(request, meal, dish, product, quantity, staff
 
     if meal:
         try:
-            meal_info = Meal.objects.get(name=meal)
+            meal_info = Meal.objects.get(name=meal, branch = request.user.branch)
             dishes = meal_info.dish.all()
 
             if not dishes.exists():
@@ -595,7 +599,7 @@ def deduct_current_production_plan(request, meal, dish, product, quantity, staff
             raise Exception(f"Meal '{meal}' does not exist.")
     elif dish:
         try:
-            dish_info = Dish.objects.get(name=dish)
+            dish_info = Dish.objects.get(name=dish, branch = request.user.branch)
 
             for plan in today_plans:
                 try:
@@ -706,14 +710,15 @@ def change_list(request):
 
     changes = Change.objects.filter(
         timestamp__gte=start_date,
-        timestamp__lte=end_date
+        timestamp__lte=end_date,
+        sale__branch = request.user.branch
     ).order_by('-timestamp')
     
     paginator = Paginator(changes, 10000) 
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    total_change_amount = changes.filter(collected=False).aggregate(total=Sum('amount'))['total'] or 0
+    total_change_amount = changes.filter(collected=False, sale__branch = request.user.branch).aggregate(total=Sum('amount'))['total'] or 0
 
     return render(
         request,
@@ -754,7 +759,7 @@ def download_change_report(request):
         start_date = now - timedelta(days=now.weekday())
         end_date = now
 
-    changes = Change.objects.filter(timestamp__gte=start_date, timestamp__lte=end_date).order_by('timestamp')
+    changes = Change.objects.filter(timestamp__gte=start_date, timestamp__lte=end_date, sale__branch = request.user.branch).order_by('timestamp')
     
     # Create a CSV response
     response = HttpResponse(content_type='text/csv')
@@ -800,7 +805,7 @@ def create_change(request):
             receipt_number = data.get('receipt_number')
             
             # validation
-            if Change.objects.filter(receipt_number=receipt_number).exists():
+            if Change.objects.filter(receipt_number=receipt_number, branch = request.user.branch).exists():
                 return JsonResponse({'success':False, 'message':f'Change with receipt number: {receipt_number} exists.'}, status=400)
             
             Change.objects.create(
@@ -811,6 +816,7 @@ def create_change(request):
                 cashier=request.user,
                 collected=False,
                 claimed=False,
+                branch=request.user.branch
             )
             return JsonResponse({'success':True}, status=201)
         except Exception as e:
@@ -831,7 +837,7 @@ def collect_change(request):
             amount = Decimal(data.get('amount'))
             cashier_id = request.user.id
             
-            change = Change.objects.get(id=change_id)
+            change = Change.objects.get(id=change_id, branch = request.user.branch)
             cashier = User.objects.get(id = cashier_id)
 
             if amount == change.amount:
@@ -852,9 +858,9 @@ def collect_change(request):
 @login_required
 def void_sales(request, user_id):
     if request.method == 'GET':
-        sales = Sale.objects.filter(date=timezone.now()).order_by('-date')
+        sales = Sale.objects.filter(date=timezone.now(), branch = request.user.branch).order_by('-date')
         
-        sale_items = SaleItem.objects.filter(sale__date=timezone.now())
+        sale_items = SaleItem.objects.filter(sale__date=timezone.now(), sale__branch = request.user.branch)
     
         return render (request, 'pos/void_sales.html', {
             'sales':sales,
@@ -870,7 +876,7 @@ def void_sales(request, user_id):
 
 
             sale_id = data['sale_id']
-            sale = get_object_or_404(Sale, id=sale_id)
+            sale = get_object_or_404(Sale, id=sale_id, branch = request.user.branch)
             items = SaleItem.objects.filter(sale=sale)
 
             if sale.void:
@@ -883,7 +889,7 @@ def void_sales(request, user_id):
                 logger.info(f'Sale marked as voided: {sale}')
 
                 for item in items:
-                    p_plan = Production.objects.filter(date_created = datetime.date.today(), declared = True)
+                    p_plan = Production.objects.filter(date_created = datetime.date.today(), declared = True, branch = request.user.branch)
                     logger.info(f'Production Plan {[item.id for item in p_plan]}')
                     for item in items:
                         if item.meal:
@@ -1021,9 +1027,9 @@ def cash_up(request, cashier_id):
     if request.method == 'GET':
         cash_in_hand = 0
 
-        sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=False).values('total_amount', 'cash_type', 'staff')
-        sales_items = SaleItem.objects.filter(sale__cashier__id=cashier_id, sale__date=datetime.datetime.today())
-        void_sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=True).values('total_amount')
+        sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=False, branch = request.user.branch).values('total_amount', 'cash_type', 'staff')
+        sales_items = SaleItem.objects.filter(sale__cashier__id=cashier_id, sale__date=datetime.datetime.today(), sale__branch = request.user.branch)
+        void_sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=True, branch = request.user.branch).values('total_amount')
 
 
         sales_dict = {}
@@ -1131,7 +1137,7 @@ def cash_up(request, cashier_id):
         logger.info(f'Eco cash tax: {eco_cash_tax}')
         variance_list = []
 
-        eod_list = EndOfDayItems.objects.filter(end_of_day__date=datetime.datetime.today()).values(
+        eod_list = EndOfDayItems.objects.filter(end_of_day__date=datetime.datetime.today(), end_of_day__branch = request.user.branch).values(
             'dish_name',
             'wastage',
             'leftovers',
@@ -1141,9 +1147,9 @@ def cash_up(request, cashier_id):
         # logger.info(eod_list)
         # eod_dict = { name:eod.dish_name for eod in eod_list}
 
-        change = Change.objects.filter(cashier__id=cashier_id, timestamp__date=datetime.datetime.today(), collected=False).values('amount')
-        accumulated_change = Change.objects.filter(cashier__id=cashier_id, collected=False).values('amount')
-        previous_change = Change.objects.filter(cashier__id=cashier_id, collected=True)
+        change = Change.objects.filter(cashier__id=cashier_id, timestamp__date=datetime.datetime.today(), collected=False, branch = request.user.branch).values('amount')
+        accumulated_change = Change.objects.filter(cashier__id=cashier_id, collected=False, branch = request.user.branch).values('amount')
+        previous_change = Change.objects.filter(cashier__id=cashier_id, collected=True, branch = request.user.branch)
 
         previous_change_given_by_cashier_list = []
 
@@ -1152,7 +1158,7 @@ def cash_up(request, cashier_id):
             if name:
                 previous_change_given_by_cashier_list.append({'Name': item.name, 'Amount': item.amount})
 
-        expenses = CashierExpense.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today())
+        expenses = CashierExpense.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), branch = request.user.branch)
        
         expenses_list = []
         for item in expenses:
@@ -1179,6 +1185,7 @@ def cash_up(request, cashier_id):
         try:
 
             CashUp.objects.create(
+                branch = request.user.branch,
                 cashier = cashier,
                 # cashed_amount = cashed_amount,
                 void_amount = total_void_sales,
@@ -1241,7 +1248,7 @@ def update_cashed_amount(request, cashup_id):
                 return JsonResponse({'success':False, 'message':'Please fill in the amount field'})
 
             with transaction.atomic():
-                cash_up = CashUp.objects.select_for_update().get(id=cashup_id)
+                cash_up = CashUp.objects.select_for_update().get(id=cashup_id, branch = request.user.branch)
                 cash_in_hand = cash_up.sales - cash_up.void_amount - cash_up.expenses + cash_up.change
                 cash_up.cashed_amount = amount
                 if cash_up.cashed_amount == cash_in_hand:
@@ -1261,18 +1268,18 @@ def accountantreport(request):
     cash_in_hand = 0
     cashier_id = request.user.id
 
-    sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=False).values('total_amount')
-    change = Change.objects.filter(cashier__id=cashier_id, cashier_give__id=cashier_id, timestamp__date=datetime.datetime.today(), collected=False).values('amount')
-    other_cashiers_change_given = Change.objects.filter(cashier_give__id=cashier_id, collected=True).exclude(cashier__id=cashier_id).values('amount')
-    accumulated_change = Change.objects.filter(cashier__id=cashier_id, collected=False).values('amount')
-    accumulated_change_given = Change.objects.filter(cashier__id=cashier_id, cashier_give__id=cashier_id, collected=True).values('amount')
-    expenses = CashierExpense.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today()).values('amount')
-    void_sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=True).values('total_amount')
+    sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=False, branch = request.user.branch).values('total_amount')
+    change = Change.objects.filter(cashier__id=cashier_id, cashier_give__id=cashier_id, timestamp__date=datetime.datetime.today(), collected=False, branch = request.user.branch).values('amount')
+    other_cashiers_change_given = Change.objects.filter(cashier_give__id=cashier_id, collected=True, branch = request.user.branch).exclude(cashier__id=cashier_id).values('amount')
+    accumulated_change = Change.objects.filter(cashier__id=cashier_id, collected=False, branch = request.user.branch).values('amount')
+    accumulated_change_given = Change.objects.filter(cashier__id=cashier_id, cashier_give__id=cashier_id, collected=True, branch = request.user.branch).values('amount')
+    expenses = CashierExpense.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), branch = request.user.branch).values('amount')
+    void_sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=True, branch = request.user.branch).values('total_amount')
 
     total_staff_sales = sales.filter(staff=True).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
 
     try:
-        declared_cash = LeftOvers.objects.get(cashier__id=cashier_id, date=datetime.datetime.today())
+        declared_cash = LeftOvers.objects.get(cashier__id=cashier_id, date=datetime.datetime.today(), branch = request.user.branch)
         cashier_cash = declared_cash.cash
     except Exception as e:
         cashier_cash = 0
@@ -1290,7 +1297,7 @@ def accountantreport(request):
     logger.info(f'cash in hand: {cash_in_hand}')
     logger.info(cashier_cash)
     
-    cashier = User.objects.get(id=cashier_id)
+    cashier = User.objects.get(id=cashier_id, branch = request.user.branch)
     
     buffer = io.BytesIO()
     
