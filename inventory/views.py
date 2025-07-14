@@ -621,7 +621,7 @@ def create_purchase_order(request):
             return JsonResponse({'success': False, 'message': 'Missing required fields'}, status=400)
 
         try:
-            supplier = Supplier.objects.get(id=supplier_id)
+            supplier = Supplier.objects.get(id=supplier_id, branch=request.user.branch)
         except Supplier.DoesNotExist:
             return JsonResponse({'success': False, 'message': f'Supplier with ID {supplier_id} not found'}, status=404)
 
@@ -656,7 +656,7 @@ def create_purchase_order(request):
                         return JsonResponse({'success': False, 'message': 'Missing fields in item data'}, status=400)
 
                     try:
-                        product = Product.objects.get(name=product_name)
+                        product = Product.objects.get(name=product_name, branch=request.user.branch)
                     except Product.DoesNotExist:
                         transaction.set_rollback(True)
                         return JsonResponse({'success': False, 'message': f'Product with Name {product_name} not found'}, status=404)
@@ -671,7 +671,7 @@ def create_purchase_order(request):
                         note=note
                     )
 
-                    supplier_email(purchase_order.supplier.id, purchase_order_item)
+                    supplier_email(purchase_order.supplier.id, purchase_order_item, request.user.branch)
 
                 # consider to put expenses
                 if purchase_order.status == 'received': 
@@ -697,7 +697,7 @@ def create_purchase_order(request):
                     )
 
         except Exception as e:
-            return JsonResponse({'success': False, 'message': str(e)}, status=500)
+            return JsonResponse({'success': False, 'message': f'{str(e)} fefere'}, status=500)
 
         return JsonResponse({'success': True, 'message': 'Purchase order created successfully'})
 
@@ -2784,7 +2784,7 @@ def supplier_prices(request, raw_material_name):
     """
     try:
         
-        best_three_prices = best_price(raw_material_name, request.user.branch)
+        best_three_prices = best_price(raw_material_name=raw_material_name, branch=request.user.branch)
         logger.info(best_three_prices)
         return JsonResponse({'success': True, 'suppliers': best_three_prices})
 
