@@ -29,7 +29,7 @@ def analytics_view(request):
 
     if filter_by == 'hour':
 
-        sales_by_hour = SaleItem.objects.filter(sale__date=today, void=False) \
+        sales_by_hour = SaleItem.objects.filter(sale__date=today, void=False, sale__branch = request.user.branch) \
             .annotate(hour=ExtractHour('time')) \
             .values('hour') \
             .annotate(total_sales=Sum('price')) \
@@ -40,15 +40,15 @@ def analytics_view(request):
 
     elif filter_by == 'day':
 
-        today_sales = Sale.objects.filter(date=today, void=False).aggregate(total=Sum('total_amount'))
-        yesterday_sales = Sale.objects.filter(date=yesterday, void=False).aggregate(total=Sum('total_amount'))
+        today_sales = Sale.objects.filter(date=today, void=False, branch = request.user.branch).aggregate(total=Sum('total_amount'))
+        yesterday_sales = Sale.objects.filter(date=yesterday, void=False, branch = request.user.branch).aggregate(total=Sum('total_amount'))
         
-        today_void_sales = Sale.objects.filter(date=today, void=True).aggregate(total=Sum('total_amount'))
+        today_void_sales = Sale.objects.filter(date=today, void=True, branch = request.user.branch).aggregate(total=Sum('total_amount'))
        
-        yesterday_void_sales = Sale.objects.filter(date=yesterday, void=True).aggregate(total=Sum('total_amount'))
+        yesterday_void_sales = Sale.objects.filter(date=yesterday, void=True, branch = request.user.branch).aggregate(total=Sum('total_amount'))
         
-        change_amount = Change.objects.filter(timestamp__date=today, collected=False).aggregate(total=Sum('amount'))
-        yesterday_change_amount = Change.objects.filter(timestamp__date=yesterday, collected=False).aggregate(total=Sum('amount'))
+        change_amount = Change.objects.filter(timestamp__date=today, collected=False, branch = request.user.branch).aggregate(total=Sum('amount'))
+        yesterday_change_amount = Change.objects.filter(timestamp__date=yesterday, collected=False, branch = request.user.branch).aggregate(total=Sum('amount'))
 
         data['total_void_sales'] = today_void_sales['total'] or 0
         data['change_amount'] = change_amount['total'] or 0
@@ -60,21 +60,21 @@ def analytics_view(request):
         
     elif filter_by == 'month':
 
-        month_sales = Sale.objects.filter(date__gte=start_of_month, void=False).aggregate(total=Sum('total_amount'))
+        month_sales = Sale.objects.filter(date__gte=start_of_month, void=False, branch = request.user.branch).aggregate(total=Sum('total_amount'))
         data['month_sales'] = month_sales['total'] or 0
 
     elif filter_by == 'year':
         
-        year_sales = Sale.objects.filter(date__gte=start_of_year, void=False).aggregate(total=Sum('total_amount'))
+        year_sales = Sale.objects.filter(date__gte=start_of_year, void=False, branch = request.user.branch).aggregate(total=Sum('total_amount'))
         data['year_sales'] = year_sales['total'] or 0
 
     # Best-selling dish
-    best_selling_meal = SaleItem.objects.filter(meal__isnull=False, sale__date=today).values('meal__name') \
+    best_selling_meal = SaleItem.objects.filter(meal__isnull=False, sale__date=today, sale__branch = request.user.branch).values('meal__name') \
     .annotate(total_sold=Sum('quantity')) \
     .order_by('-total_sold') \
     .first()
 
-    best_selling_dish = SaleItem.objects.filter(dish__isnull=False, sale__date=today).values('dish__name') \
+    best_selling_dish = SaleItem.objects.filter(dish__isnull=False, sale__date=today, sale__branch = request.user.branch).values('dish__name') \
     .annotate(total_sold=Sum('quantity')) \
     .order_by('-total_sold') \
     .first()
@@ -90,11 +90,11 @@ def analytics_view(request):
     grouped_dishes = defaultdict(lambda: {})
     staff_dishes = defaultdict(lambda: {})
 
-    sales = SaleItem.objects.filter(sale__date = today, sale__void=False, sale__staff=False).select_related('sale', 'meal', 'dish', 'product').all()
+    sales = SaleItem.objects.filter(sale__date = today, sale__void=False, sale__staff=False, branch = request.user.branch).select_related('sale', 'meal', 'dish', 'product').all()
 
-    staff_sales = SaleItem.objects.filter(sale__date = today, sale__void=False, sale__staff=True).select_related('sale', 'meal', 'dish', 'product').all()
+    staff_sales = SaleItem.objects.filter(sale__date = today, sale__void=False, sale__staff=True, branch = request.user.branch).select_related('sale', 'meal', 'dish', 'product').all()
 
-    sales_dishes = SaleItem.objects.filter(sale__date = today, sale__void=False, sale__staff=False)
+    sales_dishes = SaleItem.objects.filter(sale__date = today, sale__void=False, sale__staff=False, branch = request.user.branch)
 
     dishes = defaultdict(lambda: {})
 
