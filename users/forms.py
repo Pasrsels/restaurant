@@ -14,7 +14,7 @@ class UserRegistrationForm(forms.ModelForm):
             'email',
             'phonenumber',
             'company',
-            'branch',
+            # 'branch',
             'role',
             'password',
         ]
@@ -32,7 +32,7 @@ class UserDetailsForm(forms.ModelForm):
             'phonenumber',
             'role',
             'company',
-            'branch'
+            # 'branch'
         ]
 
 
@@ -47,7 +47,7 @@ class UserDetailsForm2(forms.ModelForm):
             'email',
             'phonenumber',
             'role',
-            'branch'
+            # 'branch'
         ]
 
 class CompanyForm(forms.ModelForm):
@@ -63,7 +63,7 @@ class CustomUserCreationForm(UserCreationForm):
 
     class Meta:
         model = User
-        fields = ('username', 'first_name', 'last_name', 'email', 'phonenumber', 'branch', 'password1', 'password2')
+        fields = ('username', 'first_name', 'last_name', 'email', 'phonenumber', 'password1', 'password2')
 
     def save(self, commit=True):
         user = super().save(commit=False)
