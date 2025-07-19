@@ -1,8 +1,18 @@
 {% extends "base.html" %}
 {% load static %}
+{% load crispy_forms_tags %}
 {% block title %}Pos{% endblock title %}
 {% block content %}
 <style>
+    .bt-end{
+        margin-right: 5px;
+    }
+    .bt-left{
+        margin-left: 25px;
+    }
+    #autoConfirmProdPlan{
+        overflow-y: auto;
+    }
     /* Floating Button */
     .floating-button {
         marging-top: 300px;
@@ -109,6 +119,10 @@
         object-fit: cover;
         object-position: center;
       }
+    
+      .bg-secondary-em{
+        background-color: #e4e4e4;
+      }
       
 </style>
 
@@ -129,7 +143,7 @@
                         >
                     </div>
                     <div class="mt-4">
-                        <div class="row" id="itemsContainer" style='height:70vh; overflow-y: auto;'></div>
+                        <div class="row bg-secondary-em border py-1 rounded mx-1" id="itemsContainer" style='height:70vh; overflow-y: auto;'></div>
                     </div>
                 </div>
 
@@ -153,8 +167,11 @@
                         </li> -->
                     </div>
                     <div class="d-flex">
-                        <li class="m-1">
+                        <li class="m-1 d-none">
                             <a class="btn btn-danger text-light" onclick="handover()">Handover</a>
+                        </li>
+                        <li class="m-1">
+                            <a class="btn btn-danger text-light" onclick="addModal()">Add Production Plan</a>
                         </li>
                         <li class="m-1">
                             <a class="btn btn-danger text-light" id="void">Void</a>
@@ -165,9 +182,9 @@
 
             <!-- Middle Column (Order Details) -->
             <div class="col-3 p-0 rounded">
-                <div class="bg-dark text-light h-100 d-flex flex-column rounded">
+                <div class="bg-white text-dark h-100 d-flex flex-column rounded border">
                     <h5 class="fw-bold text-center border-bottom pb-2 pt-3 px-3">Order Details</h5>
-                    <div id="orderDetails" class="flex-grow-1 overflow-auto px-3" style="min-height: 200px;"></div>
+                    <div id="orderDetails" class="overflow-auto px-3" style="max-height: 500px;"></div>
                     
                     <div class="mt-auto px-3 pb-3">
                         <hr>
@@ -504,6 +521,42 @@
         </div>
     </div>
 
+
+    <div class="modal fade" id="addProductioNPlanModal" tabindex="-1" aria-labelledby="addProductioNPlanModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content shadow">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addProductioNPlanModalLabel">POS PRODUCTION PLAN CREATION</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mt-2">
+                        <div class="col-9">
+                            <table class="table">
+                                <thead class="bg-primary">
+                                    <th>Dish</th>
+                                    <th>Portions</th>
+                                    <th>Total Cost</th>
+                                </thead>
+                                <tbody id="cart-items"></tbody>
+                            </table>
+                            <div class="d-flex justify-content-end">
+                                <button class="btn border bx bx-reset mx-2" id="id_reset"></button>
+                                <button class="btn-primary btn sm bx bx-save" id="id_submit"></button>
+                            </div>
+                        </div>
+                        <div class="col-3 mt-2">
+                            <form id="production-plan-form">
+                                {% csrf_token %}
+                                {{ form | crispy }}
+                                <button type="button" id="save-button" class="btn btn-secondary btn-sm w-100">Save</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
     <script src="https://unpkg.com/imask"></script>
     <script>
@@ -515,9 +568,11 @@
         let mealsData = []
         let orderType = ''
         let changeAmount = 0;
+        let productionModalAuth = false;
         const changeData = []
 
         // const cashModal = document.getElementById('cashTypeModal');
+        const productionModal = new bootstrap.Modal(document.getElementById('addProductioNPlanModal'));
         const chargeModal = new bootstrap.Modal(document.getElementById('chargeModal'));
         const staffModal = new bootstrap.Modal(document.getElementById('staffModal'));
         const staffChargeModal = new bootstrap.Modal(document.getElementById('staffChargeModal'));
@@ -532,6 +587,13 @@
         const sellAuthorizationModal = new bootstrap.Modal(document.getElementById('AuthorizationModal'));
         const search = document.getElementById('searchInput')
 
+        function addModal(){
+            if(productionModalAuth === true){
+                productionModal.show();
+            }else{
+                sellAuthorizationModal.show();
+            }
+        }
 
         document.addEventListener('keydown', function(event){
             if(event.code === 'F1'){
@@ -1027,17 +1089,27 @@
                 itemCard.className = 'col-md-3';
                 itemCard.innerHTML = `
                     <div class="card mb-4 position-relative overflow-hidden">
-                        <img src="${item.image ? '/media/' + item.image : '/media/' + 'placeholder.png'}" 
+                        <img src="${item.image ? '/media/' + item.image : '/media/' + 'placeholder.jpg'}" 
                         class="card-img-top" 
                         style = "object-fit: center;"
                         alt="${item.name}" 
                         onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
                         
-                        <div class="card-body text-center rounded-0 d-flex justify-content-center align-items-center bg-warning position-absolute bottom-0 w-100"
+                        <div class="bg-warning position-absolute top-0 w-100 text-center py-2"
+                            onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})"
+                        ">
+                            <span class="text-dark fs-5 fw-bold"
+                                readonly
+                            >
+                                ${item.name}
+                            </span>
+                        </div>
+                        
+                        <div class="border border-dark border-rounded card-body text-center rounded-0 d-flex justify-content-center align-items-center bg-warning position-absolute bottom-0 w-100"
                             style="height: 50px; padding: 0; margin: 0; line-height: 50px; margin-top:-10px;"
                             onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
                             
-                            <span class="">${item.name} $${parseFloat(item.price).toFixed(2)}</span>
+                            <span class="bt-end fw-bold fs-3">$${parseFloat(item.price).toFixed(2)}</span>
                         </div>
                     </div>
 
@@ -1828,7 +1900,7 @@ function generateAccountantCashUp(userId) {
     const authorization = () => {
         const username = document.querySelector('#s_username').value;
         const password = document.querySelector('#s_password').value;
-        const save = "save";
+        //const save = "save";
         
         fetch('{% url "pos:void_authenticate" %}', {
             method: 'POST',
@@ -1836,7 +1908,7 @@ function generateAccountantCashUp(userId) {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCookie('csrftoken')
             },
-            body: JSON.stringify({ username, password, save}) 
+            body: JSON.stringify({ username, password}) 
         })
         .then(response => response.json())
         .then(authData => {
@@ -1846,7 +1918,9 @@ function generateAccountantCashUp(userId) {
                     text: 'Authentication successful!',
                     icon: 'success',
                 }).then(() => {
-                    window.location.reload();
+                    productionModalAuth = true;
+                    sellAuthorizationModal.hide();
+                    addModal();
                 });
             } else {
                 Swal.fire({
@@ -2234,69 +2308,79 @@ function generateAccountantCashUp(userId) {
         });
     }
 
-// function to filter items displayed on pos based on selected category
-function filterItemsByCategory(categoryName) {
-    console.log(categoryName);
-    fetch("{% url 'inventory:filter_meal_category' %}?category=" + encodeURIComponent(categoryName), { 
-        method: 'GET'
-    })
-    .then(response => response.json())
-    .then(data =>{
-        console.log({filtered:data})
-        const itemsContainer = document.getElementById('itemsContainer');
-        itemsContainer.innerHTML = '';
+    // function to filter items displayed on pos based on selected category
+    function filterItemsByCategory(categoryName) {
+        console.log(categoryName);
+        fetch("{% url 'inventory:filter_meal_category' %}?category=" + encodeURIComponent(categoryName), { 
+            method: 'GET'
+        })
+        .then(response => response.json())
+        .then(data =>{
+            console.log({filtered:data})
+            const itemsContainer = document.getElementById('itemsContainer');
+            itemsContainer.innerHTML = '';
 
-        data.forEach(item => {
-            console.log({here:item.image})
-            console.log(item.meal, item.dish)
-            const itemCard = document.createElement('div');
-            itemCard.className = 'col-md-3';
-            itemCard.innerHTML = `
-                <div class="card mb-4 position-relative overflow-hidden">
-                    <img src="${item.image ? '/media/' + item.image : '/media/' + 'placeholder.png'}" 
-                    class="card-img-top" 
-                    style = "object-fit: center;"
-                    alt="${item.name}" 
-                    onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
-                    
-                    <div class="card-body text-center rounded-0 d-flex justify-content-center align-items-center bg-warning position-absolute bottom-0 w-100"
-                        style="height: 50px; padding: 0; margin: 0; line-height: 50px; margin-top:-10px;"
+            data.forEach(item => {
+                console.log({Image:item.image})
+                console.log(item.meal, item.dish)
+                const itemCard = document.createElement('div');
+                itemCard.className = 'col-md-3';
+                itemCard.innerHTML = `
+                    <div class="card mb-4 position-relative overflow-hidden">
+                        <img src="${item.image ? '/media/' + item.image : '/media/' + 'placeholder.jpg'}" 
+                        class="card-img-top" 
+                        style = "object-fit: center;"
+                        alt="${item.name}" 
                         onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
-                        
-                        <span class="">${item.name} $${item.price}</span>
+                         
+                        <div class="bg-warning position-absolute top-0 w-100 text-center py-2"
+                            onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})"
+                        ">
+                            <span class="text-dark fs-5 fw-bold"
+                                readonly
+                            >
+                                ${item.name}
+                            </span>
+                        </div>
+
+                        <div class="border border-dark border-rounded card-body text-center rounded-0 d-flex justify-content-center align-items-center bg-warning position-absolute bottom-0 w-100"
+                            style="height: 50px; padding: 0; margin: 0; line-height: 50px; margin-top:-10px;"
+                            onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
+                            
+                            <span class="fw-bold fs-5">$${parseFloat(item.price).toFixed(2)}</span>
+                        </div>
                     </div>
-                </div>
 
-            `;
-            itemsContainer.appendChild(itemCard);
+                `;
+                itemsContainer.appendChild(itemCard);
+            });
         });
-    });
-}
-window.addEventListener('load', function () {
-    setTimeout(()=>{
-        //document.getElementById('loader').style.display = 'none';
-    }, 1000)
-}); 
+    }
+    window.addEventListener('load', function () {
+        setTimeout(()=>{
+            //document.getElementById('loader').style.display = 'none';
+        }, 1000)
+    }); 
 
 
-populateSidebarCategories();
+    populateSidebarCategories();
 
-/*Function to search within category
-function searchItems() {
-    const query = document.getElementById("searchInput").value.toLowerCase();
-    const itemCards = document.querySelectorAll("#itemsContainer .col-2");
-    itemCards.forEach(card => {
-        const titleElement = card.querySelector(".card-title");
-        if (titleElement) {
-            const titleText = titleElement.textContent.toLowerCase();
-            if (titleText.includes(query)) {
-                card.style.display = "";
-            } else {
-                card.style.display = "none";
+    /*Function to search within category
+    function searchItems() {
+        const query = document.getElementById("searchInput").value.toLowerCase();
+        const itemCards = document.querySelectorAll("#itemsContainer .col-2");
+        itemCards.forEach(card => {
+            const titleElement = card.querySelector(".card-title");
+            if (titleElement) {
+                const titleText = titleElement.textContent.toLowerCase();
+                if (titleText.includes(query)) {
+                    card.style.display = "";
+                } else {
+                    card.style.display = "none";
+                }
             }
-        }
-    });
-}*/
+        });
+    }*/
 
     function getCookie(name) {
         let cookieValue = null;
@@ -2312,5 +2396,216 @@ function searchItems() {
         }
         return cookieValue;
     }
+
+
+    $(document).ready(function() {
+        let cart = [];
+        let portion_multiplier = 1;
+        let ingredientsData = [];
+    
+        const lf = document.getElementById('id_lf_carried_forward_quantity');
+        const rm = document.getElementById('id_rm_carried_forward_quantity');
+        const quantity = document.getElementById('id_quantity');
+        const actual = document.getElementById('id_actual_quantity');
+    
+        // $('#id_dish').select2();
+    
+        // Reset button functionality
+        $('#id_reset').on('click', function() {
+            cart = [];
+            updateCartTable();
+        });
+    
+        // Submit button functionality
+        $('#id_submit').on('click', function() {
+            const postData = {
+                csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
+                cart: cart,
+                auto: true
+            };
+    
+            fetch('{% url "inventory:create_production_plan" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()
+                },
+                body: JSON.stringify(postData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: "Success",
+                        text: "Production plan created successfully!",
+                        icon: "success"
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                    cart = [];
+                    updateCartTable();
+                } else {
+                    Swal.fire({
+                        title: "Error",
+                        text: data.message,
+                        icon: "error"
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error submitting production plan:', error);
+            });
+        });
+    
+        // Dish selection event
+        $('#id_dish').on('change', function(e) {
+            const selectedProductId = e.target.value;
+    
+            const postData = {
+                csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
+                dish_id: selectedProductId,
+            };
+    
+            fetch('{% url "inventory:dish_json_detail" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()
+                },
+                body: JSON.stringify(postData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    ingredientsData = data.data; // Replaces previous data
+                    portion_multiplier = data.portion_multiplier;
+                } else {
+                    Swal.fire({
+                        title: "Error",
+                        text: data.message,
+                        icon: "error"
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error posting product data:', error);
+            });
+        });
+    
+        // Quantity input listener
+        $('#id_quantity').on('input', function(e) {
+            let quantityVal = parseFloat(e.target.value) || 0;
+            let lfVal = parseFloat(lf.value) || 0;
+            let rmVal = parseFloat(rm.value) || 0;
+    
+            let value = quantityVal - (lfVal + rmVal);
+            actual.value = value < 0 ? 0 : value;
+            actual.readOnly = true;
+            actual.style.backgroundColor = 'lightgray';
+        });
+    
+        // Calculate total cost based on dish and portion size
+        function total_dish_cost(portions) {
+            let cost_per_kg = 0;
+            let kgs = portions / portion_multiplier;
+    
+            ingredientsData.forEach((i) => {
+                cost_per_kg += i.quantity * i.cost;
+            });
+    
+            return kgs * cost_per_kg;
+        }
+    
+        // Add item to cart
+        $('#save-button').on('click', function() {
+            const portions = parseFloat($('#id_portions').val());
+            const dish_name = $('#select2-id_dish-container').text();
+
+            console.log(dish_name)
+
+            if (!ingredientsData.length || isNaN(portions) || portions <= 0) {
+                Swal.fire({
+                    title: "Invalid Entry",
+                    text: "Please select a dish and enter a valid portion size.",
+                    icon: "warning"
+                });
+                return;
+            }
+            /*
+            const item = {
+                dish: $('#id_dish option:selected').text(),
+                portions: portions,
+                total_cost: total_dish_cost(portions)
+            };
+    
+            cart.push(item);
+            updateCartTable();
+            */
+            
+            const dish_text = $('#id_dish option:selected').text();
+            const itemIndex = cart.findIndex(entry => entry.dish === dish_text);
+
+            if (itemIndex !== -1) {
+                cart[itemIndex].portions += portions;
+                cart[itemIndex].total_cost = total_dish_cost(cart[itemIndex].portions);
+            } else {
+                const item = {
+                    dish: dish_text,
+                    portions: portions,
+                    total_cost: total_dish_cost(portions)
+                };
+                cart.push(item);
+            }
+
+            updateCartTable();
+            $('#id_dish').val(null).trigger('change');
+            $('#id_portions').val(0);
+        });
+    
+        // Update cart table display
+        function updateCartTable() {
+            const cartItems = $('#cart-items');
+            cartItems.empty();
+    
+            cart.forEach((item, index) => {
+                cartItems.append(`
+                    <tr>
+                        <td>
+                            <button class="btn border bx bx-trash" onclick="deleteItem(${index})"></button>
+                            <span class='mx-2'>${item.dish}</span>
+                        </td>
+                        <td>
+                            <input type="number" class="form-control" value="${item.portions}" onchange="updateQuantity(${index}, this.value)">
+                        </td>
+                        <td>${item.total_cost.toFixed(2)}</td>
+                    </tr>
+                `);
+            });
+        }
+    
+        // Global functions for cart item actions
+        window.deleteItem = function(index) {
+            cart.splice(index, 1);
+            updateCartTable();
+        }
+    
+        window.updateQuantity = function(index, newPortions) {
+            newPortions = parseFloat(newPortions);
+    
+            if (isNaN(newPortions) || newPortions <= 0) {
+                Swal.fire({
+                    title: "Invalid Portion",
+                    text: "Please enter a valid portion number.",
+                    icon: "warning"
+                });
+                return;
+            }
+    
+            const item = cart[index];
+            item.portions = newPortions;
+            item.total_cost = total_dish_cost(newPortions);
+            updateCartTable();
+        }
+    });
     </script>
 {% endblock %}

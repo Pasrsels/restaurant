@@ -1,14 +1,17 @@
 {% load static %}
 {% block content %}
+
     <style>
-        .sidebar {
-            margin-top: 50px;
+        .sidebar{
+            max-height: 400px;
+            margin-top: 70px;
+            margin-bottom: 100px;
             height: 100vh;
             position: fixed;
             width: 300px;
             flex-direction: column;
             padding-top: 20px;
-            overflow-x: hidden;
+            overflow-x: auto;
             overflow-y: auto;
         }
 
@@ -47,17 +50,68 @@
             margin-left: 270px; 
             padding: 20px;
         }
+
+
+        .underbar{
+            max-height: 400px;
+            margin-top: 475px;
+            margin-bottom: 100px;
+            height: 100vh;
+            position: fixed;
+            width: 300px;
+            flex-direction: column;
+            padding-top: 20px;
+            overflow-x: auto;
+            overflow-y: auto;
+        }
+
+        .underbar .card {
+            border: border;
+            padding: 2px;
+            background: transparent;
+            transition: background 0.3s, color 0.3s;
+            width: 280px;
+            margin-left: 5px;
+        }
+
+        .underbar .card-body{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding-left: 10px;
+            height: 3rem;
+        }
+
+        .underbar .card:hover {
+            background: #333;
+            color: white;
+        }
+        .underbar .card img {
+            margin-right: 15px;
+        }
+
+        .underbar a {
+            text-decoration: none;
+            color: inherit;
+            margin-bottom: 10px;
+        }
+
+        .content {
+            margin-left: 270px; 
+            padding: 20px;
+        }
     </style>
 
     <div class="Meal_Categories">
-        <div class="d-flex justify-content-between text-dark rounded mt-4 align-items-center">
+        <div class="d-flex justify-content-between text-dark rounded mt-4 mb-2 align-items-center">
             <a href='/' class='mt-1 bx bx-home btn border fs-5'></a>
             <span class='fs-5 fw-bold mx-3'>Meal Categories</span>
         </div>
     </div>        
 
     <!-- Sidebar Container -->
-    <div class="sidebar"></div>
+    <div class="sidebar border rounded"></div>
+    <div class="underbar border rounded"></div>
 
 <script>
     //function to populate sidebar
@@ -180,8 +234,71 @@
         .catch(error => console.error('Error populating sidebar:', error));
     }
 
+    function populateUnderbarCategories() {
+        fetch("{% url 'inventory:end_of_day_view_json' %}", {
+            method: 'GET'
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log({DATA:data.production_today});
+            const underbarContainer = document.querySelector('.underbar');
+            underbarContainer.innerHTML = '';
+            
+            // Add CSS for bordered and centered list items
+            const style = document.createElement('style');
+            style.textContent = `
+                .underbar .card {
+                    border: 1px solid #ccc;
+                    border-radius: 5px;
+                    margin-bottom: 10px;
+                    text-decoration: none;
+                    color: inherit;
+                    display: block;
+                    transition: all 0.3s ease;
+                    height: 50px;
+                }
+                .underbar .card:hover {
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+                }
+                .underbar .card-body {
+                    padding: 12px;
+                    text-align: center;
+                    font-weight: 500;
+                }
+            `;
+            document.head.appendChild(style);
+            
+            data.production_today.forEach(production => {
+                let portions_left = 0;
+                portions_left = parseInt(production.total_portions) - parseInt(production.total_sold)
+
+                console.log({Production: production.name});
+
+                const link = document.createElement('a');
+                link.href = "#";
+                link.classList.add('card');
+
+                /*
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    filterItemsByCategory(production.name);
+                });
+                */
+
+                const cardBody = document.createElement('div');
+                cardBody.classList.add('card-body');
+                cardBody.textContent = `${production.name} [${portions_left}]`;
+                
+                link.appendChild(cardBody);
+                underbarContainer.appendChild(link);
+            });
+        })
+        .catch(error => console.error('Error populating underbar:', error));
+    }
+    
     document.addEventListener('DOMContentLoaded', function() {
         populateSidebarCategories();
+        populateUnderbarCategories();
     });
 </script>
 {% endblock %}

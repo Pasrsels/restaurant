@@ -42,10 +42,12 @@ class CustomUserManager(BaseUserManager):
 class Company(models.Model):
     name = models.CharField(max_length=255)
     address = models.TextField()
-    
-
+     
     def __str__(self) -> str:
         return self.name
+
+class Branch(models.Model):
+    name = models.CharField(max_length=60, default='Main')
 
 class User(AbstractUser):
     
@@ -60,7 +62,7 @@ class User(AbstractUser):
     phonenumber = models.CharField(max_length=13)
     role = models.CharField(choices=USER_ROLES, max_length=50)
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="users", null=True)
-    # sessio_key = models.CharField(max_length=255)
+    # branch = models.ForeignKey('Branch', on_delete=models.CASCADE, null=True)
 
     def __str__(self) -> str:
-        return self.username
+        return f'User:{self.username} Company:{self.company.name}'

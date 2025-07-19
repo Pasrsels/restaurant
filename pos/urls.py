@@ -34,5 +34,8 @@ urlpatterns = [
     path('handover/', cashier_handover_shift, name='cashier_handover'),
 
     #authorization to sell
-    path('authorize/sell/', check_authorization, name='authorizationstatus')
+    path('authorize/sell/', check_authorization, name='authorizationstatus'),
+
+    #low production plan stock
+    path('low-stock/', lowStockNotification, name='low_stock'),
 ]

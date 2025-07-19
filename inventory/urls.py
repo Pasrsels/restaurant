@@ -83,7 +83,9 @@ urlpatterns = [
     path('filter/meal/category/', CategoryMeal, name='filter_meal_category'),
     
     # end of day
+    # end_of_day_view_json
     path('end-of-day/', end_of_day_view, name='end_of_day_view'),
+    path('end-of-day-json/', end_of_day_view_json, name='end_of_day_view_json'),
     path('save-end-of-day/', end_of_day_view, name='save_end_of_day'),
     path('confirm_end_of_day/', confirm_end_of_day, name='confirm_end_of_day'),
     path('end_of_day_detail/<int:e_o_d_id>/', end_of_day_detail, name='end_of_day_detail'),

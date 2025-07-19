@@ -91,6 +91,15 @@
         <div class="row">
             <div class=" top-bar">
                 <nav class="p-2 border">
+                    {% if request.resolver_match.url_name == 'declare_production' %}
+                    <div class='production-plan mt-2 d-flex justify-content-between align-items-center'>
+                        <div>
+                            <a href='{% url "inventory:production_plans" %}' class='border btn bx bx-arrow-back fs-5'></a>
+                            <a href='/' class='bx bx-home btn border fs-5 mx-2'></a>
+                            <span class='mt-2 fs-5'>Production Plan : {{ p_plan.production_plan_number }} Declaration</span>
+                        </div>
+                    </div>
+                    {% else %}
                     <div class="d-flex justify-content-between align-items-center w-100">
                         <div>
                             <h4 class="fw-bold">{{ request.user.company.name }}</h4>
@@ -120,21 +129,18 @@
                             </ul>
                         </div>
                     </div>
+                    {% endif %}
                                        
                 </nav>
                     <div class="row">
                         {% if request.resolver_match.url_name == 'pos' %}
-                        <div class="col-2 d-flex justify-content-center">
-                            {% include 'base/Possidebar.html' %}
-                        </div>
-                        {% elif request.resolver_match.url_name == 'confirm_production_plan' or request.resolver_match.url_name == 'declare_production' %}
-                        <div class="col-2" style="background:#f8f9fa;">
-                            {% include 'base/check_list.html' %}
-                        </div>
-                        {% elif request.resolver_match.url_name != 'production_plans' %}
-                        <div class="col-2" style="background:#f8f9fa;">
-                            {% include 'base/side_bar.html' %}
-                        </div>
+                            <div class="col-2 d-flex justify-content-center">
+                                {% include 'base/Possidebar.html' %}
+                            </div>
+                        {% elif request.resolver_match.url_name != 'production_plans' and request.resolver_match.url_name != 'confirm_production_plan' and request.resolver_match.url_name != 'declare_production' %}
+                            <div class="col-2" style="background:#f8f9fa;">
+                                {% include 'base/side_bar.html' %}
+                            </div>
                         {% endif %}
                     
                         <div class="col-10">
@@ -154,6 +160,11 @@
                                 {% block content %}{% endblock %}
                             </div>
                         </div>
+                        {% if request.resolver_match.url_name == 'confirm_production_plan' or request.resolver_match.url_name == 'declare_production' %}
+                            <div class="col-2" style="background:#f8f9fa;">
+                                {% include 'base/check_list.html' %}
+                            </div>
+                        {% endif %}
                         {% if request.resolver_match.url_name == 'production_plans' %}
                             <div class="col-2">
                                 {% include 'base/check_list.html' %}
