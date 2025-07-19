@@ -48,7 +48,8 @@ class Company(models.Model):
 
 class Branch(models.Model):
     company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True)
-    branch_name = models.CharField(max_length=60, default='Main', null=True)
+    branch_name = models.CharField(max_length=60, null=True)
+    # name = models.CharField(max_length=60, null=True)
 
     def __str__(self):
         return self.branch_name

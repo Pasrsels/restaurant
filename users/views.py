@@ -14,6 +14,7 @@ from .models import Company, User, Branch
 from .forms import CompanyForm, CustomUserCreationForm
 from settings.models import Modules
 from django.db import transaction
+from permisions.permisions import admin_required
 import json
 
 def create_company(request):
@@ -63,10 +64,11 @@ def create_company(request):
 
 def users(request):
     search_query = request.GET.get('q', '')
-    users = User.objects.filter(Q(username__icontains=search_query) | Q(email__icontains=search_query)).order_by(
+    users = User.objects.filter(Q(username__icontains=search_query) | Q(email__icontains=search_query), branch = request.user.branch).order_by(
         'first_name', 'last_name')
     form = UserRegistrationForm()
     user_details_form = UserDetailsForm2()
+    branch_form = BranchForm()
 
     if request.method == 'POST':
         form = UserRegistrationForm(request.POST)
@@ -79,7 +81,7 @@ def users(request):
         else:
             messages.warning(request, 'Invalid form data')
 
-    return render(request, 'auth/users.html', {'users': users, 'form': form, 'user_details_form': user_details_form})
+    return render(request, 'auth/users.html', {'users': users, 'form': form, 'user_details_form': user_details_form, 'branch':branch_form})
 
 
 def login_view(request):
@@ -253,6 +255,7 @@ def createBranch(request):
             messages.error(request, 'Invalid JSON')
         return redirect('users:create_branch')
 
+@admin_required
 def getBranches(request):
     if request.method == 'GET':
         branch = Branch.objects.all()
@@ -276,4 +279,30 @@ def getBranches(request):
             user.save()
             return JsonResponse({'success': True}, status = 200)
         return JsonResponse({'success': False}, status = 400)
-        
+
+# @admin_required
+def createBranch(request):
+    if request.method == 'GET':
+        branchs_data = Branch.objects.all()
+        data_list = [b.branch_name for b in branchs_data if b]
+        logger.info(data_list)
+        return JsonResponse({'success': True, 'branch': data_list}, status = 200)
+    if request.method == 'POST':
+        # branch_form = BranchForm(request.POST)
+        logger.info(request.POST.get('branch_name'))
+        company_info = Company.objects.all().first()
+        logger.info({
+            'Company':company_info,
+            'Request': request.POST
+        })
+        if request.POST.get('branch_name'):
+            logger.info(request.POST.get('branch_name'))
+            b = Branch.objects.create(
+                company = company_info,
+                branch_name = request.POST.get('branch_name')
+            )
+            logger.info(b)
+            messages.success(request, f'Successfully saved new branch')
+            return redirect('users:users')
+        messages.warning(request, f'Failed to save new branch')
+        return redirect('users:users')

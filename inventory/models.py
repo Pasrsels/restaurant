@@ -145,7 +145,7 @@ class OverrideHistory(models.Model):
     down = models.FloatField(null=True)
 
 class ProductionInventory(models.Model):
-    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
+    # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     raw_material = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.FloatField()
     
@@ -307,7 +307,7 @@ class Logs(models.Model):
         ('removed', 'removed')
     ]
 
-    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
+    # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     sale = models.ForeignKey('finance.sale', on_delete=models.CASCADE, null=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True)
     user = models.ForeignKey('users.User', on_delete=models.SET_NULL, null=True)

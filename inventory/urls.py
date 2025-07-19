@@ -116,6 +116,9 @@ urlpatterns = [
     path('create-budget/', createBudgetItem, name='create-budget'),
     path('budget/view-information/<int:id>/', ViewBudget, name='view_budget'),
     path('budget/estimations/', ConversionFormula, name='estimations'),
-    path('budget-approoval/', BudgetApproval, name = 'budget-approval')
-    
+    path('budget-approoval/', BudgetApproval, name = 'budget-approval'),
+
+
+    # Script
+    path('shift-data/', shift_data_to_main, name="shifting")   
 ]

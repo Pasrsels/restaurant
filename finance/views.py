@@ -943,7 +943,7 @@ def days_data(request):
 
 @login_required
 def transaction_logs(request):
-    transactions = Logs.objects.filter(sale__date = datetime.date.today(), branch = request.user.branch)
+    transactions = Logs.objects.filter(sale__date = datetime.date.today(), sale__branch = request.user.branch)
     sale_items = SaleItem.objects.filter(sale__date = datetime.date.today(), sale__branch = request.user.branch)
 
     return render(request, 'transaction_logs.html', {

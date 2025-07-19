@@ -413,7 +413,7 @@ def process_sale(request):
                             logger.info(f'Saved sale item: {sale_item}')
                             
                             Logs.objects.create(
-                                branch = request.user.branch,
+                                # branch = request.user.branch,
                                 user=request.user, 
                                 action='sale',
                                 product=product,
@@ -430,6 +430,7 @@ def process_sale(request):
                         updateTakeAway.delay(task_list)
                     
                     CashBook.objects.create(
+                        branch = request.user.branch,
                         sale=sale, 
                         amount=sale.total_amount,
                         debit=True,

@@ -6,9 +6,9 @@ def admin_required(view_func):
     def wrapper(request, *args, **kwargs):
         try:
             logger.info(request.user.role)
-            if not request.user.role in ['accountant', 'admin', 'Admin', 'owner', 'Owner']:
+            if not request.user.role in ['accountant', 'admin', 'Admin', 'owner', 'Owner', 'Chef', 'chef']:
                 return render(request, '403.html', status=403)
-            elif request.user.role in ['accountant', 'admin', 'Admin', 'owner', 'Owner']:
+            elif request.user.role in ['accountant', 'admin', 'Admin', 'owner', 'Owner', 'Chef', 'chef']:
                 return view_func(request, *args, **kwargs)
             else: return HttpResponseForbidden()
         except Exception as e:

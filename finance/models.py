@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from users.models import Company, Branch
 
 User = get_user_model()
-
+ 
 class ExpenseCategory(models.Model):
     name = models.CharField(max_length=255)
     
@@ -125,7 +125,7 @@ class CashUp(models.Model):
         return f'{self.date}'
     
 class CashierAccount(models.Model):
-    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
+    # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     cashier = models.ForeignKey(User, on_delete=models.CASCADE)
     cash_up = models.ForeignKey(CashUp, on_delete=models.CASCADE, null=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=0) 
@@ -135,7 +135,7 @@ class CashierAccount(models.Model):
         return f'{self.cashier.first_name} ({self.amount})'
 
 class CashierPayments(models.Model):
-    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
+    # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     date = models.DateTimeField(auto_now_add=True, null=True)
     cashier = models.ForeignKey(User, on_delete=models.CASCADE)
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -147,7 +147,7 @@ class EmailNotifications(models.Model):
     expense_notification = models.BooleanField(default=True)
     
 class Change(models.Model):
-    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
+    # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name='sale_change')
     name = models.CharField(max_length=100)
     phonenumber = models.CharField(max_length=20)

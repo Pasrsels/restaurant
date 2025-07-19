@@ -3,26 +3,32 @@
 {% load crispy_forms_tags %}
 {% block title%} Users {% endblock%}
 {% block content %}
+<style>
+    
+</style>
 <div class="users container">
     <div class='mb-2'>
         <div class='d-flex justify-content-between align-items-center border-bottom rounded'>
             <div>
-                <a href='/' class='bx bx-home btn border fs-5'></a>
-                <span class='mt-2 fs-5 mx-2'>Users</span>
+                <!-- <a href='/' class='bx bx-home btn border fs-5'></a>
+                <span class='mt-2 fs-5 mx-2'>Users</span> -->
                 <a href='/' class='bx bx-home btn border fs-5'></a>
                 <span class='mt-2 fs-5 mx-2'>Users</span>
             </div>
             <div>
-                <ul class="list-unstyled mt-3">
+                <ul class="list-unstyled mt-3 d-flex gap-3">
                     <li>
                         <button id="addUser" class="btn btn-outline-dark">Add User</button>
+                    </li>
+                    <li>
+                        <button id="addBranch" class="btn btn-outline-dark">Add Branch</button>
                     </li>
                 </ul>
             </div>
         </div>
     </div>
 
-    <table class="table table-striped" style='width:100%;' id='users_table'>
+    <table class="table table-striped w-100" style='width:100%;' id='users_table'>
         <thead class="table-dark">
             <tr>
                 <th>#</th>
@@ -55,30 +61,30 @@
 
     <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
         <div class="modal-dialog">
-          <div class="modal-content w-100 p-4">
-            <h6 class="fw-bold">Add User</h6>
-            <form method="post">
-                {% csrf_token %}
-                {{form|crispy}}
-                <div class="d-flex justify-content-end">
-                    <div class="">
-                        <button type="reset" class="btn btn-danger btn-sm">
-                            <i class="bx bx-reset"></i>
-                            Reset
-                        </button>
+            <div class="modal-content w-100 p-4">
+                <h6 class="fw-bold">Add User</h6>
+                <form method="post">
+                    {% csrf_token %}
+                    {{form|crispy}}
+                    <div class="d-flex justify-content-end">
+                        <div class="">
+                            <button type="reset" class="btn btn-danger btn-sm">
+                                <i class="bx bx-reset"></i>
+                                Reset
+                            </button>
+                        </div>
+                        <span class="px-2"></span>
+                        <div class="">
+                            <button type="submit" class="btn btn-secondary btn-sm">
+                                <i class="bx bx-save"></i>
+                                Save
+                            </button>
+                        </div>
                     </div>
-                    <span class="px-2"></span>
-                    <div class="">
-                        <button type="submit" class="btn btn-secondary btn-sm">
-                            <i class="bx bx-save"></i>
-                            Save
-                        </button>
-                    </div>
-                </div>
-            </form>
+                </form>
             </div>
         </div>
-      </div>
+    </div>
     
     <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
         <div class="modal-dialog">
@@ -106,7 +112,34 @@
                 </form>
             </div>
         </div>
-      </div>
+    </div>
+
+    <div class="modal fade" id="addBranchModal" tabindex="-1" aria-labelledby="addBranchModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content w-100 p-4">
+                <h6 class="fw-bold">Add Branch</h6>
+                <form method="POST" action="{% url 'users:create_branch' %}">
+                    {% csrf_token %}
+                    {{branch|crispy}}
+                    <div class="d-flex justify-content-end">
+                        <div class="">
+                            <button type="reset" class="btn btn-danger btn-sm">
+                                <i class="bx bx-reset"></i>
+                                Reset
+                            </button>
+                        </div>
+                        <span class="px-2"></span>
+                        <div class="">
+                            <button type="submit" class="btn btn-secondary btn-sm">
+                                <i class="bx bx-save"></i>
+                                Save
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
 </div>
 
@@ -117,7 +150,10 @@
     })
 
     const addBtn = document.getElementById('addUser');
+    const addBranchBtn = document.getElementById('addBranch');
+
     const addModal = new bootstrap.Modal(document.getElementById('addUserModal'));
+    const addBranchModal = new bootstrap.Modal(document.getElementById('addBranchModal'));
 
     const editUserBtn = document.getElementById('editUser');
     const editUserBtns = document.querySelectorAll('.editUserBtn');
@@ -128,10 +164,14 @@
         addModal.show()
     })
     
+    addBranchBtn.addEventListener('click', ()=>{
+        addBranchModal.show();
+    })
+
     editUserBtn.addEventListener('click', ()=>{
         editModal.show()
     })
-    
+
     editUserBtns.forEach(btn => {
         btn.addEventListener('click', function() {
             const userId = this.getAttribute('data-user-id');

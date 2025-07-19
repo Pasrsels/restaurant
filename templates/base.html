@@ -97,11 +97,13 @@
                             <h4 class="fw-bold">
                                 {{ request.user.company.name }}
                                 <br>
-                                <span>
-                                    <button class="btn btn-seconday" onclick="branchSwitch()">
-                                        <i class="bx bx-git-branch"></i>
-                                    </button>
-                                </span>
+                                {% if request.user.role == 'admin' or request.user.role == 'owner' or request.user.role == 'accountant' or request.user.role == 'supervisor' or request.user.role == 'chef' %}
+                                    <span>
+                                        <button class="btn btn-seconday" onclick="branchSwitch()">
+                                            <i class="bx bx-git-branch"></i>
+                                        </button>
+                                    </span>
+                                {% endif %}
                                 <span>
                                     {{ request.user.branch.branch_name }}
                                 </span>

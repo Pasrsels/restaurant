@@ -2524,6 +2524,9 @@ def CategoryMeal(request):
 
             final_data = meal_data + dish_data
             return JsonResponse(final_data, safe=False, status = 200)
+    elif request.method == 'POST':
+        categories = ['BEEF', 'CHICKEN', 'SALAD', 'SADZA', 'RICE', 'SPAGHETTI', 'MACARONI']
+        return JsonResponse({'success': True, 'categories': categories})
     else:
         return JsonResponse({'sucess': False, 'message': 'Invalid request'}, status = 500)
 
@@ -3733,3 +3736,83 @@ def ConversionFormula(request):
         ]
         logger.info(combined_list)
         return JsonResponse({'success': True,'combined_list': combined_list}, status = 200)
+
+
+
+
+@login_required
+# @admin_required
+def shift_data_to_main(request):
+    from finance.models import CashierExpense, transactionLog
+
+    company = Company.objects.all().first()
+    print(f'Company :{company.name}')
+    with transaction.atomic():
+        if Branch.objects.get(branch_name__icontains = 'Main').DoesNotExist():
+            Branch.objects.create(
+                branch_name = 'Main',
+                company = company
+            )
+        branch = Branch.objects.filter(branch_name__icontains = 'Main').first()
+
+        user_data = User.objects.update(branch = branch)
+        # for user in user_data:
+        #     user.branch = branch
+
+        # User.objects.abulk_update(user_data, ['branch'])
+
+        supplier_data = Supplier.objects.update(branch = branch)
+
+        product_data = Product.objects.update(branch = branch)
+
+        production_data = Product.objects.update(branch = branch)
+
+        dish_data = Dish.objects.update(branch = branch)
+
+        meal_data = Meal.objects.update(branch = branch)
+
+        purchase_order_data = PurchaseOrder.objects.update(branch = branch)
+
+        endofday_data = EndOfDay.objects.update(branch = branch)
+
+        sale_data = Sale.objects.update(branch = branch)
+
+        cashbook_data = CashBook.objects.update(branch = branch)
+
+        cashup_data = CashUp.objects.update(branch = branch)
+
+        cashier_expense_data = CashierExpense.objects.update(branch = branch)
+
+        transactionlogs_data = transactionLog.objects.update(branch = branch)
+
+        transfer_data = Transfer.objects.update(branch = branch)
+
+        production_logs_data = ProductionLogs.objects.update(branch = branch)
+
+        end_of_day_stock_data = EndOfDayStock.objects.update(branch = branch)
+
+        expense_data = Expense.objects.update(branch = branch)
+        
+        return JsonResponse(
+            {
+                'success': True,
+                'data': {
+                    'supplier_data': supplier_data,
+                    'product_data': product_data,
+                    'production_data': production_data,
+                    'dish_data': dish_data,
+                    'meal_data': meal_data,
+                    'purchase_order_data': purchase_order_data,
+                    'endofday_data': endofday_data,
+                    'sale_data': sale_data,
+                    'cashbook_data': cashbook_data,
+                    'cashup_data': cashup_data,
+                    'cashier_expense_data': cashier_expense_data,
+                    'transactionlogs_data': transactionlogs_data,
+                    'transfer_data': transfer_data,
+                    'production_logs_data': production_logs_data,
+                    'end_of_day_stock_data': end_of_day_stock_data,
+                    'expense_data': expense_data  
+                } 
+            }, status = 200
+        )
