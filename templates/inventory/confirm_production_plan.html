@@ -250,7 +250,7 @@
         checkInputs(); // initial validation
 
         new DataTable('#plan_item_table');
-        new DataTable('#minor');
+        // new DataTable('#minor');
     
         document.querySelectorAll('#minor input[type="number"]').forEach(function (input) {
             input.addEventListener('keydown', function (event) {
@@ -273,7 +273,7 @@
 
                     console.log({Quantity: quantityEntered})
                     
-                    if (quantityEntered){
+                    if (quantityEntered != null){
                         if (!isNaN(quantityEntered)) {
                             Swal.fire({
                                 title: 'Processing Allocation',

@@ -74,6 +74,7 @@ class ProductionVariance(models.Model):
     def __str__(self) -> str:
         return f'{self.ingredient.name} - {self.quantity}'
 
+
 class Production(models.Model):
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     date_created = models.DateField(auto_now_add=True)
@@ -109,7 +110,7 @@ class ProductionItems(models.Model):
     wastage = models.FloatField(default=0, null=True, blank=True)      
     portions = models.FloatField(default=0, null=True)
     staff_portions = models.FloatField(default=0, null=True)  
-    declared_quantity = models.FloatField(default=0, null=True)
+    planned_portions = models.FloatField(default=0, null=True)
     portions_sold = models.FloatField(default=0, null=True)
     allocated = models.BooleanField(default=False)
     end_of_day_status = models.BooleanField(default=False)

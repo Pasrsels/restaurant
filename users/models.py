@@ -66,7 +66,7 @@ class User(AbstractUser):
     phonenumber = models.CharField(max_length=13)
     role = models.CharField(choices=USER_ROLES, max_length=50)
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="users", null=True)
-    branch = models.ForeignKey('Branch', on_delete=models.CASCADE, null=True)
+    # branch = models.ForeignKey('Branch', on_delete=models.CASCADE, null=True)
 
     def __str__(self) -> str:
         return f'User:{self.username} Company:{self.company.name} Name:{self.first_name}'

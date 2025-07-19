@@ -14,7 +14,7 @@ class UserRegistrationForm(forms.ModelForm):
             'email',
             'phonenumber',
             'company',
-            'branch',
+            # 'branch',
             'role',
             'password',
         ]
@@ -32,7 +32,7 @@ class UserDetailsForm(forms.ModelForm):
             'phonenumber',
             'role',
             'company',
-            'branch'
+            # 'branch'
         ]
 
 
@@ -47,7 +47,7 @@ class UserDetailsForm2(forms.ModelForm):
             'email',
             'phonenumber',
             'role',
-            'branch'
+            # 'branch'
         ]
 
 class CompanyForm(forms.ModelForm):
