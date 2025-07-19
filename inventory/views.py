@@ -3748,7 +3748,8 @@ def shift_data_to_main(request):
     company = Company.objects.all().first()
     print(f'Company :{company.name}')
     with transaction.atomic():
-        if Branch.objects.get(branch_name__icontains = 'Main').DoesNotExist():
+        branch_data = Branch.objects.filter(branch_name__icontains = 'Main').first()
+        if not branch_data:
             Branch.objects.create(
                 branch_name = 'Main',
                 company = company
@@ -3765,7 +3766,7 @@ def shift_data_to_main(request):
 
         product_data = Product.objects.update(branch = branch)
 
-        production_data = Product.objects.update(branch = branch)
+        production_data = Production.objects.update(branch = branch)
 
         dish_data = Dish.objects.update(branch = branch)
 
