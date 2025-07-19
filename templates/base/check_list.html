@@ -5,7 +5,7 @@
         background:#f2f2f2;
     }
     .in, .out{
-        height:50vh;
+        height:35vh;
         overflow-y:auto;
     }
 </style>
@@ -14,31 +14,34 @@
     <div class='mt-2'>
         <h5 class="fw-bold">Check List</h5>
     </div>
+    <div class="d-flex justify-content-between align-items-center mt-2 mb-2">
+        <span class="badge">
+            <small>
+                <!-- <a class="btn btn-check-circle" onclick="checkAllInStock()">A</a> -->
+                <button class="btn btn-outline-secondary btn-sm text-dark px-1 py-0" onclick="checkAllInStock()">ALL</button>
+            </small>
+        </span>
 
+        <span class="badge">
+            <small>
+                <!-- <a class="btn btn-check-circle" onclick="checkProductInStock()">P</a> -->
+                <button class="btn btn-outline-secondary btn-sm text-dark px-1 py-0" onclick="checkProductInStock()">PRODUCT</button>
+            </small>
+        </span>
+
+        <span class="badge">
+            <small>
+                <!-- <a class="btn btn-check-circle" onclick="checkRawMaterials()">RM</a> -->
+                <button class="btn btn-outline-secondary btn-sm text-dark px-1 py-0" onclick="checkRawMaterials()">RAW MATERIAL</button>
+            </small>
+        </span>
+    </div>
     <div class="mb-2">
         <input type="text" id="search-bar" class="form-control" placeholder="Search products...">
     </div>
 
     <h6 class="border-top border-bottom p-1 bg-secondary rounded text-light">In Stock</h6>
-    <div class="d-flex justify-content-between align-items-center mt-2">
-        <span class="badge bg-primary">
-            <small>
-                <a class="btn btn-check-circle" onclick="checkAllInStock()">A</a>
-            </small>
-        </span>
-
-        <span class="badge bg-primary">
-            <small>
-                <a class="btn btn-check-circle" onclick="checkProductInStock()">P</a>
-            </small>
-        </span>
-
-        <span class="badge bg-primary">
-            <small>
-                <a class="btn btn-check-circle" onclick="checkRawMaterials()">RM</a>
-            </small>
-        </span>
-    </div>
+    
     <div class="in mt-2">
         <table class="table" id="in-stock-table">
             <thead>

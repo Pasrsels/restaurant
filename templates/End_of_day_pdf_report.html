@@ -10,7 +10,7 @@
 
         th, td {
             border: 1px solid #ddd;
-            text-align: left;
+            text-align: center;
             padding: 8px;
         }
 
@@ -26,42 +26,146 @@
         tr:hover {
             background-color: #eaeaea;
         }
+
+        .bottom td{
+          font-weight: bold;
+        }
+        h2{
+          text-align: center;
+        }
+        .gp{
+          font-weight: bold;
+          font-size: 13px;
+          padding-bottom: 0;
+        }
     </style>
 </head>
 <body>
 
-<h2>End of Day Production Report</h2>
+<h2>End of Day Production Report: {{date}}</h2>
+<div>  
+  <table>
+    <thead>
+      <tr>
+        <th>Dish</th>
+        <th>Declared Portions</th>
+        <th>Portions Sold</th>
+        <th>Staff Meal Portions</th>
+        <th>Wastage</th>
+        <th>Leftovers</th>
+        <th>Expected/Variance</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in productions_today %}
+        <tr>
+          <td>{{ item.Name }}</td>
+          <td>
+            {% for items in dish_info %}
+              {% if item.Name == items.Name %}
+                ${{items.total_declared_cost}}
+              {% endif %}
+            {% endfor %}
+            [{{ item.Total_Portions }}]
+          </td>
+          <td>
+            {% for items in dish_info %}
+              {% if item.Name == items.Name %}
+                ${{items.total_sold_price}}
+              {% endif %}
+            {% endfor %}
+            [{{ item.Sold }}]
+          </td>
+          <td>
+            {% for items in dish_info %}
+              {% if item.Name == items.Name %}
+                ${{items.total_staff_price}}
+              {% endif %}
+            {% endfor %}
+            [{{ item.Staff_Portions }}]
+          </td>
+          <td>
+            {% for items in dish_info %}
+              {% if item.Name == items.Name %}
+                ${{items.total_wastage_price}}
+              {% endif %}
+            {% endfor %}
+            [{{ item.Wastage }}]
+          </td>
+          <td>
+            {% for items in dish_info %}
+              {% if item.Name == items.Name %}
+                ${{items.total_leftover_price}}
+              {% endif %}
+            {% endfor %}
+            [{{ item.Leftovers }}]
+          </td>
+          <td>
+            {% for items in dish_info %}
+              {% if item.Name == items.Name %}
+                ${{items.total_expected_price}}
+              {% endif %}
+            {% endfor %}
+            [{{ item.Expected }}]
+          </td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="7">No data for today.</td>
+        </tr>
+      {% endfor %}
+      <tr class="bottom">
+        {% for item in totals %}
+          <td>Totals</td>
+          <td>${{item.declared}}</td>
+          <td>${{item.sold}}</td>
+          <td>${{item.meal}}</td>
+          <td>${{item.wastage}}</td>
+          <td>${{item.leftover}}</td>
+          <td>${{item.expected}}</td>
+        {% endfor %}
+      </tr>
+    </tbody>
+  </table>
+</div>
 
-<table>
-  <thead>
+<div>
+  <table>
     <tr>
-      <th>Dish</th>
-      <th>Total Portions</th>
-      <th>Sold</th>
-      <th>Staff</th>
-      <th>Wastage</th>
-      <th>Leftovers</th>
-      <th>Expected</th>
+      {% for item in totals %}
+      <th>Total Income</th>
+      <td>${{item.sold}}</td>
+      {% endfor %}
     </tr>
-  </thead>
-  <tbody>
-    {% for item in productions_today %}
-      <tr>
-        <td>{{ item.Name }}</td>
-        <td>{{ item.Total_Portions }}</td>
-        <td>{{ item.Sold }}</td>
-        <td>{{ item.Staff_Portions }}</td>
-        <td>{{ item.Wastage }}</td>
-        <td>{{ item.Leftovers }}</td>
-        <td>{{ item.Expected }}</td>
-      </tr>
-    {% empty %}
-      <tr>
-        <td colspan="7">No data for today.</td>
-      </tr>
-    {% endfor %}
-  </tbody>
-</table>
-
+    <tr>
+      {% for item in totals %}
+      <th>Total Production Cost</th>
+      <td>$({{item.declared}})</td>
+      {% endfor %}
+    </tr>
+    <tr>
+      {% for item in totals %}
+      <th>Total Staff Expense</th>
+      <td>$(${{item.meal}})</td>
+      {% endfor %}
+    </tr>
+    <tr>
+      {% for item in totals %}
+      <th>Total Wastage Expense</th>
+      <td>$({{item.wastage}})</td>
+      {% endfor %}
+    </tr>
+    <tr>
+      {% for item in totals %}
+      <th>Total Leftover cost</th>
+      <td>${{item.leftover}}</td>
+      {% endfor %}
+    </tr>
+    <tr>
+      <th class="gp">Gross Profit</th>
+      <td class="gp">${{gross_profit}}</td>
+    </tr>
+  </table>
+</div>
 </body>
 </html>

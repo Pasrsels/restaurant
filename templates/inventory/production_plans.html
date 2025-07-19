@@ -309,6 +309,13 @@
 
 
         function populateIngredients(ingredients, totalCost, raw_material_variance) {
+            console.log(
+                {
+                    'ingridients': ingredients,
+                    'totalCost': totalCost,
+                    'Raw Materials': raw_material_variance
+                }
+            )
             const ingTableBody = document.getElementById("table_ing");
             ingTableBody.innerHTML = ''; // Clear existing rows
             let var_quantity = 0;
@@ -317,7 +324,7 @@
 
                 for (let i = 0; i < raw_material_variance.length; i++) {
                     const variance = raw_material_variance[i];
-                    if (variance.ingredient.name === ing.name) {
+                    if (variance.name === ing.name) {
                         var_quantity = variance.quantity;
                         break;
                     }
@@ -327,7 +334,7 @@
                     <tr>
                         <td><small>${ing.name}</small></td>
                         <td class="text-center"><small>${parseFloat(ing.quantity).toFixed(3)}${ing.unit} [$${parseFloat(ing.cost).toFixed(2)}]</small></td>
-                        <td class="text-center"><small>${actual}</small></td>
+                        <td class="text-center"><small>${actual.toFixed(3)}</small></td>
                         <td class="text-center"><small>${var_quantity}</small></td>
                     </tr>
                 `;

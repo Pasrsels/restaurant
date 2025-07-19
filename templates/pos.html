@@ -119,6 +119,10 @@
         object-fit: cover;
         object-position: center;
       }
+    
+      .bg-secondary-em{
+        background-color: #e4e4e4;
+      }
       
 </style>
 
@@ -139,7 +143,7 @@
                         >
                     </div>
                     <div class="mt-4">
-                        <div class="row bg-light border py-1 rounded mx-1" id="itemsContainer" style='height:70vh; overflow-y: auto;'></div>
+                        <div class="row bg-secondary-em border py-1 rounded mx-1" id="itemsContainer" style='height:70vh; overflow-y: auto;'></div>
                     </div>
                 </div>
 
@@ -1106,8 +1110,6 @@
                             onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
                             
                             <span class="bt-end fw-bold fs-3">$${parseFloat(item.price).toFixed(2)}</span>
-                            <span class="bt-left text-success fw-bold fs-5">4 left</span>
-
                         </div>
                     </div>
 
@@ -2605,7 +2607,5 @@ function generateAccountantCashUp(userId) {
             updateCartTable();
         }
     });
-
-
     </script>
 {% endblock %}

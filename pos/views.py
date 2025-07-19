@@ -1398,7 +1398,7 @@ def accountantreport(request):
     def send_email_with_pdf():
         cashier = User.objects.get(id=cashier_id)
         subject = 'Accountant Report'
-        from_email = "admin@techcity.co.zw"
+        from_email = "Urban Eats"
         body = f"""
         Cash Up Report for Cashier: {cashier.first_name}
         

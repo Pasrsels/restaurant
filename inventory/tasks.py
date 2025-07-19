@@ -45,7 +45,7 @@ def sendProductHistory(product_list):
             mail = EmailMessage(
                 subject=subject,
                 body=report,
-                # from_email='admin@techcity.co.zw',
+                from_email='Urban Eats',
                 to=recipients,
             )
 
@@ -308,6 +308,7 @@ def autoConfirmProdPlan(production_plan_id):
     logger.info('here')
     temporay_declaration = Production.objects.get(id = production_plan_id)
     temporay_declaration.declared = True
+    temporay_declaration.status = False
     temporay_declaration.save()
 
     # try:
