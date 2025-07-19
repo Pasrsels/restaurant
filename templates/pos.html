@@ -4,6 +4,13 @@
 {% block title %}Pos{% endblock title %}
 {% block content %}
 <style>
+
+    #dishCategories {
+        overflow-x: auto;
+        overflow-y: hidden;
+        white-space: nowrap;
+        scroll-behavior: smooth;
+    }
     .bt-end{
         margin-right: 5px;
     }
@@ -142,6 +149,7 @@
                             oninput="searchItems()"
                         >
                     </div>
+
                     <div class="mt-4">
                         <div class="row bg-secondary-em border py-1 rounded mx-1" id="itemsContainer" style='height:70vh; overflow-y: auto;'></div>
                     </div>
@@ -586,6 +594,37 @@
         const authenticatevoidModal = new bootstrap.Modal(document.getElementById('voidModal'));
         const sellAuthorizationModal = new bootstrap.Modal(document.getElementById('AuthorizationModal'));
         const search = document.getElementById('searchInput')
+
+
+        document.addEventListener('DOMContentLoaded', function(){
+            const dishCat =  document.getElementById('dishCategories');
+            fetch("{% url 'inventory:filter_meal_category' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            }).then(response => response.json())
+            .then(data => {
+                if(data.success){
+                    console.log({'DISH CAT':data.categories})
+                    data.categories.forEach(cat => {
+                        const  dishContainer = document.createElement('span');
+                        dishContainer.className = 'my-0 border rounded p-2 btn btn-outline-dark';
+                        dishContainer.onclick = function(){ filter(dishContainer.innerText.trim())};
+                        dishContainer.innerHTML = `
+                            ${cat}
+                        `;
+                        dishCat.appendChild(dishContainer);
+                    });
+                }
+            })
+        });
+
+        function filter(filterby){
+            console.log({'filterBy': filterby});
+            const m_dContainer = document.getElementById('itemsContainer');
+        }
 
         function addModal(){
             if(productionModalAuth === true){
@@ -1122,7 +1161,7 @@
             fetch('{% url "pos:product_meal_json" %}')
                 .then(response => response.json())
                 .then(data => {
-                    console.log(data)
+                    // console.log(data)
                     items = data.items;
                     mealsData.push(data)
                     displayItems(items);

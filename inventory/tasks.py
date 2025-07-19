@@ -246,11 +246,11 @@ def transfer_notification(transfer_id):
     
     logger.info(f'Notification for transfer {transfer.transfer_number} sent.')
 
-def supplier_email(supplier_id, purchase_order_item):
-    purchase_order_items = PurchaseOrderItem.objects.filter(purchase_order=purchase_order_item.purchase_order)
-    supplier = Supplier.objects.get(id=supplier_id)
+def supplier_email(supplier_id, purchase_order_item, branch):
+    purchase_order_items = PurchaseOrderItem.objects.filter(purchase_order=purchase_order_item.purchase_order, purchase_order__branch=branch)
+    supplier = Supplier.objects.get(id=supplier_id, branch=branch)
 
-    price_list = [ sup['price'] for sup in best_price(purchase_order_item.product.name)]
+    price_list = [ sup['price'] for sup in best_price(purchase_order_item.product.name, branch=branch)]
 
     min_price = min(price_list)
 

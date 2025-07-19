@@ -2,18 +2,20 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db.models import Q
 from django.http import JsonResponse
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from loguru import logger
 from utils.authenticate import authenticate_user
-from .models import User
-from .forms import UserRegistrationForm, UserDetailsForm, UserDetailsForm2
+from .models import User 
+from .forms import UserRegistrationForm, UserDetailsForm, UserDetailsForm2, BranchForm
 from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.hashers import make_password
-from .models import Company, User
+from .models import Company, User, Branch
 from .forms import CompanyForm, CustomUserCreationForm
 from settings.models import Modules
 from django.db import transaction
+from permisions.permisions import admin_required
+import json
 
 def create_company(request):
     if Company.objects.exists():
@@ -22,17 +24,23 @@ def create_company(request):
     if request.method == 'POST':
         company_form = CompanyForm(request.POST)
         user_form = CustomUserCreationForm(request.POST)
+        branch_form = BranchForm(request.POST)
         
-        if company_form.is_valid() and user_form.is_valid():
-
+        if company_form.is_valid() and user_form.is_valid() and branch_form.is_valid():
+            logger.info(request.POST)
             with transaction.atomic():
-                # Save the company
+                # Save the company and branch
                 company = company_form.save()
-                
+
+                branch = branch_form.save(commit=False)
+                branch.company = company
+                branch.save()
+
                 # Create the user with the company
                 user = user_form.save(commit=False)
                 user.company = company
-                user.role = 'owner'  
+                user.branch = branch
+                user.role = 'owner'
                 user.save()
                 
                 # create modules
@@ -49,16 +57,18 @@ def create_company(request):
     else:
         company_form = CompanyForm()
         user_form = CustomUserCreationForm()
+        branch_form = BranchForm()
 
-    return render(request, 'create_company.html', {'company_form': company_form, 'user_form': user_form})
+    return render(request, 'create_company.html', {'company_form': company_form, 'user_form': user_form, 'branch_form':branch_form})
 
 
 def users(request):
     search_query = request.GET.get('q', '')
-    users = User.objects.filter(Q(username__icontains=search_query) | Q(email__icontains=search_query)).order_by(
+    users = User.objects.filter(Q(username__icontains=search_query) | Q(email__icontains=search_query), branch = request.user.branch).order_by(
         'first_name', 'last_name')
     form = UserRegistrationForm()
     user_details_form = UserDetailsForm2()
+    branch_form = BranchForm()
 
     if request.method == 'POST':
         form = UserRegistrationForm(request.POST)
@@ -71,7 +81,7 @@ def users(request):
         else:
             messages.warning(request, 'Invalid form data')
 
-    return render(request, 'auth/users.html', {'users': users, 'form': form, 'user_details_form': user_details_form})
+    return render(request, 'auth/users.html', {'users': users, 'form': form, 'user_details_form': user_details_form, 'branch':branch_form})
 
 
 def login_view(request):
@@ -182,3 +192,117 @@ def get_user_data(request, user_id):
 def logout_view(request):
     logout(request)
     return redirect('users:login')
+
+
+def createBranch(request):
+    if request.method == 'GET':
+        branch_info = Branch.objects.all()
+        branch_form = BranchForm()
+        return #return html page with data context
+    elif request.method == 'POST':
+        branch_form = BranchForm(request.POST)
+        company_info = Company.objects.all().first()
+
+        if branch_form.is_valid():
+            branch = branch_form.save(commit=False)
+            branch.company = company_info
+            branch.save()
+
+            messages.success(request, f'Successfully saved {branch.name}')
+            return redirect('users:create_branch') #create url with name = 'create_branch'
+        
+        #invalid form
+        messages.warning(request, f'Failed to save')
+        return redirect('users:create_branch')#create url with name = 'create_branch'
+    elif request.method == 'PUT':
+        try:
+            data = json.loads(request.body)
+            branch_id = data.get('id')  # Or use 'name' if you're identifying by name
+            if not branch_id:
+                messages.warning(request, 'No branch ID provided')
+                return redirect('users:create_branch')
+
+            branch_instance = get_object_or_404(Branch, id=branch_id)
+            branch_form = BranchForm(data, instance=branch_instance)
+
+            if branch_form.is_valid():
+                branch = branch_form.save(commit=False)
+                branch.company = Company.objects.first()
+                branch.save()
+
+                messages.success(request, f'Successfully updated {branch.name}')
+                return redirect('users:create_branch')
+            else:
+                messages.warning(request, 'Invalid form data')
+                return redirect('users:create_branch')
+        except json.JSONDecodeError:
+            messages.error(request, 'Invalid JSON')
+            return redirect('users:create_branch')
+
+    elif request.method == 'DELETE':
+        try:
+            body = json.loads(request.body)
+            name = body.get('name')
+            if name:
+                branch_info = Branch.objects.get(name=name)
+                branch_info.delete()
+                messages.success(request, f'Successfully deleted branch: {name}')
+            else:
+                messages.warning(request, 'No branch name provided')
+        except Branch.DoesNotExist:
+            messages.error(request, 'Branch not found')
+        except json.JSONDecodeError:
+            messages.error(request, 'Invalid JSON')
+        return redirect('users:create_branch')
+
+@admin_required
+def getBranches(request):
+    if request.method == 'GET':
+        branch = Branch.objects.all()
+        branch_list = []
+        for info in branch:
+            branch_list.append(
+                {
+                    'id': info.id,
+                    'name': info.branch_name
+                }
+            )
+        logger.info(branch_list)
+        return JsonResponse({'success':True, 'branch': branch_list}, status=200)
+    elif request.method == 'POST':
+        data = json.loads(request.body)
+        logger.info(data)
+        user = request.user
+        if data:
+            branch_info = Branch.objects.get(id = data)
+            user.branch = branch_info
+            user.save()
+            return JsonResponse({'success': True}, status = 200)
+        return JsonResponse({'success': False}, status = 400)
+
+# @admin_required
+def createBranch(request):
+    if request.method == 'GET':
+        branchs_data = Branch.objects.all()
+        data_list = [b.branch_name for b in branchs_data if b]
+        logger.info(data_list)
+        return JsonResponse({'success': True, 'branch': data_list}, status = 200)
+    if request.method == 'POST':
+        # branch_form = BranchForm(request.POST)
+        logger.info(request.POST.get('branch_name'))
+        company_info = Company.objects.all().first()
+        logger.info({
+            'Company':company_info,
+            'Request': request.POST
+        })
+        if request.POST.get('branch_name'):
+            logger.info(request.POST.get('branch_name'))
+            b = Branch.objects.create(
+                company = company_info,
+                branch_name = request.POST.get('branch_name')
+            )
+            logger.info(b)
+            messages.success(request, f'Successfully saved new branch')
+            return redirect('users:users')
+        messages.warning(request, f'Failed to save new branch')
+        return redirect('users:users')
