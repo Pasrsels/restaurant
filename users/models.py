@@ -47,7 +47,8 @@ class Company(models.Model):
         return self.name
 
 class Branch(models.Model):
-    name = models.CharField(max_length=60, default='Main')
+	pass
+#    name = models.CharField(max_length=60, default='Main')
 
 class User(AbstractUser):
     
