@@ -12,7 +12,6 @@ class ExpenseCategory(models.Model):
         return self.name
 
 class COGS(models.Model):
-    # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     date = models.DateField(auto_now_add=True)
     production = models.ForeignKey('inventory.production', on_delete=models.CASCADE, null=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=0) 
@@ -86,7 +85,6 @@ class CashBook(models.Model):
         return f'{self.amount}'
     
 class CashBookNote(models.Model):
-    # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     entry = models.ForeignKey(CashBook, related_name="notes", on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     note = models.TextField()

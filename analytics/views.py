@@ -39,7 +39,6 @@ def analytics_view(request):
         logger.info(data)
 
     elif filter_by == 'day':
-
         today_sales = Sale.objects.filter(date=today, void=False, branch = request.user.branch, staff = False).aggregate(total=Sum('total_amount'))
         yesterday_sales = Sale.objects.filter(date=yesterday, void=False, branch = request.user.branch, staff = False).aggregate(total=Sum('total_amount'))
         
@@ -69,12 +68,12 @@ def analytics_view(request):
         data['year_sales'] = year_sales['total'] or 0
 
     # Best-selling dish
-    best_selling_meal = SaleItem.objects.filter(meal__isnull=False, sale__date=today, sale__branch = request.user.branch, sale__staff = False).values('meal__name') \
+    best_selling_meal = SaleItem.objects.filter(meal__isnull=False, sale__date=today, sale__branch = request.user.branch, sale__staff=False).values('meal__name') \
     .annotate(total_sold=Sum('quantity')) \
     .order_by('-total_sold') \
     .first()
 
-    best_selling_dish = SaleItem.objects.filter(dish__isnull=False, sale__date=today, sale__branch = request.user.branch, sale__staff = False).values('dish__name') \
+    best_selling_dish = SaleItem.objects.filter(dish__isnull=False, sale__date=today, sale__branch = request.user.branch, sale__staff=False).values('dish__name') \
     .annotate(total_sold=Sum('quantity')) \
     .order_by('-total_sold') \
     .first()

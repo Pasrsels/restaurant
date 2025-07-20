@@ -911,6 +911,19 @@ def create_production_plan(request):
         # Create a new production plan
         production_plan = Production.objects.create(status=False, declared=False, branch=request.user.branch)
 
+        if auto_confirm:
+                if data.get('id'):
+                    production_plan = Production.objects.get(id = data.get('id'), branch=request.user.branch)
+                else:
+                    production_latest = Production.objects.filter(date_created = datetime.date.today(), branch=request.user.branch).order_by('-time_created').first()
+                    if production_latest:
+                        production_plan = production_latest
+                    else:
+                        return JsonResponse({'success': False, 'message': 'No production Plan for Today.'}, status=400)
+        else:
+            # Create a new production plan
+            production_plan = Production.objects.create(status=False, declared=False, branch=request.user.branch)
+
         dish_names = [item.get('dish') for item in items if item.get('dish')]
         dishes = Dish.objects.filter(name__in=dish_names, branch = request.user.branch)
         dish_map = {dish.name: dish for dish in dishes}
@@ -935,16 +948,38 @@ def create_production_plan(request):
             if dish is None:
                 return JsonResponse({'success': False, 'message': f'Dish {dish_name} does not exist'}, status=404)
 
-            ingredients = Ingredient.objects.filter(dish=dish, minor_raw_material__branch = request.user.branch).select_related('minor_raw_material')
 
-            # Add production item to the list for bulk creation
-            production_items.append(ProductionItems(
-                production=production_plan,
-                portions=portions,
-                dish=dish,
-                total_cost=total_cost,
-                allocated=False
-            ))
+            ingredients = Ingredient.objects.filter(dish=dish, minor_raw_material__branch = request.user.branch).select_related('minor_raw_material')
+            if auto_confirm:
+                existing_items = ProductionItems.objects.filter(production=production_plan)
+                for existing_item in existing_items:
+                    if existing_item.dish.name == dish_name:
+                        production_items_update.append(ProductionItems(
+                            id=existing_item.id,
+                            production=production_plan,
+                            portions=existing_item.portions + portions,
+                            dish=dish,
+                            total_cost=existing_item.total_cost + total_cost,
+                            allocated=False
+                        ))
+                        break
+                else:
+                    # Not found, create new
+                    production_items.append(ProductionItems(
+                        production=production_plan,
+                        portions=portions,
+                        dish=dish,
+                        total_cost=total_cost,
+                        allocated=False
+                    ))
+            else:
+                production_items.append(ProductionItems(
+                    production=production_plan,
+                    portions=portions,
+                    dish=dish,
+                    total_cost=total_cost,
+                    allocated=False
+                ))
 
             # Collect raw materials for checklist creation
             for ingredient in ingredients:
@@ -1599,6 +1634,7 @@ def new_declare_production(request, pp_id):
     if request.method == 'GET':
         try:
             production_plan = Production.objects.select_related().get(id=pp_id, branch=request.user.branch)
+            form = ProductionPlanInlineForm()
             production_plan_items = ProductionItems.objects.filter(production=production_plan)
             allocated_raw_materials = AllocatedRawMaterials.objects.filter(production=production_plan)
             
@@ -2873,14 +2909,14 @@ def confirm_end_of_day(request):
         end_of_day_items = EndOfDayItems.objects.filter(end_of_day=e_o_d)
         
         # create cash in object
-        CashUp.objects.create(
-            cashier = request.user,
-            cashed_amount = amount,
-            sales = sales,
-            user = request.user, 
-            status = True if amount == sales else False,
-            branch = request.user.branch
-        )
+
+        # CashUp.objects.create(
+        #     cashier = request.user,
+        #     cashed_amount = amount,
+        #     sales = sales,
+        #     user = request.user, 
+        #     status = True if amount == sales else False
+        # )
 
         # buffer = generate_end_of_day_report(e_o_d, end_of_day_items, total_amount_staff_sold_today)
         # send_end_of_day_report(request, buffer)
