@@ -47,8 +47,12 @@ class Company(models.Model):
         return self.name
 
 class Branch(models.Model):
-    name = models.CharField(max_length=60, default='Main')
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True)
+    branch_name = models.CharField(max_length=60, null=True)
+    # name = models.CharField(max_length=60, null=True)
 
+    def __str__(self):
+        return self.branch_name
 class User(AbstractUser):
     
     USER_ROLES = (
@@ -65,4 +69,4 @@ class User(AbstractUser):
     # branch = models.ForeignKey('Branch', on_delete=models.CASCADE, null=True)
 
     def __str__(self) -> str:
-        return f'User:{self.username} Company:{self.company.name}'
+        return f'User:{self.username} Company:{self.company.name} Name:{self.first_name}'
