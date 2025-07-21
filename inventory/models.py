@@ -19,8 +19,7 @@ class UnitOfMeasurement(models.Model):
         return self.unit_name
 
 class Supplier(models.Model):
-    # company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True)
-    # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     name = models.CharField(max_length=255)
     contact_name = models.CharField(max_length=255)
     email = models.EmailField()
@@ -42,8 +41,7 @@ class Product(models.Model):
         ('zero rated', 'Zero Rated')
     ]
     
-    # company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True)
-    # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     name = models.CharField(max_length=255)
     quantity = models.FloatField()
     cost = models.DecimalField(max_digits=10, decimal_places=4)
@@ -78,8 +76,7 @@ class ProductionVariance(models.Model):
 
 
 class Production(models.Model):
-    # company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True)
-    # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     date_created = models.DateField(auto_now_add=True)
     time_created = models.TimeField(auto_now_add=True)
     date_created = models.DateField(auto_now_add=True)
@@ -149,7 +146,6 @@ class OverrideHistory(models.Model):
     down = models.FloatField(null=True)
 
 class ProductionInventory(models.Model):
-    # company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True)
     # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     raw_material = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.FloatField()
@@ -159,8 +155,7 @@ class ProductionInventory(models.Model):
 
 
 class Dish(models.Model):
-    # company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True)
-    # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     name = models.CharField(max_length=100)
     portion_multiplier = models.FloatField()
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -179,7 +174,6 @@ class Dish(models.Model):
         return self.name
 
 class Ingredient(models.Model):
-    # company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True)
     # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     dish = models.ForeignKey(Dish, on_delete=models.CASCADE, null=True)
     note = models.CharField(max_length=100, null=True)
@@ -197,8 +191,7 @@ class MealCategory(models.Model):
         return self.name
     
 class Meal(models.Model):
-    # company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True)
-    # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     name = models.CharField(max_length=255)
     price = models.CharField(max_length=255)
     dish = models.ManyToManyField(Dish, related_name='dishes')
@@ -211,7 +204,6 @@ class Meal(models.Model):
         return self.name
 
 class LeftOvers(models.Model):
-    # company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True)
     # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     cashier = models.ForeignKey(User, on_delete=models.CASCADE)
     dish = models.ForeignKey(Dish, on_delete= models.CASCADE, null=True)
@@ -231,8 +223,7 @@ class PurchaseOrder(models.Model):
         ('canceled', 'Canceled')
     ]
 
-    # company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True)
-    # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     order_number = models.CharField(max_length=100, unique=True)
     supplier = models.ForeignKey(Supplier, on_delete=models.SET_NULL, null=True)
     order_date = models.DateTimeField(auto_now_add=True)
@@ -317,7 +308,6 @@ class Logs(models.Model):
         ('removed', 'removed')
     ]
 
-    # company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True)
     # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     sale = models.ForeignKey('finance.sale', on_delete=models.CASCADE, null=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True)
@@ -330,7 +320,6 @@ class Logs(models.Model):
     description = models.CharField(max_length=255, null=True)
     
 class MinorRawMaterials(models.Model):
-    # company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True)
     # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     raw_material = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.FloatField()
@@ -341,8 +330,7 @@ class MinorRawMaterials(models.Model):
     
 
 class EndOfDay(models.Model):
-    # company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True)
-    # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     date = models.DateField(auto_now_add=True)
     done = models.BooleanField(default=False)
     total_sales = models.DecimalField(max_digits=10, decimal_places=2, null=True)
@@ -365,7 +353,6 @@ class EndOfDayItems(models.Model):
         return f'{self.end_of_day.date}: {self.dish_name}'
     
 class Reorder(models.Model):
-    # company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True)
     # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     ordered = models.BooleanField(default=False)
@@ -376,8 +363,7 @@ class Reorder(models.Model):
         return f'{self.product.name}'
     
 class Transfer(models.Model):
-    # company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True)
-    # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     transfer_number = models.CharField(max_length=20, unique=True)
     status = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -417,8 +403,7 @@ class ProductionLogs(models.Model):
         ('to production', 'to production'),
     ]
     
-    # company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True)
-    # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     product = models.ForeignKey(ProductionRawMaterials, on_delete=models.CASCADE)
     user = models.ForeignKey('users.User', on_delete=models.SET_NULL, null=True)
     action = models.CharField(max_length=20, choices=ACTION_CHOICES)
@@ -469,8 +454,7 @@ class BudgetItem(models.Model):
         return f'{self.product.name} - {self.allocated_amount}'
 
 class EndOfDayStock(models.Model):
-    # company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True)
-    # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     date = models.DateField(auto_now_add=True)
     product =  models.ForeignKey(Product, on_delete= models.CASCADE, null=False)
     quantity = models.IntegerField(default=0)

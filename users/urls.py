@@ -12,4 +12,6 @@ urlpatterns = [
     path('user/edit/<int:user_id>/', user_edit, name='user_edit'),
     path('user/detail/<int:user_id>/', user_detail, name='user_detail'),
     path('ajax/get-user-data/<int:user_id>/', get_user_data, name='ajax_get_user_data'),
+    path('get-branch/', getBranches, name='branches'),
+    path('create-branch/', createBranch, name="create_branch")
 ]
