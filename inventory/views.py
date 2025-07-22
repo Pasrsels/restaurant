@@ -882,7 +882,6 @@ def process_received_order(request):
 @login_required   
 def production_plans(request):
     
-
     plans = Production.objects.filter(branch=request.user.branch).order_by('date_created') 
     transfer_count = Transfer.objects.filter(status=False, branch=request.user.branch).count()
 
@@ -2199,7 +2198,7 @@ def add_dish(request): # didn't change the name of the template, it caters for b
     dish_form = DishForm()
     
     if request.method == 'GET':
-        r_m = Product.objects.filter(raw_material=True, minor_raw_material__branch=request.user.branch)
+        r_m = Product.objects.filter(raw_material=True, branch=request.user.branch)
         return render(request, 'inventory/ingredient_form.html', 
             {
                 'r_m':r_m,
@@ -2277,7 +2276,7 @@ def add_dish(request): # didn't change the name of the template, it caters for b
                         minor_raw_material=raw_material,
                         quantity=item.get('quantity'),
                         cost=item.get('cost'),
-                        branch=request.user.branch
+                        # branch=request.user.branch
                     )
 
         except Exception as e:
