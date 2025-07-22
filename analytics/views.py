@@ -46,8 +46,8 @@ def analytics_view(request):
        
         yesterday_void_sales = Sale.objects.filter(date=yesterday, void=True, branch = request.user.branch, staff = False).aggregate(total=Sum('total_amount'))
         
-        change_amount = Change.objects.filter(timestamp__date=today, collected=False, branch = request.user.branch).aggregate(total=Sum('amount'))
-        yesterday_change_amount = Change.objects.filter(timestamp__date=yesterday, collected=False, branch = request.user.branch).aggregate(total=Sum('amount'))
+        change_amount = Change.objects.filter(timestamp__date=today, collected=False, sale__branch = request.user.branch).aggregate(total=Sum('amount'))
+        yesterday_change_amount = Change.objects.filter(timestamp__date=yesterday, collected=False, sale__branch = request.user.branch).aggregate(total=Sum('amount'))
 
         data['total_void_sales'] = today_void_sales['total'] or 0
         data['change_amount'] = change_amount['total'] or 0

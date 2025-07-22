@@ -806,7 +806,7 @@ def create_change(request):
             receipt_number = data.get('receipt_number')
             
             # validation
-            if Change.objects.filter(receipt_number=receipt_number, branch = request.user.branch).exists():
+            if Change.objects.filter(receipt_number=receipt_number, sale__branch = request.user.branch).exists():
                 return JsonResponse({'success':False, 'message':f'Change with receipt number: {receipt_number} exists.'}, status=400)
             
             Change.objects.create(
@@ -817,7 +817,6 @@ def create_change(request):
                 cashier=request.user,
                 collected=False,
                 claimed=False,
-                branch=request.user.branch
             )
             return JsonResponse({'success':True}, status=201)
         except Exception as e:
@@ -838,14 +837,14 @@ def collect_change(request):
             amount = Decimal(data.get('amount'))
             cashier_id = request.user.id
             
-            change = Change.objects.get(id=change_id, branch = request.user.branch)
+            change = Change.objects.get(id=change_id, sale__branch = request.user.branch)
             cashier = User.objects.get(id = cashier_id)
 
             if amount == change.amount:
                 change.collected = True
                 change.cashier_give = cashier
             elif amount < change.amount:
-                change.amount -= amount
+                change.amount -= Decimal(amount)
                 change.cashier_give = cashier
             else:
                 return JsonResponse({'success':False, 'message':'Amount collected is more than the change amount'}, status=400)
@@ -1148,9 +1147,9 @@ def cash_up(request, cashier_id):
         # logger.info(eod_list)
         # eod_dict = { name:eod.dish_name for eod in eod_list}
 
-        change = Change.objects.filter(cashier__id=cashier_id, timestamp__date=datetime.datetime.today(), collected=False, branch = request.user.branch).values('amount')
-        accumulated_change = Change.objects.filter(cashier__id=cashier_id, collected=False, branch = request.user.branch).values('amount')
-        previous_change = Change.objects.filter(cashier__id=cashier_id, collected=True, branch = request.user.branch)
+        change = Change.objects.filter(cashier__id=cashier_id, timestamp__date=datetime.datetime.today(), collected=False, sale__branch = request.user.branch).values('amount')
+        accumulated_change = Change.objects.filter(cashier__id=cashier_id, collected=False, sale__branch = request.user.branch).values('amount')
+        previous_change = Change.objects.filter(cashier__id=cashier_id, collected=True, sale__branch = request.user.branch)
 
         previous_change_given_by_cashier_list = []
 
@@ -1270,10 +1269,10 @@ def accountantreport(request):
     cashier_id = request.user.id
 
     sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=False, branch = request.user.branch).values('total_amount')
-    change = Change.objects.filter(cashier__id=cashier_id, cashier_give__id=cashier_id, timestamp__date=datetime.datetime.today(), collected=False, branch = request.user.branch).values('amount')
-    other_cashiers_change_given = Change.objects.filter(cashier_give__id=cashier_id, collected=True, branch = request.user.branch).exclude(cashier__id=cashier_id).values('amount')
-    accumulated_change = Change.objects.filter(cashier__id=cashier_id, collected=False, branch = request.user.branch).values('amount')
-    accumulated_change_given = Change.objects.filter(cashier__id=cashier_id, cashier_give__id=cashier_id, collected=True, branch = request.user.branch).values('amount')
+    change = Change.objects.filter(cashier__id=cashier_id, cashier_give__id=cashier_id, timestamp__date=datetime.datetime.today(), collected=False, sale__branch = request.user.branch).values('amount')
+    other_cashiers_change_given = Change.objects.filter(cashier_give__id=cashier_id, collected=True, sale__branch = request.user.branch).exclude(cashier__id=cashier_id).values('amount')
+    accumulated_change = Change.objects.filter(cashier__id=cashier_id, collected=False, sale__branch = request.user.branch).values('amount')
+    accumulated_change_given = Change.objects.filter(cashier__id=cashier_id, cashier_give__id=cashier_id, collected=True, sale__branch = request.user.branch).values('amount')
     expenses = CashierExpense.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), branch = request.user.branch).values('amount')
     void_sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=True, branch = request.user.branch).values('total_amount')
 
