@@ -3466,7 +3466,7 @@ def check_list_finished_products(request):
     for product in non_production_products:
         if not products.filter(product=product.product).exists():
             check_list.append(CheckList(
-                product = product,
+                product = product.product,
                 status = False
             ))
 
@@ -3486,7 +3486,7 @@ def check_list_raw_products(request):
     for product in non_production_products:
         if not products.filter(product=product.product).exists():
             check_list.append(CheckList(
-                product = product,
+                product = product.product,
                 status = False
             ))
 
@@ -3505,7 +3505,7 @@ def check_list_all_products(request):
     for product in non_production_products:
         if not products.filter(product=product.product).exists():
             check_list.append(CheckList(
-                product = product,
+                product = product.product,
                 status = False
             ))
 
