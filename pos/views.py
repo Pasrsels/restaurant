@@ -1268,7 +1268,7 @@ def accountantreport(request):
     cash_in_hand = 0
     cashier_id = request.user.id
 
-    sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=False, branch = request.user.branch).values('total_amount')
+    sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=False, branch = request.user.branch, staff=False).values('total_amount')
     change = Change.objects.filter(cashier__id=cashier_id, cashier_give__id=cashier_id, timestamp__date=datetime.datetime.today(), collected=False, sale__branch = request.user.branch).values('amount')
     other_cashiers_change_given = Change.objects.filter(cashier_give__id=cashier_id, collected=True, sale__branch = request.user.branch).exclude(cashier__id=cashier_id).values('amount')
     accumulated_change = Change.objects.filter(cashier__id=cashier_id, collected=False, sale__branch = request.user.branch).values('amount')
@@ -1276,7 +1276,7 @@ def accountantreport(request):
     expenses = CashierExpense.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), branch = request.user.branch).values('amount')
     void_sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=True, branch = request.user.branch).values('total_amount')
 
-    total_staff_sales = sales.filter(staff=True).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    total_staff_sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=False, branch = request.user.branch, staff=True).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
 
     try:
         declared_cash = LeftOvers.objects.get(cashier__id=cashier_id, date=datetime.datetime.today(), branch = request.user.branch)
