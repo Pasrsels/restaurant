@@ -392,3 +392,69 @@ def analysisExpenses(request):
         return JsonResponse({'success': True})
     except Exception as e:
         return JsonResponse({'success': False})
+
+
+
+def dish_analytics(request):
+    from collections import defaultdict
+    from django.db.models import Q
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    if request.method == 'GET':
+        day = request.GET.get('day', '')
+        month = request.GET.get('month', '')
+        year = request.GET.get('year', '')  
+        sale_item = request.GET.get('sale_item', '').strip()
+
+        # Use today's date if not provided
+        if not (day and month and year):
+            target_date = date.today()
+        else:
+            try:
+                target_date = date(year=int(year), month=int(month), day=int(day))
+            except ValueError:
+                logger.error("Invalid date provided.")
+                return render(request, "sales_analytics.html", {"error": "Invalid date provided."})
+
+        # If a search keyword is provided, filter the saleitems
+        if sale_item:
+            # Narrow down saleitems based on meal, dish or product name
+            sales = sales.filter(
+                Q(saleitem__meal__name__icontains=sale_item) |
+                Q(saleitem__dish__name__icontains=sale_item) |
+                Q(saleitem__product__name__icontains=sale_item)
+            ).distinct()
+
+        meals = defaultdict(lambda: {"name": "", "quantity": 0, "price": 0})
+        dishes = defaultdict(lambda: {"name": "", "quantity": 0, "price": 0})
+
+        for sale in sales:
+            for item in sale.saleitem_set.all():
+                if sale_item:
+                    if not (
+                        (item.meal and sale_item.lower() in item.meal.name.lower()) or
+                        (item.dish and sale_item.lower() in item.dish.name.lower()) or
+                        (item.product and sale_item.lower() in item.product.name.lower())
+                    ):
+                        continue  #
+                if item.meal:
+                    name = item.meal.name
+                    meals[name]["name"] = name
+                    meals[name]["quantity"] += item.quantity
+                    meals[name]["price"] += item.price * item.quantity
+                elif item.dish:
+                    name = item.dish.name
+                    dishes[name]["name"] = name
+                    dishes[name]["quantity"] += item.quantity
+                    dishes[name]["price"] += item.price * item.quantity
+
+        context = {
+            "sales": sales,
+            "meals": list(meals.values()),
+            "dishes": list(dishes.values()),
+            "date": target_date,
+            "sale_item": sale_item,
+        }
+        return render(request, "sales_analytics.html", context)

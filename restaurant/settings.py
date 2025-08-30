@@ -16,7 +16,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = [
     '192.168.1.136',
-    '196.27.126.114'
+    '196.27.126.114',
+    '127.0.0.1'
 ]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -91,7 +92,8 @@ TEMPLATES = [
                 
                 # customm
                 'inventory.context_processors.notification_processor', 
-                'inventory.context_processors.check_list_processor'
+                'inventory.context_processors.check_list_processor',
+                'inventory.context_processors.all_meals_dishes'
             ],
         },
     },
@@ -218,10 +220,11 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "127.0.0.1"
-EMAIL_PORT = 1025
-EMAIL_HOST_USER = ""
-EMAIL_HOST_PASSWORD = ""
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 465
+EMAIL_USE_SSL = True
+EMAIL_HOST_USER = "chinomonateddym@gmail.com"
+EMAIL_HOST_PASSWORD = "wxsh mufd blej nyvq"
 EMAIL_USE_TLS = False
 
 # channels

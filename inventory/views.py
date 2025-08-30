@@ -861,7 +861,7 @@ def process_received_order(request):
                 quantity=quantity,
                 description=f'Stock in from {purchase_order.order_number}',
                 total_quantity=product.quantity,
-                branch=request.user.branch
+                # branch=request.user.branch
             )
 
             order_item.receive_items(quantity)
@@ -2428,15 +2428,15 @@ def edit_dish(request, dish_id):
             logger.info(image)
 
 
-            cat, _= MealCategory.objects.get_or_create(name=category, branch=request.user.branch) 
-            dish = Dish.objects.get(id=dish_id, branch=request.user.branch)
+            cat, _= MealCategory.objects.get_or_create(name=category) 
+            dish = Dish.objects.get(id=dish_id)
             logger.info(f'Dish name: {dish_name}')
             dish.name = dish_name
             dish.portion_multiplier = portion_multiplier
             dish.cost = cost
             dish.price = selling_price
             dish.category = dish.category
-            dish.image = image
+            # dish.image = image
             existing_ingredients = Ingredient.objects.filter(dish=dish, minor_raw_material__branch = request.user.branch)
             existing_ingredient_names = {ing.minor_raw_material.name for ing in existing_ingredients}
             raw_material_map = {rm.name: rm for rm in Product.objects.filter(branch = request.user.branch)}
@@ -3213,6 +3213,48 @@ def confirm_minor_raw(request):
     except Exception as e:
         return JsonResponse({'success': False, 'message': f'{e}'}, status=400)
     return JsonResponse({'success': True}, status=200)
+
+@login_required
+def create_end_of_day_declaration(request):
+    
+    if request.method == 'GET':
+        """
+            products used,
+            portions
+        """
+        inventory = Inventory.objects.filter(branch=request.user.branch).values('id', 'quantity', 'name')
+        dishes = Dish.objects.filter(branch=request.user.branch).values('id', 'name')
+        meals = Meal.objects.filter(branch=request.user.branch).values('id', 'name')
+        
+        meals_dishes = list(dishes) + list(meals)
+        
+        context = {
+            'inventory':inventory,
+            'dishes':dishes,
+            'meals':meals
+        }
+        
+        return render (request, 'end_of_declaration.html', context)
+
+    if request.method == "POST":
+        """
+            [
+                {
+                    'dish/meal_id':id,
+                    'quantity': int,
+                }
+            ]
+        """
+        try:
+            data = json.loads(request.body)
+            
+            
+        except Exception as e:
+            logger.error(f'Error processing declare item: {e}')
+    
+    
+
+
 
 @login_required
 def calculate_reorder_point(product):
