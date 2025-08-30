@@ -1,0 +1,527 @@
+Sale ID,Receipt Number,Date,Cashier,Branch,Meal,Dish,Product,Quantity,Price,Subtotal,Total Amount,Tax,Amount Paid,Change,Cash Type,Staff
+64817,63216,2025-08-13,yvandrayvie,,Tea,,1,0.5,0.5,0.5,0.08,0.5,0.0,solid-cash,False
+64818,63217,2025-08-13,yvandrayvie,,Tea,,1,0.5,0.5,0.5,0.08,0.5,0.0,solid-cash,False
+64819,63218,2025-08-13,yvandrayvie,,Tea,,1,0.5,0.5,0.5,0.08,0.5,0.0,eco-cash,False
+64820,63219,2025-08-13,yvandrayvie,,Tea,,1,0.5,0.5,0.5,0.08,0.5,0.0,solid-cash,False
+64821,63220,2025-08-13,yvandrayvie,,Spaghetti,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64822,63221,2025-08-13,yvandrayvie,,Rice neDovi,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64823,63222,2025-08-13,yvandrayvie,,Rice neDovi,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64824,63223,2025-08-13,yvandrayvie,,Beef Burger BB,,2,1.0,2.0,4.0,0.6,4.0,0.0,solid-cash,False
+64824,63223,2025-08-13,yvandrayvie,,Small Chips,,2,1.0,2.0,4.0,0.6,4.0,0.0,solid-cash,False
+64825,63224,2025-08-13,yvandrayvie,,Tea,,1,0.5,0.5,0.5,0.08,0.5,0.0,solid-cash,False
+64826,63225,2025-08-13,yvandrayvie,,Small Chips,,2,1.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+64827,63226,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64828,63227,2025-08-13,yvandrayvie,,Tea,,2,0.5,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64829,63228,2025-08-13,yvandrayvie,,,Pet,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64830,63229,2025-08-13,yvandrayvie,,Tea,,1,0.5,0.5,0.5,0.08,0.5,0.0,solid-cash,False
+64831,63230,2025-08-13,yvandrayvie,,Beef Burger BB,,3,1.0,3.0,3.0,0.45,3.0,0.0,solid-cash,False
+64832,63231,2025-08-13,yvandrayvie,,Tea,,1,0.5,0.5,0.5,0.08,0.5,0.0,solid-cash,False
+64833,63232,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64834,63233,2025-08-13,yvandrayvie,,Tea,,1,0.5,0.5,0.5,0.08,0.5,0.0,solid-cash,False
+64835,63234,2025-08-13,yvandrayvie,,Rice neDovi,,1,1.0,1.0,1.0,0.15,2.0,1.0,solid-cash,False
+64836,63235,2025-08-13,yvandrayvie,,Tea,,2,0.5,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64837,63236,2025-08-13,yvandrayvie,,Spaghetti,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64838,63237,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64839,63238,2025-08-13,yvandrayvie,,Baked Potatoes,,1,1.0,1.0,5.0,0.75,5.0,0.0,solid-cash,False
+64839,63238,2025-08-13,yvandrayvie,,Roast Chicken,,1,1.5,1.5,5.0,0.75,5.0,0.0,solid-cash,False
+64839,63238,2025-08-13,yvandrayvie,,,Water,1,0.5,0.5,5.0,0.75,5.0,0.0,solid-cash,False
+64839,63238,2025-08-13,yvandrayvie,Goat Meat & Rice,,,1,2.0,2.0,5.0,0.75,5.0,0.0,solid-cash,False
+64840,63239,2025-08-13,yvandrayvie,,Tea,,1,0.5,0.5,0.5,0.08,0.5,0.0,solid-cash,False
+64841,63240,2025-08-13,yvandrayvie,Beef Stew & Rice,,,1,2.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+64842,63241,2025-08-13,yvandrayvie,,Tea,,1,0.5,0.5,0.5,0.08,0.5,0.0,solid-cash,False
+64843,63242,2025-08-13,yvandrayvie,Gango & Sadza,,,2,2.0,4.0,5.0,0.75,10.0,5.0,solid-cash,False
+64843,63242,2025-08-13,yvandrayvie,,Tea,,2,0.5,1.0,5.0,0.75,10.0,5.0,solid-cash,False
+64844,63243,2025-08-13,yvandrayvie,Russian Combo,,,2,2.0,4.0,4.0,0.6,4.0,0.0,eco-cash,False
+64845,63244,2025-08-13,yvandrayvie,Chicken Roast & Rice,,,1,2.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+64846,63245,2025-08-13,yvandrayvie,Chicken Roast & Rice,,,1,2.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+64847,63246,2025-08-13,yvandrayvie,Crumbed Chicken & Chips,,,2,3.0,6.0,7.0,1.05,7.0,0.0,solid-cash,False
+64847,63246,2025-08-13,yvandrayvie,,,Pepsi coke,2,0.5,1.0,7.0,1.05,7.0,0.0,solid-cash,False
+64848,63247,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64849,63248,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64850,63249,2025-08-13,yvandrayvie,,Rice neDovi,,1,1.0,1.0,4.5,0.68,10.5,5.0,solid-cash,False
+64850,63249,2025-08-13,yvandrayvie,,Goat Meat,,1,1.5,1.5,4.5,0.68,10.5,5.0,solid-cash,False
+64850,63249,2025-08-13,yvandrayvie,Beef Stew & Rice,,,1,2.0,2.0,4.5,0.68,10.5,5.0,solid-cash,False
+64851,63250,2025-08-13,yvandrayvie,Beef Stew & Sadza,,,1,2.0,2.0,2.0,0.3,2.0,0.0,eco-cash,False
+64852,63251,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64853,63252,2025-08-13,yvandrayvie,Beef Stew & Sadza,,,1,2.0,2.0,2.0,0.3,2.0,0.0,eco-cash,False
+64854,63253,2025-08-13,yvandrayvie,,Tea,,1,0.5,0.5,0.5,0.08,0.5,0.0,solid-cash,False
+64855,63254,2025-08-13,yvandrayvie,,Small Chips,,2,1.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+64856,63255,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64857,63256,2025-08-13,yvandrayvie,,Hot Dog,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64858,63257,2025-08-13,yvandrayvie,Chicken Roast & Sadza,,,1,2.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+64859,63258,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64860,63259,2025-08-13,yvandrayvie,,Tea,,1,0.5,0.5,0.5,0.08,0.5,0.0,solid-cash,False
+64861,63260,2025-08-13,yvandrayvie,,Mashed Potatoes,,2,1.0,2.0,2.0,0.3,10.0,5.0,solid-cash,False
+64862,63261,2025-08-13,yvandrayvie,Beef Stew & Rice,,,1,2.0,2.0,2.0,0.3,10.0,5.0,solid-cash,False
+64863,63262,2025-08-13,yvandrayvie,Beef Stew & Sadza,,,1,2.0,2.0,2.0,0.3,10.0,8.0,solid-cash,False
+64864,63263,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64865,63264,2025-08-13,yvandrayvie,Beef Stew & Rice,,,1,2.0,2.0,7.0,1.05,10.0,3.0,solid-cash,False
+64865,63264,2025-08-13,yvandrayvie,Chicken Stew & Rice,,,1,2.0,2.0,7.0,1.05,10.0,3.0,solid-cash,False
+64865,63264,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,7.0,1.05,10.0,3.0,solid-cash,False
+64865,63264,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,7.0,1.05,10.0,3.0,solid-cash,False
+64865,63264,2025-08-13,yvandrayvie,,Mashed Potatoes,,1,1.0,1.0,7.0,1.05,10.0,3.0,solid-cash,False
+64866,63265,2025-08-13,yvandrayvie,Gango & Rice,,,1,2.0,2.0,2.0,0.3,10.0,8.0,solid-cash,False
+64867,63266,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+64867,63266,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+64868,63267,2025-08-13,yvandrayvie,,Shwarma,,1,3.0,3.0,9.0,1.35,50.0,0.0,solid-cash,False
+64868,63267,2025-08-13,yvandrayvie,,Chicken Burger,,1,2.0,2.0,9.0,1.35,50.0,0.0,solid-cash,False
+64868,63267,2025-08-13,yvandrayvie,,,Fruta,2,1.0,2.0,9.0,1.35,50.0,0.0,solid-cash,False
+64868,63267,2025-08-13,yvandrayvie,Beef Stew & Sadza,,,1,2.0,2.0,9.0,1.35,50.0,0.0,solid-cash,False
+64869,63268,2025-08-13,yvandrayvie,Beef Stew & Rice,,,1,2.0,2.0,2.0,0.3,10.0,8.0,solid-cash,False
+64870,63269,2025-08-13,yvandrayvie,,Beef Burger BB,,5,1.0,5.0,5.0,0.75,5.0,0.0,solid-cash,False
+64871,63270,2025-08-13,yvandrayvie,Goat Meat & Sadza,,,1,2.0,2.0,4.0,0.6,4.0,0.0,solid-cash,False
+64871,63270,2025-08-13,yvandrayvie,Chicken Stew & Sadza,,,1,2.0,2.0,4.0,0.6,4.0,0.0,solid-cash,False
+64872,63271,2025-08-13,yvandrayvie,Beef Stew & Rice,,,2,2.0,4.0,4.0,0.6,4.0,0.0,solid-cash,False
+64873,63272,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,2.0,0.3,10.0,8.0,solid-cash,False
+64873,63272,2025-08-13,yvandrayvie,,Hot Dog,,1,1.0,1.0,2.0,0.3,10.0,8.0,solid-cash,False
+64874,63273,2025-08-13,yvandrayvie,,,Pet,2,1.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+64875,63274,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+64875,63274,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+64876,63275,2025-08-13,yvandrayvie,,Mashed Potatoes,,1,1.0,1.0,1.5,0.23,1.5,0.0,eco-cash,False
+64876,63275,2025-08-13,yvandrayvie,,Sadza,,1,0.5,0.5,1.5,0.23,1.5,0.0,eco-cash,False
+64877,63276,2025-08-13,yvandrayvie,,Roast Chicken,,1,1.5,1.5,3.0,0.45,3.0,0.0,solid-cash,False
+64877,63276,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,3.0,0.45,3.0,0.0,solid-cash,False
+64877,63276,2025-08-13,yvandrayvie,,,Pepsi coke,1,0.5,0.5,3.0,0.45,3.0,0.0,solid-cash,False
+64878,63277,2025-08-13,yvandrayvie,,Mashed Potatoes,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64879,63278,2025-08-13,yvandrayvie,Russian Combo,,,1,2.0,2.0,4.0,0.6,4.0,0.0,solid-cash,False
+64879,63278,2025-08-13,yvandrayvie,,Small Chips,,2,1.0,2.0,4.0,0.6,4.0,0.0,solid-cash,False
+64880,63279,2025-08-13,yvandrayvie,Russian Combo,,,1,2.0,2.0,2.0,0.3,10.0,8.0,solid-cash,False
+64881,63280,2025-08-13,yvandrayvie,Russian Combo,,,1,2.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+64882,63281,2025-08-13,yvandrayvie,,Mashed Potatoes,,1,1.0,1.0,3.0,0.45,10.0,6.0,solid-cash,False
+64882,63281,2025-08-13,yvandrayvie,,Crumbed Chicken,,1,2.0,2.0,3.0,0.45,10.0,6.0,solid-cash,False
+64883,63282,2025-08-13,yvandrayvie,,,Pepsi coke,2,0.5,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64884,63283,2025-08-13,yvandrayvie,,Beef Burger BB,,3,1.0,3.0,4.5,0.68,10.0,0.0,solid-cash,False
+64884,63283,2025-08-13,yvandrayvie,,,Pepsi coke,3,0.5,1.5,4.5,0.68,10.0,0.0,solid-cash,False
+64885,63284,2025-08-13,yvandrayvie,Beef Stew & Rice,,,1,2.0,2.0,6.0,0.9,6.0,0.0,solid-cash,False
+64885,63284,2025-08-13,yvandrayvie,Beef Stew & Sadza,,,1,2.0,2.0,6.0,0.9,6.0,0.0,solid-cash,False
+64885,63284,2025-08-13,yvandrayvie,Gango & Sadza,,,1,2.0,2.0,6.0,0.9,6.0,0.0,solid-cash,False
+64886,63285,2025-08-13,yvandrayvie,,Fish Roast,,1,3.0,3.0,4.5,0.68,4.5,0.0,eco-cash,False
+64886,63285,2025-08-13,yvandrayvie,,Plain Rice 50c,,1,0.5,0.5,4.5,0.68,4.5,0.0,eco-cash,False
+64886,63285,2025-08-13,yvandrayvie,,,Pet,1,1.0,1.0,4.5,0.68,4.5,0.0,eco-cash,False
+64887,63286,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,3.0,0.45,3.0,0.0,solid-cash,False
+64887,63286,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,3.0,0.45,3.0,0.0,solid-cash,False
+64887,63286,2025-08-13,yvandrayvie,,,Pet,1,1.0,1.0,3.0,0.45,3.0,0.0,solid-cash,False
+64888,63287,2025-08-13,yvandrayvie,,Goat Meat,,2,1.5,3.0,4.0,0.6,4.0,0.0,solid-cash,False
+64888,63287,2025-08-13,yvandrayvie,,Mashed Potatoes,,1,1.0,1.0,4.0,0.6,4.0,0.0,solid-cash,False
+64889,63288,2025-08-13,yvandrayvie,Gango & Sadza,,,1,2.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+64890,63289,2025-08-13,yvandrayvie,1/4 Chicken & Chips,,,1,4.0,4.0,4.0,0.6,4.0,0.0,solid-cash,False
+64891,63290,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64892,63291,2025-08-13,yvandrayvie,,Rice neDovi,,1,1.0,1.0,6.0,0.9,6.0,0.0,solid-cash,False
+64892,63291,2025-08-13,yvandrayvie,1/4 Chicken & Rice,,,1,3.5,3.5,6.0,0.9,6.0,0.0,solid-cash,False
+64892,63291,2025-08-13,yvandrayvie,,Beef Stew,,1,1.5,1.5,6.0,0.9,6.0,0.0,solid-cash,False
+64893,63292,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64894,63293,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64895,63294,2025-08-13,yvandrayvie,Crumbed Chicken & Chips,,,1,3.0,3.0,6.0,0.9,6.0,0.0,solid-cash,False
+64895,63294,2025-08-13,yvandrayvie,Beef Stew & Rice,,,1,2.0,2.0,6.0,0.9,6.0,0.0,solid-cash,False
+64895,63294,2025-08-13,yvandrayvie,,,Pet,1,1.0,1.0,6.0,0.9,6.0,0.0,solid-cash,False
+64896,63295,2025-08-13,yvandrayvie,,Tea,,1,0.5,0.5,0.5,0.08,0.5,0.0,solid-cash,False
+64897,63296,2025-08-13,yvandrayvie,Beef Stew & Sadza,,,2,2.0,4.0,4.0,0.6,4.0,0.0,solid-cash,False
+64898,63297,2025-08-13,yvandrayvie,Gango & Sadza,,,1,2.0,2.0,2.0,0.3,10.0,3.0,solid-cash,False
+64899,63298,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64900,63299,2025-08-13,yvandrayvie,Chicken Roast & Sadza,,,1,2.0,2.0,2.0,0.3,5.0,3.0,solid-cash,False
+64901,63300,2025-08-13,yvandrayvie,,Beef Burger BB,,2,1.0,2.0,4.0,0.6,10.0,6.0,solid-cash,False
+64901,63300,2025-08-13,yvandrayvie,,Small Chips,,2,1.0,2.0,4.0,0.6,10.0,6.0,solid-cash,False
+64902,63301,2025-08-13,yvandrayvie,,,Pepsi coke,2,0.5,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64903,63302,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+64903,63302,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+64904,63303,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64905,63304,2025-08-13,yvandrayvie,Chicken Stew & Rice,,,1,2.0,2.0,2.5,0.38,2.5,0.0,solid-cash,False
+64905,63304,2025-08-13,yvandrayvie,,,Pepsi coke,1,0.5,0.5,2.5,0.38,2.5,0.0,solid-cash,False
+64906,63305,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,1.0,0.15,5.0,4.0,solid-cash,False
+64907,63306,2025-08-13,yvandrayvie,Goat Meat & Sadza,,,1,2.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+64908,63307,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64909,63308,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,2.0,0.3,2.0,0.0,eco-cash,False
+64909,63308,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,2.0,0.3,2.0,0.0,eco-cash,False
+64910,63309,2025-08-13,yvandrayvie,Goat Meat & Rice,,,1,2.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+64911,63310,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,5.0,4.0,solid-cash,False
+64912,63311,2025-08-13,yvandrayvie,Goat Meat & Rice,,,1,2.0,2.0,2.0,0.3,10.0,0.0,solid-cash,False
+64913,63312,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64914,63313,2025-08-13,yvandrayvie,,Beef Burger BB,,2,1.0,2.0,5.0,0.75,5.0,0.0,solid-cash,False
+64914,63313,2025-08-13,yvandrayvie,,Small Chips,,2,1.0,2.0,5.0,0.75,5.0,0.0,solid-cash,False
+64914,63313,2025-08-13,yvandrayvie,,Hot Dog,,1,1.0,1.0,5.0,0.75,5.0,0.0,solid-cash,False
+64915,63314,2025-08-13,yvandrayvie,Beef Stew & Rice,,,1,2.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+64916,63315,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64917,63316,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64918,63317,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+64918,63317,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+64919,63318,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64920,63319,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64921,63320,2025-08-13,yvandrayvie,Goat Meat & Sadza,,,1,2.0,2.0,2.0,0.3,10.0,2.0,solid-cash,False
+64922,63321,2025-08-13,yvandrayvie,Crumbed Chicken & Rice,,,1,2.5,2.5,3.0,0.45,10.0,7.0,solid-cash,False
+64922,63321,2025-08-13,yvandrayvie,,,Pepsi coke,1,0.5,0.5,3.0,0.45,10.0,7.0,solid-cash,False
+64923,63322,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64924,63323,2025-08-13,yvandrayvie,,Shwarma,,1,3.0,3.0,3.0,0.45,3.0,0.0,solid-cash,False
+64925,63324,2025-08-13,yvandrayvie,,Mashed Potatoes,,2,1.0,2.0,7.0,1.05,7.0,0.0,solid-cash,False
+64925,63324,2025-08-13,yvandrayvie,,Roast Chicken,,2,1.5,3.0,7.0,1.05,7.0,0.0,solid-cash,False
+64925,63324,2025-08-13,yvandrayvie,,Hot Dog,,1,1.0,1.0,7.0,1.05,7.0,0.0,solid-cash,False
+64925,63324,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,7.0,1.05,7.0,0.0,solid-cash,False
+64926,63325,2025-08-13,yvandrayvie,,Large Fish Roast,,1,4.0,4.0,5.0,0.75,5.0,0.0,solid-cash,False
+64926,63325,2025-08-13,yvandrayvie,,Plain Rice 50c,,1,0.5,0.5,5.0,0.75,5.0,0.0,solid-cash,False
+64926,63325,2025-08-13,yvandrayvie,,,Water,1,0.5,0.5,5.0,0.75,5.0,0.0,solid-cash,False
+64927,63326,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64928,63327,2025-08-13,yvandrayvie,Crumbed Chicken & Rice,,,1,2.5,2.5,2.5,0.38,2.5,0.0,solid-cash,False
+64929,63328,2025-08-13,yvandrayvie,,,Pepsi coke,1,0.5,0.5,0.5,0.08,0.5,0.0,solid-cash,False
+64930,63329,2025-08-13,yvandrayvie,,Hot Dog,,1,1.0,1.0,3.0,0.45,3.0,0.0,solid-cash,False
+64930,63329,2025-08-13,yvandrayvie,Goat Meat & Rice,,,1,2.0,2.0,3.0,0.45,3.0,0.0,solid-cash,False
+64931,63330,2025-08-13,yvandrayvie,,Hot Dog,,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+64931,63330,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+64932,63331,2025-08-13,yvandrayvie,,Large Fish Roast,,1,4.0,4.0,4.5,0.68,20.0,0.0,solid-cash,False
+64932,63331,2025-08-13,yvandrayvie,,Sadza,,1,0.5,0.5,4.5,0.68,20.0,0.0,solid-cash,False
+64933,63332,2025-08-13,yvandrayvie,,,Pet,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+64933,63332,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+64934,63333,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64935,63334,2025-08-13,yvandrayvie,Chicken Roast & Rice,,,2,2.0,4.0,4.0,0.6,4.0,0.0,solid-cash,False
+64936,63335,2025-08-13,yvandrayvie,,Tea,,2,0.5,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64937,63336,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,20.0,3.0,solid-cash,False
+64938,63337,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64939,63338,2025-08-13,yvandrayvie,Chicken Stew & Rice,,,2,2.0,4.0,4.0,0.6,4.0,0.0,solid-cash,False
+64940,63339,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,5.0,4.0,solid-cash,False
+64941,63340,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,3.0,0.45,5.0,3.0,solid-cash,False
+64941,63340,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,3.0,0.45,5.0,3.0,solid-cash,False
+64941,63340,2025-08-13,yvandrayvie,,Hot Dog,,1,1.0,1.0,3.0,0.45,5.0,3.0,solid-cash,False
+64942,63341,2025-08-13,yvandrayvie,,Mashed Potatoes,,1,1.0,1.0,2.5,0.38,2.5,0.0,eco-cash,False
+64942,63341,2025-08-13,yvandrayvie,,Beef Stew,,1,1.5,1.5,2.5,0.38,2.5,0.0,eco-cash,False
+64943,63342,2025-08-13,yvandrayvie,Beef Stew & Rice,,,1,2.0,2.0,4.0,0.6,10.0,6.0,solid-cash,False
+64943,63342,2025-08-13,yvandrayvie,Chicken Roast & Rice,,,1,2.0,2.0,4.0,0.6,10.0,6.0,solid-cash,False
+64944,63343,2025-08-13,yvandrayvie,,Rice neDovi,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64945,63344,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+64945,63344,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+64946,63345,2025-08-13,yvandrayvie,,,Pepsi coke,1,0.5,0.5,0.5,0.08,0.5,0.0,eco-cash,False
+64947,63346,2025-08-13,yvandrayvie,Chicken Roast & Rice,,,1,2.0,2.0,2.0,0.3,5.0,3.0,solid-cash,False
+64948,63347,2025-08-13,yvandrayvie,,Small Chips,,2,1.0,2.0,2.0,0.3,5.0,3.0,solid-cash,False
+64949,63348,2025-08-13,yvandrayvie,Beef Stew & Rice,,,1,2.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+64950,63349,2025-08-13,yvandrayvie,,Spaghetti,,1,1.0,1.0,2.5,0.38,2.5,0.0,solid-cash,False
+64950,63349,2025-08-13,yvandrayvie,,Chicken Stew,,1,1.5,1.5,2.5,0.38,2.5,0.0,solid-cash,False
+64951,63350,2025-08-13,yvandrayvie,,Crumbed Chicken,,1,2.0,2.0,6.0,0.9,6.0,0.0,solid-cash,False
+64951,63350,2025-08-13,yvandrayvie,,Spaghetti,,1,1.0,1.0,6.0,0.9,6.0,0.0,solid-cash,False
+64951,63350,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,6.0,0.9,6.0,0.0,solid-cash,False
+64951,63350,2025-08-13,yvandrayvie,,Beef Burger BB,,2,1.0,2.0,6.0,0.9,6.0,0.0,solid-cash,False
+64952,63351,2025-08-13,yvandrayvie,Beef Stew & Sadza,,,1,2.0,2.0,2.0,0.3,5.0,3.0,solid-cash,False
+64953,63352,2025-08-13,yvandrayvie,Beef Stew & Rice,,,1,2.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+64954,63353,2025-08-13,yvandrayvie,Gango & Sadza,,,1,2.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+64955,63354,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,2.0,0.3,10.0,5.0,solid-cash,False
+64955,63354,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,2.0,0.3,10.0,5.0,solid-cash,False
+64956,63355,2025-08-13,yvandrayvie,Beef Stew & Sadza,,,1,2.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+64957,63356,2025-08-13,yvandrayvie,1/4 Chicken & Rice,,,1,3.5,3.5,3.5,0.53,10.0,6.0,solid-cash,False
+64958,63357,2025-08-13,yvandrayvie,,Baked Potatoes,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64959,63358,2025-08-13,yvandrayvie,,Shwarma,,1,3.0,3.0,3.0,0.45,3.0,0.0,solid-cash,False
+64960,63359,2025-08-13,yvandrayvie,,Spaghetti,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64961,63360,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64962,63361,2025-08-13,yvandrayvie,Beef Stew & Sadza,,,1,2.0,2.0,3.0,0.45,3.0,0.0,solid-cash,False
+64962,63361,2025-08-13,yvandrayvie,,Spaghetti,,1,1.0,1.0,3.0,0.45,3.0,0.0,solid-cash,False
+64963,63362,2025-08-13,yvandrayvie,Beef Stew & Rice,,,1,2.0,2.0,3.0,0.45,3.0,0.0,solid-cash,False
+64963,63362,2025-08-13,yvandrayvie,,,Pet,1,1.0,1.0,3.0,0.45,3.0,0.0,solid-cash,False
+64964,63363,2025-08-13,yvandrayvie,1/4 Chicken & Chips,,,1,4.0,4.0,4.0,0.6,4.0,0.0,solid-cash,False
+64965,63364,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64966,63365,2025-08-13,yvandrayvie,,Beef Burger BB,,2,1.0,2.0,4.0,0.6,4.0,0.0,solid-cash,False
+64966,63365,2025-08-13,yvandrayvie,,Small Chips,,2,1.0,2.0,4.0,0.6,4.0,0.0,solid-cash,False
+64967,63366,2025-08-13,yvandrayvie,,Double Burger,,1,2.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+64968,63367,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,3.0,0.45,5.0,2.0,solid-cash,False
+64968,63367,2025-08-13,yvandrayvie,,,Fruta,1,1.0,1.0,3.0,0.45,5.0,2.0,solid-cash,False
+64968,63367,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,3.0,0.45,5.0,2.0,solid-cash,False
+64969,63368,2025-08-13,yvandrayvie,Chicken Roast & Rice,,,1,2.0,2.0,4.0,0.6,5.0,1.0,solid-cash,False
+64969,63368,2025-08-13,yvandrayvie,,Hot Dog,,1,1.0,1.0,4.0,0.6,5.0,1.0,solid-cash,False
+64969,63368,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,4.0,0.6,5.0,1.0,solid-cash,False
+64970,63369,2025-08-13,yvandrayvie,Chicken Stew & Rice,,,2,2.0,4.0,4.0,0.6,4.0,0.0,solid-cash,False
+64971,63370,2025-08-13,yvandrayvie,1/4 Chicken & Chips,,,1,4.0,4.0,4.0,0.6,4.0,0.0,solid-cash,False
+64972,63371,2025-08-13,yvandrayvie,,Fish Stew 1 piece,,2,1.5,3.0,8.5,1.28,10.0,1.5,solid-cash,False
+64972,63371,2025-08-13,yvandrayvie,,Plain Rice 50c,,1,0.5,0.5,8.5,1.28,10.0,1.5,solid-cash,False
+64972,63371,2025-08-13,yvandrayvie,Beef Stew & Rice,,,1,2.0,2.0,8.5,1.28,10.0,1.5,solid-cash,False
+64972,63371,2025-08-13,yvandrayvie,,,Pet,2,1.0,2.0,8.5,1.28,10.0,1.5,solid-cash,False
+64972,63371,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,8.5,1.28,10.0,1.5,solid-cash,False
+64973,63372,2025-08-13,yvandrayvie,Beef Stew & Rice,,,1,2.0,2.0,2.0,0.3,5.0,3.0,solid-cash,False
+64974,63373,2025-08-13,yvandrayvie,,Small Chips,,3,1.0,3.0,3.0,0.45,5.0,2.0,solid-cash,False
+64975,63374,2025-08-13,yvandrayvie,,Crumbed Chicken,,1,2.0,2.0,3.0,0.45,5.0,2.0,solid-cash,False
+64975,63374,2025-08-13,yvandrayvie,,Spaghetti,,1,1.0,1.0,3.0,0.45,5.0,2.0,solid-cash,False
+64976,63375,2025-08-13,yvandrayvie,,Beef Burger BB,,2,1.0,2.0,6.0,0.9,100.0,4.0,solid-cash,False
+64976,63375,2025-08-13,yvandrayvie,,Small Chips,,3,1.0,3.0,6.0,0.9,100.0,4.0,solid-cash,False
+64976,63375,2025-08-13,yvandrayvie,,Hot Dog,,1,1.0,1.0,6.0,0.9,100.0,4.0,solid-cash,False
+64977,63376,2025-08-13,yvandrayvie,,,Pet,1,1.0,1.0,1.0,0.15,1.0,0.0,eco-cash,False
+64978,63377,2025-08-13,yvandrayvie,,Hot Dog,,3,1.0,3.0,3.0,0.45,3.0,0.0,solid-cash,False
+64979,63378,2025-08-13,yvandrayvie,Chicken Stew & Rice,,,1,2.0,2.0,2.5,0.38,2.5,0.0,eco-cash,False
+64979,63378,2025-08-13,yvandrayvie,,,Pepsi coke,1,0.5,0.5,2.5,0.38,2.5,0.0,eco-cash,False
+64980,63379,2025-08-13,yvandrayvie,,Small Chips,,3,1.0,3.0,3.0,0.45,3.0,0.0,solid-cash,False
+64981,63380,2025-08-13,yvandrayvie,Chicken Stew & Sadza,,,1,2.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+64982,63381,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+64982,63381,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+64983,63382,2025-08-13,yvandrayvie,Goat Meat & Rice,,,1,2.0,2.0,3.0,0.45,3.0,0.0,solid-cash,False
+64983,63382,2025-08-13,yvandrayvie,,,Fruta,1,1.0,1.0,3.0,0.45,3.0,0.0,solid-cash,False
+64984,63383,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64985,63384,2025-08-13,yvandrayvie,Crumbed Chicken & Rice,,,2,2.5,5.0,13.0,1.95,13.0,0.0,eco-cash,False
+64985,63384,2025-08-13,yvandrayvie,Crumbed Chicken & Chips,,,2,3.0,6.0,13.0,1.95,13.0,0.0,eco-cash,False
+64985,63384,2025-08-13,yvandrayvie,,,Pet,2,1.0,2.0,13.0,1.95,13.0,0.0,eco-cash,False
+64986,63385,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,5.0,4.0,solid-cash,False
+64987,63386,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,3.0,0.45,5.0,2.0,solid-cash,False
+64987,63386,2025-08-13,yvandrayvie,Beef Stew & Rice,,,1,2.0,2.0,3.0,0.45,5.0,2.0,solid-cash,False
+64988,63387,2025-08-13,yvandrayvie,Beef Stew & Sadza,,,1,2.0,2.0,4.0,0.6,4.0,0.0,solid-cash,False
+64988,63387,2025-08-13,yvandrayvie,Chicken Stew & Sadza,,,1,2.0,2.0,4.0,0.6,4.0,0.0,solid-cash,False
+64989,63388,2025-08-13,yvandrayvie,1/4 Chicken & Rice,,,1,3.5,3.5,4.5,0.68,13.5,9.0,solid-cash,False
+64989,63388,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,4.5,0.68,13.5,9.0,solid-cash,False
+64990,63389,2025-08-13,yvandrayvie,,Double Burger,,1,2.0,2.0,6.0,0.9,6.0,0.0,solid-cash,False
+64990,63389,2025-08-13,yvandrayvie,,Shwarma,,1,3.0,3.0,6.0,0.9,6.0,0.0,solid-cash,False
+64990,63389,2025-08-13,yvandrayvie,,,Water,2,0.5,1.0,6.0,0.9,6.0,0.0,solid-cash,False
+64991,63390,2025-08-13,yvandrayvie,Russian Combo,,,1,2.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+64992,63391,2025-08-13,yvandrayvie,,Small Chips,,2,1.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+64993,63392,2025-08-13,yvandrayvie,Gango & Sadza,,,1,2.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+64994,63393,2025-08-13,yvandrayvie,,Hot Dog,,1,1.0,1.0,2.5,0.38,2.5,0.0,solid-cash,False
+64994,63393,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,2.5,0.38,2.5,0.0,solid-cash,False
+64994,63393,2025-08-13,yvandrayvie,,,Pepsi coke,1,0.5,0.5,2.5,0.38,2.5,0.0,solid-cash,False
+64995,63394,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+64996,63395,2025-08-13,yvandrayvie,,Plain Rice ($),,1,1.0,1.0,1.0,0.15,5.0,1.0,solid-cash,False
+64997,63396,2025-08-13,yvandrayvie,Gango & Sadza,,,1,2.0,2.0,2.0,0.3,5.0,3.0,solid-cash,False
+64998,63397,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,2.0,0.3,5.0,3.0,solid-cash,False
+64998,63397,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,2.0,0.3,5.0,3.0,solid-cash,False
+64999,63398,2025-08-13,yvandrayvie,Beef Stew & Sadza,,,1,2.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+65000,63399,2025-08-13,yvandrayvie,Gango & Sadza,,,1,2.0,2.0,4.0,0.6,4.0,0.0,solid-cash,False
+65000,63399,2025-08-13,yvandrayvie,Chicken Stew & Rice,,,1,2.0,2.0,4.0,0.6,4.0,0.0,solid-cash,False
+65001,63400,2025-08-13,yvandrayvie,Beef Stew & Sadza,,,1,2.0,2.0,4.0,0.6,4.0,0.0,solid-cash,False
+65001,63400,2025-08-13,yvandrayvie,Beef Stew & Rice,,,1,2.0,2.0,4.0,0.6,4.0,0.0,solid-cash,False
+65002,63401,2025-08-13,yvandrayvie,Crumbed Chicken & Rice,,,2,2.5,5.0,5.0,0.75,5.0,0.0,solid-cash,False
+65003,63402,2025-08-13,yvandrayvie,1/4 Chicken & Chips,,,1,4.0,4.0,4.0,0.6,4.0,0.0,solid-cash,False
+65004,63403,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65005,63404,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,2.0,0.3,5.0,3.0,solid-cash,False
+65005,63404,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,2.0,0.3,5.0,3.0,solid-cash,False
+65006,63405,2025-08-13,yvandrayvie,,Fish Stew 1 piece,,1,1.5,1.5,2.0,0.3,2.0,0.0,solid-cash,False
+65006,63405,2025-08-13,yvandrayvie,,Plain Rice 50c,,1,0.5,0.5,2.0,0.3,2.0,0.0,solid-cash,False
+65007,63406,2025-08-13,yvandrayvie,,Small Chips,,2,1.0,2.0,5.0,0.75,5.0,0.0,solid-cash,False
+65007,63406,2025-08-13,yvandrayvie,,Fish Stew 1 piece,,1,1.5,1.5,5.0,0.75,5.0,0.0,solid-cash,False
+65007,63406,2025-08-13,yvandrayvie,,Sadza,,1,0.5,0.5,5.0,0.75,5.0,0.0,solid-cash,False
+65007,63406,2025-08-13,yvandrayvie,,,Pet,1,1.0,1.0,5.0,0.75,5.0,0.0,solid-cash,False
+65008,63407,2025-08-13,yvandrayvie,Crumbed Chicken & Chips,,,1,3.0,3.0,3.0,0.45,5.0,2.0,solid-cash,False
+65009,63408,2025-08-13,yvandrayvie,Beef Stew & Sadza,,,1,2.0,2.0,4.0,0.6,4.0,0.0,solid-cash,False
+65009,63408,2025-08-13,yvandrayvie,Chicken Roast & Sadza,,,1,2.0,2.0,4.0,0.6,4.0,0.0,solid-cash,False
+65010,63409,2025-08-13,yvandrayvie,,Fish Stew 1 piece,,2,1.5,3.0,6.0,0.9,6.0,0.0,eco-cash,False
+65010,63409,2025-08-13,yvandrayvie,,Mashed Potatoes,,1,1.0,1.0,6.0,0.9,6.0,0.0,eco-cash,False
+65010,63409,2025-08-13,yvandrayvie,Beef Stew & Sadza,,,1,2.0,2.0,6.0,0.9,6.0,0.0,eco-cash,False
+65011,63410,2025-08-13,yvandrayvie,,Beef Burger BB,,2,1.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+65012,63411,2025-08-13,yvandrayvie,1/4 Chicken & Spaghetti,,,1,4.0,4.0,14.0,2.1,14.0,0.0,solid-cash,False
+65012,63411,2025-08-13,yvandrayvie,Chicken Stew & Rice,,,1,2.0,2.0,14.0,2.1,14.0,0.0,solid-cash,False
+65012,63411,2025-08-13,yvandrayvie,,,Pet,2,1.0,2.0,14.0,2.1,14.0,0.0,solid-cash,False
+65012,63411,2025-08-13,yvandrayvie,Crumbed Chicken & Rice,,,1,2.5,2.5,14.0,2.1,14.0,0.0,solid-cash,False
+65012,63411,2025-08-13,yvandrayvie,,,Pepsi coke,1,0.5,0.5,14.0,2.1,14.0,0.0,solid-cash,False
+65012,63411,2025-08-13,yvandrayvie,Beef Stew & Sadza,,,1,2.0,2.0,14.0,2.1,14.0,0.0,solid-cash,False
+65012,63411,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,14.0,2.1,14.0,0.0,solid-cash,False
+65013,63412,2025-08-13,yvandrayvie,,Small Chips,,3,1.0,3.0,7.5,1.13,10.0,2.5,solid-cash,False
+65013,63412,2025-08-13,yvandrayvie,,Large Fish Roast,,1,4.0,4.0,7.5,1.13,10.0,2.5,solid-cash,False
+65013,63412,2025-08-13,yvandrayvie,,Sadza,,1,0.5,0.5,7.5,1.13,10.0,2.5,solid-cash,False
+65014,63413,2025-08-13,yvandrayvie,Chicken Stew & Rice,,,1,2.0,2.0,2.0,0.3,5.0,3.0,solid-cash,False
+65015,63414,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65016,63415,2025-08-13,yvandrayvie,,Hot Dog,,1,1.0,1.0,3.0,0.45,5.0,2.0,solid-cash,False
+65016,63415,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,3.0,0.45,5.0,2.0,solid-cash,False
+65016,63415,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,3.0,0.45,5.0,2.0,solid-cash,False
+65017,63416,2025-08-13,yvandrayvie,Chicken Stew & Sadza,,,1,2.0,2.0,2.0,0.3,10.0,3.0,solid-cash,False
+65018,63417,2025-08-13,yvandrayvie,Goat Meat & Sadza,,,1,2.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+65019,63418,2025-08-13,yvandrayvie,Crumbed Chicken & Chips,,,1,3.0,3.0,3.0,0.45,5.0,2.0,solid-cash,False
+65020,63419,2025-08-13,yvandrayvie,,Beef Burger BB,,4,1.0,4.0,8.0,1.2,8.0,0.0,solid-cash,False
+65020,63419,2025-08-13,yvandrayvie,,Small Chips,,4,1.0,4.0,8.0,1.2,8.0,0.0,solid-cash,False
+65021,63420,2025-08-13,yvandrayvie,Crumbed Chicken & Rice,,,1,2.5,2.5,3.0,0.45,5.0,2.0,solid-cash,False
+65021,63420,2025-08-13,yvandrayvie,,,Pepsi coke,1,0.5,0.5,3.0,0.45,5.0,2.0,solid-cash,False
+65022,63421,2025-08-13,yvandrayvie,,Beef Burger BB,,2,1.0,2.0,3.0,0.45,3.0,0.0,solid-cash,False
+65022,63421,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,3.0,0.45,3.0,0.0,solid-cash,False
+65023,63422,2025-08-13,yvandrayvie,Russian Combo,,,1,2.0,2.0,2.0,0.3,5.0,3.0,solid-cash,False
+65024,63423,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65025,63424,2025-08-13,yvandrayvie,,Chicken Burger,,1,2.0,2.0,4.0,0.6,4.0,0.0,solid-cash,False
+65025,63424,2025-08-13,yvandrayvie,,,Pet,1,1.0,1.0,4.0,0.6,4.0,0.0,solid-cash,False
+65025,63424,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,4.0,0.6,4.0,0.0,solid-cash,False
+65026,63425,2025-08-13,yvandrayvie,,Fish Stew 1 piece,,2,1.5,3.0,4.5,0.68,10.5,0.0,solid-cash,False
+65026,63425,2025-08-13,yvandrayvie,,Sadza,,1,0.5,0.5,4.5,0.68,10.5,0.0,solid-cash,False
+65026,63425,2025-08-13,yvandrayvie,,,Fruta,1,1.0,1.0,4.5,0.68,10.5,0.0,solid-cash,False
+65027,63426,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65028,63427,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65029,63428,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,10.0,9.0,solid-cash,False
+65030,63429,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65031,63430,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65032,63431,2025-08-13,yvandrayvie,Beef Stew & Sadza,,,2,2.0,4.0,4.0,0.6,4.0,0.0,solid-cash,False
+65033,63432,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+65033,63432,2025-08-13,yvandrayvie,,Hot Dog,,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+65034,63433,2025-08-13,yvandrayvie,,Goat Meat,,2,1.5,3.0,3.0,0.45,3.0,0.0,solid-cash,False
+65035,63434,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65036,63435,2025-08-13,yvandrayvie,,Beef Burger BB,,2,1.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+65037,63436,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65038,63437,2025-08-13,yvandrayvie,Crumbed Chicken & Chips,,,1,3.0,3.0,7.0,1.05,7.0,0.0,solid-cash,False
+65038,63437,2025-08-13,yvandrayvie,,,Pet,1,1.0,1.0,7.0,1.05,7.0,0.0,solid-cash,False
+65038,63437,2025-08-13,yvandrayvie,,Shwarma,,1,3.0,3.0,7.0,1.05,7.0,0.0,solid-cash,False
+65039,63438,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,19.5,2.93,19.5,0.0,solid-cash,False
+65039,63438,2025-08-13,yvandrayvie,,Small Chips,,3,1.0,3.0,19.5,2.93,19.5,0.0,solid-cash,False
+65039,63438,2025-08-13,yvandrayvie,Chicken Stew & Sadza,,,2,2.0,4.0,19.5,2.93,19.5,0.0,solid-cash,False
+65039,63438,2025-08-13,yvandrayvie,,Fish Stew 1 piece,,2,1.5,3.0,19.5,2.93,19.5,0.0,solid-cash,False
+65039,63438,2025-08-13,yvandrayvie,,Sadza,,1,0.5,0.5,19.5,2.93,19.5,0.0,solid-cash,False
+65039,63438,2025-08-13,yvandrayvie,,,Pet,3,1.0,3.0,19.5,2.93,19.5,0.0,solid-cash,False
+65039,63438,2025-08-13,yvandrayvie,,,Water,1,0.5,0.5,19.5,2.93,19.5,0.0,solid-cash,False
+65039,63438,2025-08-13,yvandrayvie,Crumbed Chicken & Rice,,,1,2.5,2.5,19.5,2.93,19.5,0.0,solid-cash,False
+65039,63438,2025-08-13,yvandrayvie,Beef Stew & Sadza,,,1,2.0,2.0,19.5,2.93,19.5,0.0,solid-cash,False
+65040,63439,2025-08-13,yvandrayvie,,Small Chips,,4,1.0,4.0,7.5,1.13,7.5,0.0,solid-cash,False
+65040,63439,2025-08-13,yvandrayvie,Gango & Sadza,,,1,2.0,2.0,7.5,1.13,7.5,0.0,solid-cash,False
+65040,63439,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,7.5,1.13,7.5,0.0,solid-cash,False
+65040,63439,2025-08-13,yvandrayvie,,Tea,,1,0.5,0.5,7.5,1.13,7.5,0.0,solid-cash,False
+65041,63440,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,1.0,0.15,1.0,0.0,eco-cash,False
+65042,63441,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+65042,63441,2025-08-13,yvandrayvie,,,Pet,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+65043,63442,2025-08-13,yvandrayvie,,Beef Burger BB,,2,1.0,2.0,4.0,0.6,4.0,0.0,solid-cash,False
+65043,63442,2025-08-13,yvandrayvie,,Small Chips,,2,1.0,2.0,4.0,0.6,4.0,0.0,solid-cash,False
+65044,63443,2025-08-13,yvandrayvie,,,Pet,2,1.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+65045,63444,2025-08-13,yvandrayvie,,Beef Burger BB,,6,1.0,6.0,13.0,1.95,16.0,3.0,solid-cash,False
+65045,63444,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,13.0,1.95,16.0,3.0,solid-cash,False
+65045,63444,2025-08-13,yvandrayvie,Gango & Sadza,,,2,2.0,4.0,13.0,1.95,16.0,3.0,solid-cash,False
+65045,63444,2025-08-13,yvandrayvie,Chicken Stew & Sadza,,,1,2.0,2.0,13.0,1.95,16.0,3.0,solid-cash,False
+65046,63445,2025-08-13,yvandrayvie,,Shwarma,,1,3.0,3.0,12.0,1.8,20.0,7.0,solid-cash,False
+65046,63445,2025-08-13,yvandrayvie,,Beef Burger BB,,4,1.0,4.0,12.0,1.8,20.0,7.0,solid-cash,False
+65046,63445,2025-08-13,yvandrayvie,Beef Stew & Sadza,,,1,2.0,2.0,12.0,1.8,20.0,7.0,solid-cash,False
+65046,63445,2025-08-13,yvandrayvie,Gango & Sadza,,,1,2.0,2.0,12.0,1.8,20.0,7.0,solid-cash,False
+65046,63445,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,12.0,1.8,20.0,7.0,solid-cash,False
+65047,63446,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,4.0,0.6,10.0,3.0,solid-cash,False
+65047,63446,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,4.0,0.6,10.0,3.0,solid-cash,False
+65047,63446,2025-08-13,yvandrayvie,Chicken Stew & Rice,,,1,2.0,2.0,4.0,0.6,10.0,3.0,solid-cash,False
+65048,63447,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,1.0,0.15,5.0,4.0,solid-cash,False
+65049,63448,2025-08-13,yvandrayvie,,,Water,1,0.5,0.5,6.0,0.9,6.0,0.0,solid-cash,False
+65049,63448,2025-08-13,yvandrayvie,Goat Meat & Sadza,,,1,2.0,2.0,6.0,0.9,6.0,0.0,solid-cash,False
+65049,63448,2025-08-13,yvandrayvie,,Fish Stew 1 piece,,2,1.5,3.0,6.0,0.9,6.0,0.0,solid-cash,False
+65049,63448,2025-08-13,yvandrayvie,,Sadza,,1,0.5,0.5,6.0,0.9,6.0,0.0,solid-cash,False
+65050,63449,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,3.0,0.45,3.0,0.0,solid-cash,False
+65050,63449,2025-08-13,yvandrayvie,,Small Chips,,2,1.0,2.0,3.0,0.45,3.0,0.0,solid-cash,False
+65051,63450,2025-08-13,yvandrayvie,2 Piecer,,,1,4.5,4.5,8.0,1.2,8.0,0.0,solid-cash,False
+65051,63450,2025-08-13,yvandrayvie,,Shwarma,,1,3.0,3.0,8.0,1.2,8.0,0.0,solid-cash,False
+65051,63450,2025-08-13,yvandrayvie,,,Water,1,0.5,0.5,8.0,1.2,8.0,0.0,solid-cash,False
+65052,63451,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+65052,63451,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+65053,63452,2025-08-13,yvandrayvie,,Beef Burger BB,,2,1.0,2.0,13.0,1.95,13.0,0.0,solid-cash,False
+65053,63452,2025-08-13,yvandrayvie,Goat Meat & Sadza,,,1,2.0,2.0,13.0,1.95,13.0,0.0,solid-cash,False
+65053,63452,2025-08-13,yvandrayvie,,Crumbed Chicken,,2,2.0,4.0,13.0,1.95,13.0,0.0,solid-cash,False
+65053,63452,2025-08-13,yvandrayvie,,Spaghetti,,2,1.0,2.0,13.0,1.95,13.0,0.0,solid-cash,False
+65053,63452,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,13.0,1.95,13.0,0.0,solid-cash,False
+65053,63452,2025-08-13,yvandrayvie,,Fish Stew 1 piece,,1,1.5,1.5,13.0,1.95,13.0,0.0,solid-cash,False
+65053,63452,2025-08-13,yvandrayvie,,Plain Rice 50c,,1,0.5,0.5,13.0,1.95,13.0,0.0,solid-cash,False
+65054,63453,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,1.0,0.15,1.0,0.0,eco-cash,False
+65055,63454,2025-08-13,yvandrayvie,Beef Stew & Sadza,,,1,2.0,2.0,6.0,0.9,6.0,0.0,solid-cash,False
+65055,63454,2025-08-13,yvandrayvie,Chicken Stew & Rice,,,1,2.0,2.0,6.0,0.9,6.0,0.0,solid-cash,False
+65055,63454,2025-08-13,yvandrayvie,Chicken Roast & Rice,,,1,2.0,2.0,6.0,0.9,6.0,0.0,solid-cash,False
+65056,63455,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65057,63456,2025-08-13,yvandrayvie,,Hot Dog,,2,1.0,2.0,7.0,1.05,7.0,0.0,solid-cash,False
+65057,63456,2025-08-13,yvandrayvie,,Small Chips,,2,1.0,2.0,7.0,1.05,7.0,0.0,solid-cash,False
+65057,63456,2025-08-13,yvandrayvie,,Shwarma,,1,3.0,3.0,7.0,1.05,7.0,0.0,solid-cash,False
+65058,63457,2025-08-13,yvandrayvie,,Chicken Roast 1 Piece,,1,1.0,1.0,1.0,0.15,1.0,0.0,eco-cash,False
+65059,63458,2025-08-13,yvandrayvie,,Small Chips,,3,1.0,3.0,7.0,1.05,7.0,0.0,solid-cash,False
+65059,63458,2025-08-13,yvandrayvie,Chicken Stew & Sadza,,,1,2.0,2.0,7.0,1.05,7.0,0.0,solid-cash,False
+65059,63458,2025-08-13,yvandrayvie,,Beef Burger BB,,2,1.0,2.0,7.0,1.05,7.0,0.0,solid-cash,False
+65060,63459,2025-08-13,yvandrayvie,Chicken Stew & Rice,,,1,2.0,2.0,4.0,0.6,4.0,0.0,eco-cash,False
+65060,63459,2025-08-13,yvandrayvie,Chicken Roast & Rice,,,1,2.0,2.0,4.0,0.6,4.0,0.0,eco-cash,False
+65061,63460,2025-08-13,yvandrayvie,Chicken Stew & Rice,,,1,2.0,2.0,13.0,1.95,21.0,8.0,solid-cash,False
+65061,63460,2025-08-13,yvandrayvie,,,Pepsi coke,2,0.5,1.0,13.0,1.95,21.0,8.0,solid-cash,False
+65061,63460,2025-08-13,yvandrayvie,Chicken Stew & Sadza,,,2,2.0,4.0,13.0,1.95,21.0,8.0,solid-cash,False
+65061,63460,2025-08-13,yvandrayvie,Gango & Sadza,,,1,2.0,2.0,13.0,1.95,21.0,8.0,solid-cash,False
+65061,63460,2025-08-13,yvandrayvie,,Beef Burger BB,,2,1.0,2.0,13.0,1.95,21.0,8.0,solid-cash,False
+65061,63460,2025-08-13,yvandrayvie,,Small Chips,,2,1.0,2.0,13.0,1.95,21.0,8.0,solid-cash,False
+65062,63461,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65063,63462,2025-08-13,yvandrayvie,,Hot Dog,,4,1.0,4.0,4.0,0.6,4.0,0.0,solid-cash,False
+65064,63463,2025-08-13,yvandrayvie,,Small Chips,,2,1.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+65065,63464,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65066,63465,2025-08-13,yvandrayvie,,Plain Rice ($),,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65067,63466,2025-08-13,yvandrayvie,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65068,63467,2025-08-13,yvandrayvie,Chicken Stew & Sadza,,,2,2.0,4.0,4.0,0.6,4.0,0.0,solid-cash,False
+65069,63468,2025-08-13,yvandrayvie,,Beef Burger BB,,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+65069,63468,2025-08-13,yvandrayvie,,,Fruta,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+65070,63469,2025-08-13,faith@techcity.co.zw,Beef Stew & Rice,,,1,2.0,2.0,4.0,0.6,4.0,0.0,solid-cash,False
+65070,63469,2025-08-13,faith@techcity.co.zw,Chicken Stew & Rice,,,1,2.0,2.0,4.0,0.6,4.0,0.0,solid-cash,False
+65071,63470,2025-08-13,faith@techcity.co.zw,,Beef Burger BB,,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+65071,63470,2025-08-13,faith@techcity.co.zw,,Baked Potatoes,,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+65072,63471,2025-08-13,faith@techcity.co.zw,,Fish Stew 1 piece,,2,1.5,3.0,8.5,1.28,10.0,0.5,solid-cash,False
+65072,63471,2025-08-13,faith@techcity.co.zw,,Sadza,,1,0.5,0.5,8.5,1.28,10.0,0.5,solid-cash,False
+65072,63471,2025-08-13,faith@techcity.co.zw,,Mashed Potatoes,,1,1.0,1.0,8.5,1.28,10.0,0.5,solid-cash,False
+65072,63471,2025-08-13,faith@techcity.co.zw,,Plain Rice ($),,1,1.0,1.0,8.5,1.28,10.0,0.5,solid-cash,False
+65072,63471,2025-08-13,faith@techcity.co.zw,Gango & Sadza,,,1,2.0,2.0,8.5,1.28,10.0,0.5,solid-cash,False
+65072,63471,2025-08-13,faith@techcity.co.zw,,Rice neDovi,,1,1.0,1.0,8.5,1.28,10.0,0.5,solid-cash,False
+65073,63472,2025-08-13,faith@techcity.co.zw,,Beef Burger BB,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65074,63473,2025-08-13,faith@techcity.co.zw,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65075,63474,2025-08-13,faith@techcity.co.zw,,Plain vegetables,,1,0.5,0.5,1.0,0.15,1.0,0.0,solid-cash,False
+65075,63474,2025-08-13,faith@techcity.co.zw,,Sadza,,1,0.5,0.5,1.0,0.15,1.0,0.0,solid-cash,False
+65076,63475,2025-08-13,faith@techcity.co.zw,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65077,63476,2025-08-13,faith@techcity.co.zw,Chicken Stew & Rice,,,2,2.0,4.0,5.0,0.75,5.0,0.0,solid-cash,False
+65077,63476,2025-08-13,faith@techcity.co.zw,,,Pepsi coke,2,0.5,1.0,5.0,0.75,5.0,0.0,solid-cash,False
+65078,63477,2025-08-13,faith@techcity.co.zw,Beef Stew & Rice,,,2,2.0,4.0,5.0,0.75,50.0,45.0,solid-cash,False
+65078,63477,2025-08-13,faith@techcity.co.zw,,,Pepsi coke,2,0.5,1.0,5.0,0.75,50.0,45.0,solid-cash,False
+65079,63478,2025-08-13,faith@techcity.co.zw,,Small Chips,,1,1.0,1.0,1.0,0.15,5.0,4.0,solid-cash,False
+65080,63479,2025-08-13,faith@techcity.co.zw,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65081,63480,2025-08-13,faith@techcity.co.zw,,Double Burger,,1,2.0,2.0,3.0,0.45,20.0,5.0,solid-cash,False
+65081,63480,2025-08-13,faith@techcity.co.zw,,,Pet,1,1.0,1.0,3.0,0.45,20.0,5.0,solid-cash,False
+65082,63481,2025-08-13,faith@techcity.co.zw,Beef Stew & Rice,,,2,2.0,4.0,8.0,1.2,10.0,0.0,solid-cash,False
+65082,63481,2025-08-13,faith@techcity.co.zw,Chicken Stew & Rice,,,1,2.0,2.0,8.0,1.2,10.0,0.0,solid-cash,False
+65082,63481,2025-08-13,faith@techcity.co.zw,,Small Chips,,2,1.0,2.0,8.0,1.2,10.0,0.0,solid-cash,False
+65083,63482,2025-08-13,faith@techcity.co.zw,,Fish Stew 1 piece,,1,1.5,1.5,2.0,0.3,2.0,0.0,solid-cash,False
+65083,63482,2025-08-13,faith@techcity.co.zw,,Plain Rice 50c,,1,0.5,0.5,2.0,0.3,2.0,0.0,solid-cash,False
+65084,63483,2025-08-13,faith@techcity.co.zw,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65085,63484,2025-08-13,faith@techcity.co.zw,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65086,63485,2025-08-13,faith@techcity.co.zw,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65087,63486,2025-08-13,faith@techcity.co.zw,1/4 Chicken & Rice,,,1,3.5,3.5,3.5,0.53,3.5,0.0,solid-cash,False
+65088,63487,2025-08-13,faith@techcity.co.zw,,Hot Dog,,2,1.0,2.0,5.0,0.75,20.0,0.0,solid-cash,False
+65088,63487,2025-08-13,faith@techcity.co.zw,,Small Chips,,2,1.0,2.0,5.0,0.75,20.0,0.0,solid-cash,False
+65088,63487,2025-08-13,faith@techcity.co.zw,,Baked Potatoes,,1,1.0,1.0,5.0,0.75,20.0,0.0,solid-cash,False
+65089,63488,2025-08-13,faith@techcity.co.zw,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65090,63489,2025-08-13,faith@techcity.co.zw,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65091,63490,2025-08-13,faith@techcity.co.zw,,Beef Burger BB,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65092,63491,2025-08-13,faith@techcity.co.zw,,Beef Burger BB,,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+65092,63491,2025-08-13,faith@techcity.co.zw,,Small Chips,,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+65093,63492,2025-08-13,faith@techcity.co.zw,,Small Chips,,2,1.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+65094,63493,2025-08-13,faith@techcity.co.zw,Beef Stew & Rice,,,1,2.0,2.0,2.0,0.3,10.0,6.0,solid-cash,False
+65095,63494,2025-08-13,faith@techcity.co.zw,,Tea,,1,0.5,0.5,0.5,0.08,1.0,0.5,solid-cash,False
+65096,63495,2025-08-13,faith@techcity.co.zw,,Small Chips,,2,1.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+65097,63496,2025-08-13,faith@techcity.co.zw,Chicken Stew & Sadza,,,2,2.0,4.0,6.0,0.9,20.0,4.0,solid-cash,False
+65097,63496,2025-08-13,faith@techcity.co.zw,,Small Chips,,2,1.0,2.0,6.0,0.9,20.0,4.0,solid-cash,False
+65098,63497,2025-08-13,faith@techcity.co.zw,,Beef Burger BB,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65099,63498,2025-08-13,faith@techcity.co.zw,,Hot Dog,,2,1.0,2.0,2.0,0.3,5.0,2.0,solid-cash,False
+65100,63499,2025-08-13,faith@techcity.co.zw,Beef Stew & Sadza,,,1,2.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+65101,63500,2025-08-13,faith@techcity.co.zw,,Beef Burger BB,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65102,63501,2025-08-13,faith@techcity.co.zw,,Beef Burger BB,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65103,63502,2025-08-13,faith@techcity.co.zw,,Beef Burger BB,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65104,63503,2025-08-13,faith@techcity.co.zw,Chicken Stew & Sadza,,,1,2.0,2.0,3.0,0.45,3.0,0.0,solid-cash,False
+65104,63503,2025-08-13,faith@techcity.co.zw,,Beef Burger BB,,1,1.0,1.0,3.0,0.45,3.0,0.0,solid-cash,False
+65105,63504,2025-08-13,faith@techcity.co.zw,,Double Burger,,1,2.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+65106,63505,2025-08-13,faith@techcity.co.zw,,Hot Dog,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65107,63506,2025-08-13,faith@techcity.co.zw,,Hot Dog,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65108,63507,2025-08-13,faith@techcity.co.zw,Chicken Stew & Sadza,,,1,2.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+65109,63508,2025-08-13,faith@techcity.co.zw,,Hot Dog,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65110,63509,2025-08-13,faith@techcity.co.zw,Chicken Stew & Sadza,,,1,2.0,2.0,2.0,0.3,2.0,0.0,eco-cash,False
+65111,63510,2025-08-13,faith@techcity.co.zw,,Beef Burger BB,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65112,63511,2025-08-13,faith@techcity.co.zw,,,Pepsi coke,1,0.5,0.5,0.5,0.08,0.5,0.0,solid-cash,False
+65113,63512,2025-08-13,faith@techcity.co.zw,,,Pet,1,1.0,1.0,1.0,0.15,1.0,0.0,eco-cash,False
+65114,63513,2025-08-13,faith@techcity.co.zw,,Plain Rice ($),,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65115,63514,2025-08-13,faith@techcity.co.zw,,Beef Burger BB,,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+65115,63514,2025-08-13,faith@techcity.co.zw,,Plain Rice ($),,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+65116,63515,2025-08-13,faith@techcity.co.zw,Crumbed Chicken & Chips,,,1,3.0,3.0,3.0,0.45,3.0,0.0,solid-cash,False
+65117,63516,2025-08-13,faith@techcity.co.zw,1/4 Chicken & Chips,,,1,4.0,4.0,5.0,0.75,5.0,0.0,solid-cash,False
+65117,63516,2025-08-13,faith@techcity.co.zw,,,Pet,1,1.0,1.0,5.0,0.75,5.0,0.0,solid-cash,False
+65118,63517,2025-08-13,faith@techcity.co.zw,,,Pet,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65119,63518,2025-08-13,faith@techcity.co.zw,Crumbed Chicken & Rice,,,1,2.5,2.5,2.5,0.38,2.5,0.0,solid-cash,False
+65120,63519,2025-08-13,faith@techcity.co.zw,,Beef Burger BB,,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+65120,63519,2025-08-13,faith@techcity.co.zw,,Small Chips,,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+65121,63520,2025-08-13,faith@techcity.co.zw,,Hot Dog,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65122,63521,2025-08-13,faith@techcity.co.zw,,Beef Burger BB,,2,1.0,2.0,4.0,0.6,10.0,5.0,solid-cash,False
+65122,63521,2025-08-13,faith@techcity.co.zw,,Small Chips,,2,1.0,2.0,4.0,0.6,10.0,5.0,solid-cash,False
+65123,63522,2025-08-13,faith@techcity.co.zw,Chicken Stew & Rice,,,1,2.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+65124,63523,2025-08-13,faith@techcity.co.zw,,Crumbed Chicken,,1,2.0,2.0,2.5,0.38,2.5,0.0,solid-cash,False
+65124,63523,2025-08-13,faith@techcity.co.zw,,Sadza,,1,0.5,0.5,2.5,0.38,2.5,0.0,solid-cash,False
+65125,63524,2025-08-13,faith@techcity.co.zw,,Double Burger,,1,2.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+65126,63525,2025-08-13,faith@techcity.co.zw,Beef Stew & Rice,,,1,2.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+65127,63526,2025-08-13,faith@techcity.co.zw,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65128,63527,2025-08-13,faith@techcity.co.zw,,1/4 Chicken,,2,3.0,6.0,6.0,0.9,6.0,0.0,solid-cash,False
+65129,63528,2025-08-13,faith@techcity.co.zw,,Small Chips,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65130,63529,2025-08-13,faith@techcity.co.zw,,Large Fish Roast,,1,4.0,4.0,5.0,0.75,5.0,0.0,solid-cash,False
+65130,63529,2025-08-13,faith@techcity.co.zw,,Plain Rice 50c,,1,0.5,0.5,5.0,0.75,5.0,0.0,solid-cash,False
+65130,63529,2025-08-13,faith@techcity.co.zw,,,Water,1,0.5,0.5,5.0,0.75,5.0,0.0,solid-cash,False
+65131,63530,2025-08-13,faith@techcity.co.zw,,Small Chips,,2,1.0,2.0,2.0,0.3,2.0,0.0,eco-cash,False
+65132,63531,2025-08-13,faith@techcity.co.zw,,Beef Burger BB,,1,1.0,1.0,2.0,0.3,2.0,0.0,eco-cash,False
+65132,63531,2025-08-13,faith@techcity.co.zw,,Small Chips,,1,1.0,1.0,2.0,0.3,2.0,0.0,eco-cash,False
+65133,63532,2025-08-13,faith@techcity.co.zw,,Beef Burger BB,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65134,63533,2025-08-13,faith@techcity.co.zw,,Crumbed Chicken,,1,2.0,2.0,2.5,0.38,5.0,0.5,solid-cash,False
+65134,63533,2025-08-13,faith@techcity.co.zw,,Sadza,,1,0.5,0.5,2.5,0.38,5.0,0.5,solid-cash,False
+65135,63534,2025-08-13,faith@techcity.co.zw,Beef Veggie & Sadza,,,18,2.0,36.0,42.0,6.3,0.0,0.0,solid-cash,True
+65135,63534,2025-08-13,faith@techcity.co.zw,Chicken Stew & Sadza,,,1,2.0,2.0,42.0,6.3,0.0,0.0,solid-cash,True
+65135,63534,2025-08-13,faith@techcity.co.zw,Beef Stew & Rice,,,2,2.0,4.0,42.0,6.3,0.0,0.0,solid-cash,True
+65136,63535,2025-08-13,faith@techcity.co.zw,Chicken Stew & Rice,,,1,2.0,2.0,2.0,0.3,10.0,3.0,solid-cash,False
+65137,63536,2025-08-13,faith@techcity.co.zw,,Small Chips,,2,1.0,2.0,4.0,0.6,20.0,1.0,solid-cash,False
+65137,63536,2025-08-13,faith@techcity.co.zw,Chicken Stew & Sadza,,,1,2.0,2.0,4.0,0.6,20.0,1.0,solid-cash,False
+65138,63537,2025-08-13,faith@techcity.co.zw,,Beef Burger BB,,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+65138,63537,2025-08-13,faith@techcity.co.zw,,Small Chips,,1,1.0,1.0,2.0,0.3,2.0,0.0,solid-cash,False
+65139,63538,2025-08-13,faith@techcity.co.zw,,Beef Burger BB,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65140,63539,2025-08-13,faith@techcity.co.zw,,Beef Burger BB,,1,1.0,1.0,1.0,0.15,1.0,0.0,solid-cash,False
+65141,63540,2025-08-13,faith@techcity.co.zw,,Small Chips,,2,1.0,2.0,2.0,0.3,2.0,0.0,solid-cash,False
+65142,63541,2025-08-13,faith@techcity.co.zw,Chicken Stew & Sadza,,,1,2.0,2.0,2.0,0.3,0.0,0.0,solid-cash,True

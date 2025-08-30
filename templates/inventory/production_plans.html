@@ -4,6 +4,20 @@
 {% block title%} Production Plan {% endblock%}
 {% block content %}
 <style>
+    .but{
+        background-color: rgb(215, 245, 215);
+    }
+
+    .but1{
+        background-color: rgb(241, 224, 227);
+    }
+
+    .plans_list {
+        max-height: 80vh;
+        overflow-y: auto;
+        padding-right: 10px;
+    }
+
     @media (min-width:600px ) and (max-width:1024px){
         .checklist{
             display: none;
@@ -32,7 +46,7 @@
         }
     }
 </style>
-   <div class="Production" style="margin-left: 15px;">
+    <div class="Production" style="margin-left: 15px;">
         <div class="inventory-navbar">
             <nav class="d-flex justify-content-between align-items-center mt-2 mb-2">
                 <div class='fw-bold d-flex align-items-center'>
@@ -56,7 +70,7 @@
                                 <a href="{% url 'inventory:production_transfers' %}" class='btn btn-outline-dark w-100 mb-2'>Receive Transfers <span class='badge text-dark'>{{ transfer_count }}</span></a>
                             </li>
                             <li>
-                                <a href="{% url 'inventory:production_raw_materials' %}" class='btn btn-outline-dark w-100 mb-2'>Production Raw Materials</a>
+                                <a href="{% url 'inventory:production_raw_materials' %}" class='btn btn-outline-dark w-100 mb-2 d-none'>Production Raw Materials</a>
                             </li>
                             <li>
                                 <button type="button" class='btn btn-outline-dark w-100' data-bs-toggle="modal" data-bs-target="#checklistModal">Checklist</button>
@@ -65,7 +79,7 @@
                     </div>
                     <div class="dropdown mx-2" style="margin-top: -9px;">
                         <button class="btn btn-outline-dark dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                          Add
+                          Menu Items
                         </button>
                         <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
                             <li class="mx-2 py-2">
@@ -87,75 +101,125 @@
                             </a>
                         </li>
                         <li class="">
-                            <a href="{% url 'inventory:production_raw_materials' %}" class='btn btn-outline-dark'>Production Raw Materials</a>
+                            <a href="{% url 'inventory:production_raw_materials' %}" class='btn btn-outline-dark d-none'>Production Raw Materials</a>
                         </li>
                     </ul>
                 </div>
             </nav>
         </div>
-        <div>
-            <div class=" mt-2 w-100">
-                <table class='table border table-bordered table-hover rounded p-2' id='production_table' style="width: 100%;" >
-                        <thead class='bg-primary'>
-                            <tr>
-                                <th>Date</th>
-                                <th>PP Number</th>
-                                <th>
-                                    <span class='text-danger'>BY ADMIN</span>
-                                    <span class='mx-2'>(Confimation Status)</span>
-                                </th>
-                                {% if request.user.role != 'chef'%}
-                                    <th>
-                                        <span class='text-danger'>BY CHEF</span>
-                                        <span class='mx-2'>(Confimation Status)</span>
-                                    </th>
-                                {% endif %}
-                                <th>Actions</th>
-                            </tr>
-                            </thead>
-                        <tbody>
-                            {% for plan in plans %}
+        <div class="container-fluid row">
+            <div class="mt-2 col-5">
+                <div class="table-responsive plans_list">
+                    <table class='table table-hover' id='production_table'>
+                            <thead class='bg-primary'>
                                 <tr>
-                                    <td><small>{{ plan.date_created }} {{ plan.time_created }}</small></td>
-                                    <td><small>{{ plan.production_plan_number }}</small></td>
-                                    <td>
-                                        {% if request.user.role != 'admin' or request.user.role != 'accountant' %}
-                                            <small >
-                                                {% if plan.status %}
-                                                    <small class="bg-success text-light p-2 rounded text-center w-100">Confirmed</small>
-                                                {%else %}
-                                                    <a href="{% url 'inventory:confirm_production_plan' plan.id %}" class="bg-danger text-light p-2 rounded text-center w-100">Please Confirm</a>
-                                                {% endif %}
-                                            </small>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if request.user.role != 'chef'%}
-                                            <small>
-                                                {% if plan.declared %}
-                                                    <small class="bg-success text-light p-2 rounded text-center w-100" disabled>Declared</small>
-                                                {% else %}
-                                                    {% if plan.status %}
-                                                        <a href="{% url 'inventory:declare_production_plan' plan.id %}" class="bg-danger text-light p-2 rounded text-center w-100">Waiting declaration</a>
-                                                    {% else %}
-                                                        <small class="bg-danger text-light p-2 rounded text-center w-100" disabled>Awaiting production plan confirmation</small>
-                                                    {% endif %}
-                                                {% endif %}
-                                            </small>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <small>
-                                            <a href="{% url 'inventory:production_plan_detail' plan.id %}" class="bx bx-show mx-2"></a>
-                                            <a href="" class="bx bx-printer"></a>
-                                        </small>
-                                    </td>
+                                    <th class="text-center">Date</th>
+                                    {% if request.user.role != 'chef'%}
+                                        <th class="text-center">Declared</th>
+                                            <span class='text-danger'>BY CHEF</span>
+                                            <span class='mx-2'>(Confimation Status)</span>
+                                        </th>
+                                    {% endif %}
+                                    <th class="text-center">Actions</th>
                                 </tr>
-                            {% endfor %}
+                                </thead>
+                            <tbody>
+                                {% for plan in plans %}
+                                    <tr>
+                                        <td class="text-center px-1 py-1">
+                                            <small>
+                                                {{ plan.date_created }} {{ plan.time_created }}
+                                            </small>
+                                            {% if request.user.role != 'admin' or request.user.role != 'accountant' %}
+                                            <p>
+                                                <small>
+                                                    {% if plan.status %}
+                                                        <small class="but text-success p-2 rounded text-center w-100">Confirmed</small>
+                                                    {%else %}
+                                                        <a href="{% url 'inventory:confirm_production_plan' plan.id %}" class="but1 text-danger p-2 rounded text-center w-100">Please Confirm</a>
+                                                    {% endif %}
+                                                </small>
+                                            </p>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center px-1">
+                                            <small>
+                                                {{ plan.date_created }} {{ plan.time_created }}
+                                            </small>
+                                            {% if request.user.role != 'chef'%}
+                                            <p>
+                                                <small>
+                                                    {% if plan.declared %}
+                                                        <small class="but text-success p-2 rounded text-center w-100" disabled>Declared</small>
+                                                    {% else %}
+                                                        {% if plan.status %}
+                                                            <a href="{% url 'inventory:declare_production' plan.id %}" class="but1 text-danger p-2 rounded text-center w-100">Waiting declaration</a>
+                                                        {% else %}
+                                                            <small class="but1 text-danger p-2 rounded text-center w-100" disabled>Awaiting production plan confirmation</small>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                </small>
+                                            </p>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center py-4">
+                                            <small>
+                                                <a href="{% url 'inventory:production_plan_detail' plan.id %}" class="bx bx-show mx-2"></a>
+                                                <a href="" class="bx bx-printer"></a>
+                                                {% if plan.status %}
+                                                {% else %}
+                                                    <a href="{% url 'inventory:production_plan_delete' plan.id %}" class="bx bx-trash mx-2"></a>
+                                                {% endif %}
+                                            </small>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="mt-2 col-7">
+                <div class="table_container_dish table-responsive">
+                    <table class="table bg-light table-hover">
+                        <thead class="sticky-header">
+                            <tr>
+                                <th>Dish</th>
+                                <th>Value(Price)</th>
+                                <th>Declared Portions </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Dishes will be populated here -->
                         </tbody>
-                </table>
+                    </table>
+                </div>
+
+                <!-- Ingredients Table -->
+                <div>
+                    <div class="text-center text-light bg-dark py-2 mb-1">
+                        <h5>Ingredients</h5>
+                    </div>
+
+                    <div class="table_container_ing">
+                        <table class="table bg-light table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Ingredients</th>
+                                    <th class="text-center">Planned Units</th>
+                                    <th class="text-center">Actual Units</th>
+                                    <th class="text-center">Variance Units</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table_ing">
+                                <!-- Ingredients will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
+        
         <div class="modal fade" id="statusFormModal" tabindex="-1" aria-labelledby="loaderModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
@@ -194,10 +258,101 @@
                 </div>
             </div>
         </div>
-   </div> 
-   <script>
+    </div> 
+    <script>
         new DataTable('#production_table',{
-            pageLength: 100  
+            pageLength: 10  
         });
-   </script>
+
+        document.addEventListener("DOMContentLoaded", function () {
+            fetch("{% url 'inventory:latest_declare_production' %}")
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        populateDishes(data.data.production_plan, data.data.total_price, data.data.total_portions, data.data.price);
+                        populateIngredients(data.data.ingridients, data.data.total, data.data.raw_material_variance);
+                    } else {
+                        alert("Failed to load production plan");
+                    }
+                })
+                .catch(error => console.error('Error fetching production plan:', error));
+        });
+
+        function populateDishes(dishes, totalPrices, totalPortions, totalPrice) {
+            const dishTableBody = document.querySelector(".table_container_dish tbody");
+            dishTableBody.innerHTML = ''; // Clear existing rows
+
+            let totalRowHTML = '';
+
+            dishes.forEach(dish => {
+                const dishPrice = totalPrices.find(p => p.name === dish.dish.name)?.total_price || 0;
+                const row = `
+                    <tr>
+                        <td><small>${dish.dish.name}@$${dish.dish.price}</small></td>
+                        <td><small>$${dishPrice}</small></td>
+                        <td><small>${dish.portions}</small></td>
+                    </tr>
+                `;
+                dishTableBody.insertAdjacentHTML('beforeend', row);
+            });
+
+            // Add totals row
+            totalRowHTML = `
+                <tr class="dish-total-rows sticky-header">
+                    <td class="bg-secondary text-light"><strong>Totals</strong></td>
+                    <td class="bg-secondary text-light"><small><strong>$${totalPrice}</strong></small></td>
+                    <td class="bg-secondary text-light"><small><strong>${totalPortions} Portions</strong></small></td>
+                </tr>
+            `;
+            dishTableBody.insertAdjacentHTML('beforeend', totalRowHTML);
+        }
+
+
+        function populateIngredients(ingredients, totalCost, raw_material_variance) {
+            console.log(
+                {
+                    'ingridients': ingredients,
+                    'totalCost': totalCost,
+                    'Raw Materials': raw_material_variance
+                }
+            )
+            const ingTableBody = document.getElementById("table_ing");
+            ingTableBody.innerHTML = ''; // Clear existing rows
+            let var_quantity = 0;
+            let actual = 0;
+            ingredients.forEach(ing => {
+
+                for (let i = 0; i < raw_material_variance.length; i++) {
+                    const variance = raw_material_variance[i];
+                    if (variance.name === ing.name) {
+                        var_quantity = variance.quantity;
+                        break;
+                    }
+                }
+                actual = ing.quantity - var_quantity;
+                const row = `
+                    <tr>
+                        <td><small>${ing.name}</small></td>
+                        <td class="text-center"><small>${parseFloat(ing.quantity).toFixed(3)}${ing.unit} [$${parseFloat(ing.cost).toFixed(2)}]</small></td>
+                        <td class="text-center"><small>${actual.toFixed(3)}</small></td>
+                        <td class="text-center"><small>${var_quantity}</small></td>
+                    </tr>
+                `;
+                ingTableBody.insertAdjacentHTML('beforeend', row);
+            });
+
+            // Add totals row
+            const totalsRow = `
+                <tr class="ing-total-rows">
+                    <td class="bg-secondary text-light"><strong>Totals</strong></td>
+                    <td class="planned-cost text-center bg-secondary text-light d-none"><small><strong>$${totalCost}</strong></small></td>
+                    <td class="text-center bg-secondary text-light"><small><strong>$${totalCost}</strong></small></td>
+                    <td class="bg-secondary"></td>
+                    <td class="bg-secondary"></td>
+                </tr>
+            `;
+            ingTableBody.insertAdjacentHTML('beforeend', totalsRow);
+        }
+
+    </script>
 {% endblock content %}

@@ -1,6 +1,7 @@
 from utils.email import EmailThread
 from . models import (
-    Production, 
+    Production,
+    ProductionItems,
     Transfer,
     Supplier,
     PurchaseOrderItem,
@@ -18,6 +19,8 @@ from utils.email_notification import modules_list
 from celery import shared_task
 from decimal import Decimal
 from django.core.mail import send_mail
+from datetime import datetime, time, date
+import requests
 
 @shared_task
 def sendProductHistory(product_list):
@@ -42,7 +45,7 @@ def sendProductHistory(product_list):
             mail = EmailMessage(
                 subject=subject,
                 body=report,
-                # from_email='admin@techcity.co.zw',
+                from_email='Urban Eats',
                 to=recipients,
             )
 
@@ -243,11 +246,11 @@ def transfer_notification(transfer_id):
     
     logger.info(f'Notification for transfer {transfer.transfer_number} sent.')
 
-def supplier_email(supplier_id, purchase_order_item):
-    purchase_order_items = PurchaseOrderItem.objects.filter(purchase_order=purchase_order_item.purchase_order)
-    supplier = Supplier.objects.get(id=supplier_id)
+def supplier_email(supplier_id, purchase_order_item, branch):
+    purchase_order_items = PurchaseOrderItem.objects.filter(purchase_order=purchase_order_item.purchase_order, purchase_order__branch=branch)
+    supplier = Supplier.objects.get(id=supplier_id, branch=branch)
 
-    price_list = [ sup['price'] for sup in best_price(purchase_order_item.product.name)]
+    price_list = [ sup['price'] for sup in best_price(purchase_order_item.product.name, branch=branch)]
 
     min_price = min(price_list)
 
@@ -299,3 +302,90 @@ def CreateBudgetTask(budget_id):
             )
         )
     BudgetItem.objects.bulk_create(budget_items_list)
+
+
+def autoConfirmProdPlan(production_plan_id):
+    logger.info('here')
+    temporay_declaration = Production.objects.get(id = production_plan_id)
+    temporay_declaration.declared = True
+    temporay_declaration.status = False
+    temporay_declaration.save()
+
+    # try:
+    #     logger.info('Sending Email')
+    #     recipients = ['cassymyo@gmail.com', 'teddychinomona@gmail.com', 'mirackletec@gmail.com']
+    #     mail = EmailMessage(
+    #         subject= 'Temporary Production Plan Declared',
+    #         body= f'Production Plan Declared: {temporay_declaration.id} from POS final declaration',
+    #         to=recipients,
+    #     )
+
+    #     mail.send()
+    #     logger.info('Email sent successfully.')
+    # except Exception as e:
+    #     logger.info(f'Sending Email ran into an error')
+
+@shared_task
+def checkLowStock():
+    today = date.today()
+
+    # Get all declared production plans for today
+    production_plan = Production.objects.filter(date_created=today, declared=True)
+
+    production_items = []
+    low_stock_dishes = []
+
+    for prod in production_plan:
+        production_plan_items = ProductionItems.objects.filter(production=prod)
+
+        for pp_item in production_plan_items:
+            dish_name = pp_item.dish.name
+            portions = pp_item.portions
+            sold = pp_item.portions_sold
+            low = pp_item.dish.low_stock
+
+            found = False
+            for item in production_items:
+                if item['dish'] == dish_name:
+                    item['portions'] += portions
+                    item['sold'] += sold
+                    item['left'] = item['portions'] - item['sold']
+                    found = True
+                    break
+
+            if not found:
+                production_items.append({
+                    'dish': dish_name,
+                    'portions': portions,
+                    'sold': sold,
+                    'low': low,
+                    'left': portions - sold
+                })
+
+    logger.info(f"Production items summary: {production_items}")
+
+    now = datetime.now().time()
+
+    if now.hour <= 14 and now.hour >= 7:
+        for item in production_items:
+            if item['left'] <= item['low']:
+                low_stock_dishes.append({
+                    'name': item['dish'],
+                    'left': item['left']
+                })
+    elif now.hour >= 15 and now.hour <= 18:
+        for item in production_items:
+            if item['left'] <= item['low'] - 5:
+                low_stock_dishes.append({
+                    'name': item['dish'],
+                    'left': item['left']
+                })
+
+    if low_stock_dishes:
+        requests.post(
+            "http://127.0.0.1:8000/pos/low-stock/",
+            json={"low_stock": low_stock_dishes},
+            timeout=5
+        )
+    logger.info(f"Low stock dishes at {now}: {low_stock_dishes}")
+    return low_stock_dishes

@@ -2,7 +2,7 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from django.db.models import Sum, Count
 from datetime import date, timedelta, datetime
-from finance.models import Sale, SaleItem, Change
+from finance.models import Sale, SaleItem, Change, CashierExpense
 from loguru import logger
 from django.http import JsonResponse
 from django.db.models import Sum
@@ -11,6 +11,11 @@ from django.db.models.functions import ExtractHour
 from collections import defaultdict
 import decimal
 from permisions.permisions import admin_required
+import csv
+import pandas as pd
+from matplotlib import pyplot as plt
+import numpy as np
+from sklearn.linear_model import LinearRegression
 
 @admin_required
 def analytics_view(request):
@@ -24,7 +29,7 @@ def analytics_view(request):
 
     if filter_by == 'hour':
 
-        sales_by_hour = SaleItem.objects.filter(sale__date=today, void=False) \
+        sales_by_hour = SaleItem.objects.filter(sale__date=today, void=False, sale__branch = request.user.branch) \
             .annotate(hour=ExtractHour('time')) \
             .values('hour') \
             .annotate(total_sales=Sum('price')) \
@@ -34,16 +39,15 @@ def analytics_view(request):
         logger.info(data)
 
     elif filter_by == 'day':
-
-        today_sales = Sale.objects.filter(date=today, void=False).aggregate(total=Sum('total_amount'))
-        yesterday_sales = Sale.objects.filter(date=yesterday, void=False).aggregate(total=Sum('total_amount'))
+        today_sales = Sale.objects.filter(date=today, void=False, branch = request.user.branch, staff = False).aggregate(total=Sum('total_amount'))
+        yesterday_sales = Sale.objects.filter(date=yesterday, void=False, branch = request.user.branch, staff = False).aggregate(total=Sum('total_amount'))
         
-        today_void_sales = Sale.objects.filter(date=today, void=True).aggregate(total=Sum('total_amount'))
+        today_void_sales = Sale.objects.filter(date=today, void=True, branch = request.user.branch, staff = False).aggregate(total=Sum('total_amount'))
        
-        yesterday_void_sales = Sale.objects.filter(date=yesterday, void=True).aggregate(total=Sum('total_amount'))
+        yesterday_void_sales = Sale.objects.filter(date=yesterday, void=True, branch = request.user.branch, staff = False).aggregate(total=Sum('total_amount'))
         
-        change_amount = Change.objects.filter(timestamp__date=today, collected=False).aggregate(total=Sum('amount'))
-        yesterday_change_amount = Change.objects.filter(timestamp__date=yesterday, collected=False).aggregate(total=Sum('amount'))
+        change_amount = Change.objects.filter(timestamp__date=today, collected=False, sale__branch = request.user.branch).aggregate(total=Sum('amount'))
+        yesterday_change_amount = Change.objects.filter(timestamp__date=yesterday, collected=False, sale__branch = request.user.branch).aggregate(total=Sum('amount'))
 
         data['total_void_sales'] = today_void_sales['total'] or 0
         data['change_amount'] = change_amount['total'] or 0
@@ -55,21 +59,21 @@ def analytics_view(request):
         
     elif filter_by == 'month':
 
-        month_sales = Sale.objects.filter(date__gte=start_of_month, void=False).aggregate(total=Sum('total_amount'))
+        month_sales = Sale.objects.filter(date__gte=start_of_month, void=False, branch = request.user.branch).aggregate(total=Sum('total_amount'))
         data['month_sales'] = month_sales['total'] or 0
 
     elif filter_by == 'year':
         
-        year_sales = Sale.objects.filter(date__gte=start_of_year, void=False).aggregate(total=Sum('total_amount'))
+        year_sales = Sale.objects.filter(date__gte=start_of_year, void=False, branch = request.user.branch).aggregate(total=Sum('total_amount'))
         data['year_sales'] = year_sales['total'] or 0
 
     # Best-selling dish
-    best_selling_meal = SaleItem.objects.filter(meal__isnull=False, sale__date=today).values('meal__name') \
+    best_selling_meal = SaleItem.objects.filter(meal__isnull=False, sale__date=today, sale__branch = request.user.branch, sale__staff=False).values('meal__name') \
     .annotate(total_sold=Sum('quantity')) \
     .order_by('-total_sold') \
     .first()
 
-    best_selling_dish = SaleItem.objects.filter(dish__isnull=False, sale__date=today).values('dish__name') \
+    best_selling_dish = SaleItem.objects.filter(dish__isnull=False, sale__date=today, sale__branch = request.user.branch, sale__staff=False).values('dish__name') \
     .annotate(total_sold=Sum('quantity')) \
     .order_by('-total_sold') \
     .first()
@@ -85,11 +89,11 @@ def analytics_view(request):
     grouped_dishes = defaultdict(lambda: {})
     staff_dishes = defaultdict(lambda: {})
 
-    sales = SaleItem.objects.filter(sale__void=False, sale__staff=False).select_related('sale', 'meal', 'dish', 'product').all()
+    sales = SaleItem.objects.filter(sale__date = today, sale__void=False, sale__staff=False, sale__branch = request.user.branch).select_related('sale', 'meal', 'dish', 'product').all()
 
-    staff_sales = SaleItem.objects.filter(sale__void=False, sale__staff=True).select_related('sale', 'meal', 'dish', 'product').all()
+    staff_sales = SaleItem.objects.filter(sale__date = today, sale__void=False, sale__staff=True, sale__branch = request.user.branch).select_related('sale', 'meal', 'dish', 'product').all()
 
-    sales_dishes = SaleItem.objects.filter(sale__void=False, sale__staff=False)
+    sales_dishes = SaleItem.objects.filter(sale__date = today, sale__void=False, sale__staff=False, sale__branch = request.user.branch)
 
     dishes = defaultdict(lambda: {})
 
@@ -236,3 +240,221 @@ def analytics_view(request):
 @admin_required
 def analytics_index(request):
     return render(request, 'analytics.html')
+
+
+def analysis(request):
+    sales_list = []
+
+    sales_by_day = Sale.objects.filter(void = False)
+
+    for sales in sales_by_day:
+        logger.info(sales.date)
+        
+        combined_sales = sales.date.strftime('%m-%Y')
+
+        found = False
+        if sales_list:
+            for items in sales_list:
+                items_date = datetime.strptime(items['Date'], '%m-%Y')
+                
+                combined = items_date.strftime('%m-%Y')
+                                              
+                if combined == combined_sales:
+                    items['Total_Amount'] += sales.total_amount
+                    found = True
+                    break
+        
+        if not found:
+            sales_list.append(
+                {
+                    'Date': sales.date.strftime('%m-%Y'),
+                    'Total_Amount': sales.total_amount
+                }
+            )
+    
+    if sales_list:
+        with open('analytics.csv', 'w', newline='') as file:
+            fieldnames = sales_list[0].keys()
+
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
+        
+            writer.writeheader()
+            writer.writerows(sales_list)
+    
+    try:
+        df = pd.read_csv('analytics.csv')
+        print(df.head())
+
+        X = df.iloc[0:,0].values
+        print(X[0:5])
+
+        y = df.iloc[0:,1].values
+        print(y[0:5])
+
+        plt.scatter(X,y)
+        plt.title('Income: Sales')
+        plt.savefig('Sales_plot.png')
+
+        df['Date'] = pd.to_datetime(df['Date'], format='%m-%Y')
+        df['Month_Index'] = (df['Date'] - df['Date'].min()).dt.days // 30
+
+        X= df[['Month_Index']]
+        y = df['Total_Amount']
+
+        model = LinearRegression()
+        model.fit(X,y)
+
+        future_dates = pd.to_datetime(['08-2025', '09-2025', '10-2025'], format='%m-%Y')
+
+        future_months = (future_dates - df['Date'].min()).days // 30
+
+        future_predictions = model.predict(np.array(future_months).reshape(-1, 1))
+
+        for date, pred in zip(future_dates.strftime('%m-%Y'), future_predictions):
+            print(f"Predicted earnings for {date}: ${pred:.2f}")
+
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False})
+
+
+def analysisExpenses(request):
+    expenses_list = []
+
+    expenses_by_month = CashierExpense.objects.all()
+
+    for expenses in expenses_by_month:
+        logger.info(expenses.date)
+        
+        combined_sales = expenses.date.strftime('%d-%m-%Y')
+
+        found = False
+        if expenses_list:
+            for items in expenses_list:
+                items_date = datetime.strptime(items['Date'], '%d-%m-%Y')
+                
+                combined = items_date.strftime('%d-%m-%Y')
+                                              
+                if combined == combined_sales:
+                    items['Total_Amount'] += expenses.amount
+                    found = True
+                    break
+        
+        if not found:
+            expenses_list.append(
+                {
+                    'Date': expenses.date.strftime('%d-%m-%Y'),
+                    'Total_Amount': expenses.amount
+                }
+            )
+    
+    if expenses_list:
+        with open('analytics_expenses.csv', 'w', newline='') as file:
+            fieldnames = expenses_list[0].keys()
+
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
+        
+            writer.writeheader()
+            writer.writerows(expenses_list)
+    
+    try:
+        df = pd.read_csv('analytics_expenses.csv')
+        print(df.head())
+
+        X = df.iloc[0:,0].values
+        print(X[0:5])
+
+        y = df.iloc[0:,1].values
+        print(y[0:5])
+
+        plt.scatter(X,y)
+        plt.title('Expenses')
+        plt.savefig('Expense_plot.png')
+
+        df['Date'] = pd.to_datetime(df['Date'], format='%d-%m-%Y')
+        df['Month_Index'] = (df['Date'] - df['Date'].min()).dt.days // 30
+
+        X= df[['Month_Index']]
+        y = df['Total_Amount']
+
+        model = LinearRegression()
+        model.fit(X,y)
+
+        future_dates = pd.to_datetime(['01-08-2025', '01-09-2025', '01-10-2025'], format='%d-%m-%Y')
+
+        future_months = (future_dates - df['Date'].min()).days // 30
+
+        future_predictions = model.predict(np.array(future_months).reshape(-1, 1))
+
+        for date, pred in zip(future_dates.strftime('%d-%m-%Y'), future_predictions):
+            print(f"Predicted earnings for {date}: ${pred:.2f}")
+
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False})
+
+
+
+def dish_analytics(request):
+    from collections import defaultdict
+    from django.db.models import Q
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    if request.method == 'GET':
+        day = request.GET.get('day', '')
+        month = request.GET.get('month', '')
+        year = request.GET.get('year', '')  
+        sale_item = request.GET.get('sale_item', '').strip()
+
+        # Use today's date if not provided
+        if not (day and month and year):
+            target_date = date.today()
+        else:
+            try:
+                target_date = date(year=int(year), month=int(month), day=int(day))
+            except ValueError:
+                logger.error("Invalid date provided.")
+                return render(request, "sales_analytics.html", {"error": "Invalid date provided."})
+
+        # If a search keyword is provided, filter the saleitems
+        if sale_item:
+            # Narrow down saleitems based on meal, dish or product name
+            sales = sales.filter(
+                Q(saleitem__meal__name__icontains=sale_item) |
+                Q(saleitem__dish__name__icontains=sale_item) |
+                Q(saleitem__product__name__icontains=sale_item)
+            ).distinct()
+
+        meals = defaultdict(lambda: {"name": "", "quantity": 0, "price": 0})
+        dishes = defaultdict(lambda: {"name": "", "quantity": 0, "price": 0})
+
+        for sale in sales:
+            for item in sale.saleitem_set.all():
+                if sale_item:
+                    if not (
+                        (item.meal and sale_item.lower() in item.meal.name.lower()) or
+                        (item.dish and sale_item.lower() in item.dish.name.lower()) or
+                        (item.product and sale_item.lower() in item.product.name.lower())
+                    ):
+                        continue  #
+                if item.meal:
+                    name = item.meal.name
+                    meals[name]["name"] = name
+                    meals[name]["quantity"] += item.quantity
+                    meals[name]["price"] += item.price * item.quantity
+                elif item.dish:
+                    name = item.dish.name
+                    dishes[name]["name"] = name
+                    dishes[name]["quantity"] += item.quantity
+                    dishes[name]["price"] += item.price * item.quantity
+
+        context = {
+            "sales": sales,
+            "meals": list(meals.values()),
+            "dishes": list(dishes.values()),
+            "date": target_date,
+            "sale_item": sale_item,
+        }
+        return render(request, "sales_analytics.html", context)

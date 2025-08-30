@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Sales Analytics for {{ date }}</h2>
+    <form method="get" class="mb-4">
+        <div class="row">
+            <div class="col-md-3">
+                <input type="number" name="day" class="form-control" placeholder="Day" min="1" max="31" value="{{ request.GET.day }}">
+            </div>
+            <div class="col-md-3">
+                <input type="number" name="month" class="form-control" placeholder="Month" min="1" max="12" value="{{ request.GET.month }}">
+            </div>
+            <div class="col-md-3">
+                <input type="number" name="year" class="form-control" placeholder="Year" min="2000" max="2100" value="{{ request.GET.year }}">
+            </div>
+            <div class="col-md-3">
+                <select name="sale_item" class="form-control">
+                    <option value="">All Dishes</option>
+                    {% for dish in dishes %}
+                        <option value="{{ dish.name }}" {% if request.GET.sale_item == dish.name %}selected{% endif %}>{{ dish.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary mt-2">Search</button>
+    </form>
+
+    {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    <h4>Meals Sold</h4>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Meal Name</th>
+                <th>Quantity Sold</th>
+                <th>Total Price</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for meal in meals %}
+            <tr>
+                <td>{{ meal.name }}</td>
+                <td>{{ meal.quantity }}</td>
+                <td>{{ meal.price }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="3">No meals sold.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h4>Dishes Sold</h4>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Dish Name</th>
+                <th>Quantity Sold</th>
+                <th>Total Price</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for dish in dishes %}
+            <tr>
+                <td>{{ dish.name }}</td>
+                <td>{{ dish.quantity }}</td>
+                <td>{{ dish.price }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="3">No dishes sold.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

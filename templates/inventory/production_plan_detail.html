@@ -82,6 +82,7 @@
                             <th>Planned Quantity</th>
                             <th>Allocated Quantity</th>
                             <th>Remaining Quantity</th>
+                            <th>Variance</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -99,7 +100,14 @@
                             <td>
                                 {% for allocated in allocated_rm %}
                                     {% if allocated.raw_material.name == item.name %}
-                                        <small>{{ allocated.remaining_quantity }}</small>
+                                        <small>{{ allocated.remaining_quantity|floatformat:"2"}}</small>
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+                            <td>
+                                {% for variance in p_rm_variance %}
+                                    {% if variance.ingredient.name == item.name %}
+                                        <small>{{ variance.quantity|floatformat:"3" }}</small>
                                     {% endif %}
                                 {% endfor %}
                             </td>

@@ -1,8 +1,36 @@
 {% extends "base.html" %}
 {% load static %}
+{% load crispy_forms_tags %}
 {% block title %}Pos{% endblock title %}
 {% block content %}
 <style>
+    .color-bg{
+        background-color: #FFDD57;
+    }
+    .container-color{
+        background-color: #fbfbfb;
+    }
+    .dish-writing{
+        color: #1F2937;
+    }
+    .color-button{
+        background-color: #EF4444;
+    }
+    #dishCategories {
+        overflow-x: auto;
+        overflow-y: hidden;
+        white-space: nowrap;
+        scroll-behavior: smooth;
+    }
+    .bt-end{
+        margin-right: 5px;
+    }
+    .bt-left{
+        margin-left: 25px;
+    }
+    #autoConfirmProdPlan{
+        overflow-y: auto;
+    }
     /* Floating Button */
     .floating-button {
         marging-top: 300px;
@@ -109,6 +137,10 @@
         object-fit: cover;
         object-position: center;
       }
+    
+      .bg-secondary-em{
+        background-color: #e4e4e4;
+      }
       
 </style>
 
@@ -128,8 +160,11 @@
                             oninput="searchItems()"
                         >
                     </div>
-                    <div class="mt-4">
-                        <div class="row" id="itemsContainer" style='height:70vh; overflow-y: auto;'></div>
+                    <div id="dishCategories" class="d-flex justify-content-between p-1 mt-1 mb-1">
+
+                    </div>
+                    <div class="mt-1">
+                        <div class="row container-color border py-1 rounded mx-1" id="itemsContainer" style='height:70vh; overflow-y: auto;'></div>
                     </div>
                 </div>
 
@@ -153,11 +188,14 @@
                         </li> -->
                     </div>
                     <div class="d-flex">
-                        <li class="m-1">
+                        <li class="m-1 d-none">
                             <a class="btn btn-danger text-light" onclick="handover()">Handover</a>
                         </li>
                         <li class="m-1">
-                            <a class="btn btn-danger text-light" id="void">Void</a>
+                            <a class="btn color-button text-light" onclick="addModal()">Add Production Plan</a>
+                        </li>
+                        <li class="m-1">
+                            <a class="btn color-button text-light" id="void">Void</a>
                         </li>
                     </div>
                 </div>
@@ -165,9 +203,9 @@
 
             <!-- Middle Column (Order Details) -->
             <div class="col-3 p-0 rounded">
-                <div class="bg-dark text-light h-100 d-flex flex-column rounded">
+                <div class="bg-white text-dark h-100 d-flex flex-column rounded border">
                     <h5 class="fw-bold text-center border-bottom pb-2 pt-3 px-3">Order Details</h5>
-                    <div id="orderDetails" class="flex-grow-1 overflow-auto px-3" style="min-height: 200px;"></div>
+                    <div id="orderDetails" class="overflow-auto px-3" style="max-height: 500px;"></div>
                     
                     <div class="mt-auto px-3 pb-3">
                         <hr>
@@ -185,7 +223,7 @@
                             <span id="total">$0.00</span>
                         </div>
                         <div class="d-flex flex-column gap-2">
-                            <button class="btn btn-warning w-100" id="chargeButton">
+                            <button class="btn color-bg w-100" id="chargeButton">
                                 Charge $0.00
                                 <span class="text-light mx-2">Enter</span>
                             </button>
@@ -351,6 +389,11 @@
                     <button id="sitting-btn" class="order-type-btn btn btn-outline-dark w-100">Sitting (S)</button>
                     <button id="takeaway-btn" class="order-type-btn btn btn-outline-dark w-100 mt-2">Takeaway (T)</button>
                     <input type="hidden" id="order-type-input">
+                    <input type="hidden" id="cash-type-input">
+                   <div class="d-flex justify-content-between mt-2">
+                        <button class="btn btn-outline-dark w-50 me-2" id="eco-cash">ECO CASH</button>
+                        <button class="btn btn-outline-dark w-50" id="solid-cash">CASH</button>
+                    </div>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
@@ -473,6 +516,68 @@
             </div>
         </div>
     </div>
+
+    <div class="modal fade" id="cashTypeModal" tabindex="-1" aria-labelledby="cashTypeModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cashTypeModalLabel">Select Cash Type</h5>
+                </div>
+                <div class="modal-body">
+                    <div class="btn-selection">
+                        <span>
+                            <a class="btn btn-primary" id="eco-cash">
+                                ECO CASH
+                            </a>
+                        </span>
+
+                        <span>
+                            <a class="btn btn-primary" id="solid-cash">
+                                CASH
+                            </a>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="modal fade" id="addProductioNPlanModal" tabindex="-1" aria-labelledby="addProductioNPlanModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content shadow">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addProductioNPlanModalLabel">POS PRODUCTION PLAN CREATION</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mt-2">
+                        <div class="col-9">
+                            <table class="table">
+                                <thead class="bg-primary">
+                                    <th>Dish</th>
+                                    <th>Portions</th>
+                                    <th>Total Cost</th>
+                                </thead>
+                                <tbody id="cart-items"></tbody>
+                            </table>
+                            <div class="d-flex justify-content-end">
+                                <button class="btn border bx bx-reset mx-2" id="id_reset"></button>
+                                <button class="btn-primary btn sm bx bx-save" id="id_submit"></button>
+                            </div>
+                        </div>
+                        <div class="col-3 mt-2">
+                            <form id="production-plan-form">
+                                {% csrf_token %}
+                                {{ form | crispy }}
+                                <button type="button" id="save-button" class="btn btn-secondary btn-sm w-100">Save</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
     <script src="https://unpkg.com/imask"></script>
     <script>
@@ -484,8 +589,11 @@
         let mealsData = []
         let orderType = ''
         let changeAmount = 0;
+        let productionModalAuth = false;
         const changeData = []
 
+        // const cashModal = document.getElementById('cashTypeModal');
+        const productionModal = new bootstrap.Modal(document.getElementById('addProductioNPlanModal'));
         const chargeModal = new bootstrap.Modal(document.getElementById('chargeModal'));
         const staffModal = new bootstrap.Modal(document.getElementById('staffModal'));
         const staffChargeModal = new bootstrap.Modal(document.getElementById('staffChargeModal'));
@@ -500,6 +608,44 @@
         const sellAuthorizationModal = new bootstrap.Modal(document.getElementById('AuthorizationModal'));
         const search = document.getElementById('searchInput')
 
+
+        document.addEventListener('DOMContentLoaded', function(){
+            const dishCat =  document.getElementById('dishCategories');
+            fetch("{% url 'inventory:filter_meal_category' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            }).then(response => response.json())
+            .then(data => {
+                if(data.success){
+                    console.log({'DISH CAT':data.categories})
+                    data.categories.forEach(cat => {
+                        const  dishContainer = document.createElement('span');
+                        dishContainer.className = 'my-0 border rounded p-2 btn btn-outline-dark';
+                        dishContainer.onclick = function(){ searchButtonItems(dishContainer.innerText.trim())};
+                        dishContainer.innerHTML = `
+                            ${cat}
+                        `;
+                        dishCat.appendChild(dishContainer);
+                    });
+                }
+            })
+        });
+
+        function filter(filterby){
+            console.log({'filterBy': filterby});
+            const m_dContainer = document.getElementById('itemsContainer');
+        }
+
+        function addModal(){
+            if(productionModalAuth === true){
+                productionModal.show();
+            }else{
+                sellAuthorizationModal.show();
+            }
+        }
 
         document.addEventListener('keydown', function(event){
             if(event.code === 'F1'){
@@ -573,6 +719,16 @@
             console.log(query)
             const filteredItems = items.filter(item => 
                 item.name.toLowerCase().includes(query) 
+            );
+            displayItems(filteredItems);
+        }
+
+        function searchButtonItems(filter) {
+            console.log({search:mealsData})
+            const query = filter;
+            console.log(query)
+            const filteredItems = items.filter(item => 
+                item.name.toLowerCase().includes(query.toLowerCase()) 
             );
             displayItems(filteredItems);
         }
@@ -705,11 +861,15 @@
 
         document.addEventListener("DOMContentLoaded", function() {
             let selectedOrderType = null;
-        
+            let selectedCashType = null;
+
             const sittingBtn = document.getElementById("sitting-btn");
             const takeawayBtn = document.getElementById("takeaway-btn");
+            const ecocashBtn = document.getElementById("eco-cash");
+            const solidcashBtn = document.getElementById("solid-cash");
             const chargeBtn = document.querySelector(".btn-primary");
             const orderTypeInput = document.getElementById("order-type-input");
+            const cashTypeInput = document.getElementById("cash-type-input");
             const totalAmountInput = document.getElementById("totalAmountInput");
         
             function activateButton(button) {
@@ -727,7 +887,7 @@
         
                 chargeBtn.disabled = false;
             }
-        
+            
             sittingBtn.addEventListener("click", function() {
                 activateButton(sittingBtn);
             });
@@ -735,11 +895,39 @@
             takeawayBtn.addEventListener("click", function() {
                 activateButton(takeawayBtn);
             });
+            
+
+            function cashButton(button) {
+                ecocashBtn.classList.remove("btn-dark");
+                solidcashBtn.classList.remove("btn-dark");
+
+                ecocashBtn.classList.remove("text-light");
+                solidcashBtn.classList.remove("text-light");
+                
+                button.classList.add("btn-dark");
+                button.classList.add("text-light");
+
+                selectedCashType = button.id === "eco-cash" ? "eco-cash" : "solid-cash";
+                cashTypeInput.value = selectedCashType;
+
+                chargeBtn.disabled = false;
+            }
+
+            ecocashBtn.addEventListener("click", function() {
+                cashButton(ecocashBtn);
+            });
         
+            solidcashBtn.addEventListener("click", function() {
+                cashButton(solidcashBtn);
+            });
+
             window.finalizeSale = function(staff) {
                 const amountField = document.getElementById('totalAmountInput');
                 const changeDisplay = document.getElementById('changeDisplay');
                 const orderTypeInput = document.getElementById('order-type-input');
+                const cashTypeInput = document.getElementById('cash-type-input');
+
+                console.log('Finalizing sale with staff:', cashTypeInput.value, 'and order type:', orderTypeInput.value);
 
                 setTimeout(() => {
                     totalAmountInput.focus();
@@ -748,8 +936,10 @@
 
                 if (staff) {
                     selectedOrderType = 'sitting';
+                    selectedCashType = 'solid-cash';
                 } else {
                     selectedOrderType = selectedOrderType;
+                    selectedCashType = selectedCashType;
                 }
 
                 const totalAmount = parseFloat(totalAmountInput.value);
@@ -776,10 +966,20 @@
                     return;
                 }
 
+                if (!selectedCashType) {
+                    Swal.fire({
+                        title: "Error",
+                        text: "Please select a cash type before finalizing the sale.",
+                        icon: "error"
+                    });
+                    return;
+                }
+
                 const saleData = {
                     received_amount: totalAmount,
                     staff: staff,
                     order_type: selectedOrderType,
+                    cash_type: selectedCashType,
                     items: cart.map(meal => ({
                         meal_id: meal.id,
                         quantity: meal.quantity,
@@ -951,17 +1151,27 @@
                 itemCard.className = 'col-md-3';
                 itemCard.innerHTML = `
                     <div class="card mb-4 position-relative overflow-hidden">
-                        <img src="${item.image ? '/media/' + item.image : '/media/' + 'placeholder.png'}" 
+                        <img src="${item.image ? '/media/' + item.image : '/media/' + 'placeholder.jpg'}" 
                         class="card-img-top" 
                         style = "object-fit: center;"
                         alt="${item.name}" 
                         onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
                         
-                        <div class="card-body text-center rounded-0 d-flex justify-content-center align-items-center bg-warning position-absolute bottom-0 w-100"
+                        <div class="color-bg position-absolute top-0 w-100 text-center py-2"
+                            onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})"
+                        ">
+                            <span class="dish-writing fs-5 fw-bold"
+                                readonly
+                            >
+                                ${item.name}
+                            </span>
+                        </div>
+                        
+                        <div class="border border-dark border-rounded card-body text-center rounded-0 d-flex justify-content-center align-items-center color-bg position-absolute bottom-0 w-100"
                             style="height: 50px; padding: 0; margin: 0; line-height: 50px; margin-top:-10px;"
                             onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
                             
-                            <span class="fw-bold">${item.name}</span>
+                            <span class="dish-writing bt-end fw-bold fs-3">$${parseFloat(item.price).toFixed(2)}</span>
                         </div>
                     </div>
 
@@ -974,7 +1184,7 @@
             fetch('{% url "pos:product_meal_json" %}')
                 .then(response => response.json())
                 .then(data => {
-                    console.log(data)
+                    // console.log(data)
                     items = data.items;
                     mealsData.push(data)
                     displayItems(items);
@@ -1123,6 +1333,7 @@
         const amountField = document.getElementById('totalAmountInput');
         const changeDisplay = document.getElementById('changeDisplay');
         const orderTypeInput = document.getElementById('order-type-input');
+        const cashTypeInput = document.getElementById("cash-type-input");
 
         setTimeout(() => {
             amountField.focus();
@@ -1751,7 +1962,7 @@ function generateAccountantCashUp(userId) {
     const authorization = () => {
         const username = document.querySelector('#s_username').value;
         const password = document.querySelector('#s_password').value;
-        const save = "save";
+        //const save = "save";
         
         fetch('{% url "pos:void_authenticate" %}', {
             method: 'POST',
@@ -1759,7 +1970,7 @@ function generateAccountantCashUp(userId) {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCookie('csrftoken')
             },
-            body: JSON.stringify({ username, password, save}) 
+            body: JSON.stringify({ username, password}) 
         })
         .then(response => response.json())
         .then(authData => {
@@ -1769,7 +1980,9 @@ function generateAccountantCashUp(userId) {
                     text: 'Authentication successful!',
                     icon: 'success',
                 }).then(() => {
-                    window.location.reload();
+                    productionModalAuth = true;
+                    sellAuthorizationModal.hide();
+                    addModal();
                 });
             } else {
                 Swal.fire({
@@ -1800,7 +2013,9 @@ function generateAccountantCashUp(userId) {
             variance, 
             sales_total, 
             staff_total,
-            finished_product
+            finished_product,
+            eco_cash_total,
+            eco_cash_tax
         } = cashUpData; 
         
         //finished products
@@ -2088,7 +2303,12 @@ function generateAccountantCashUp(userId) {
                     </div>
                     <hr>
                     <div class="line" style='margin-top:10px;'>
-                        <span style="font-size:10;"><span style="font-weight:bold;"">Nb</span>+-+ Total Change In Sytem: $${total_accumulated_change}</span>
+                        <span style="font-size:10;"><span style="font-weight:bold;"">Nb</span>Total Change In Sytem: $${total_accumulated_change}</span>
+                    </div>
+                    <hr>
+                    <div class="line" style='margin-top:10px;'>
+                        <span style="font-size:10;"><span style="font-weight:bold;"">Nb</span>Total Eco Cash Sales: $${eco_cash_total}</span>
+                        <span style="font-size:10;"><span style="font-weight:bold;"">Nb</span>Total Eco Cash Tax: $${parseFloat(eco_cash_tax).toFixed(2)}</span>
                     </div>
 
             </div>
@@ -2150,64 +2370,79 @@ function generateAccountantCashUp(userId) {
         });
     }
 
-// function to filter items displayed on pos based on selected category
-function filterItemsByCategory(categoryName) {
-    console.log(categoryName);
-    fetch("{% url 'inventory:filter_meal_category' %}?category=" + encodeURIComponent(categoryName), { 
-        method: 'GET'
-    })
-    .then(response => response.json())
-    .then(data =>{
-        console.log({filtered:data})
-        const itemsContainer = document.getElementById('itemsContainer');
-        itemsContainer.innerHTML = '';
+    // function to filter items displayed on pos based on selected category
+    function filterItemsByCategory(categoryName) {
+        console.log(categoryName);
+        fetch("{% url 'inventory:filter_meal_category' %}?category=" + encodeURIComponent(categoryName), { 
+            method: 'GET'
+        })
+        .then(response => response.json())
+        .then(data =>{
+            console.log({filtered:data})
+            const itemsContainer = document.getElementById('itemsContainer');
+            itemsContainer.innerHTML = '';
 
-        data.forEach(item => {
-            const itemCard = document.createElement('div');
-            itemCard.className = 'col-md-3';
-            
-            itemCard.innerHTML = `
-                <div class="card mb-4">
-                    <img src="${item.image ? '/media/' + item.image : '/media/' + 'placeholder.png'}" 
+            data.forEach(item => {
+                console.log({Image:item.image})
+                console.log(item.meal, item.dish)
+                const itemCard = document.createElement('div');
+                itemCard.className = 'col-md-3';
+                itemCard.innerHTML = `
+                    <div class="card mb-4 position-relative overflow-hidden">
+                        <img src="${item.image ? '/media/' + item.image : '/media/' + 'placeholder.jpg'}" 
                         class="card-img-top" 
+                        style = "object-fit: center;"
                         alt="${item.name}" 
                         onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
-                    <div class="card-body p-3 d-flex align-items-center bg-warning" style="height:50px;" 
-                        onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
-                        <p class="card-text text text-center">${item.name}</p>
+                         
+                        <div class="color-bg position-absolute top-0 w-100 text-center py-2"
+                            onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})"
+                        ">
+                            <span class="dish-writing fs-5 fw-bold"
+                                readonly
+                            >
+                                ${item.name}
+                            </span>
+                        </div>
+
+                        <div class="border border-dark border-rounded card-body text-center rounded-0 d-flex justify-content-center align-items-center color-bg position-absolute bottom-0 w-100"
+                            style="height: 50px; padding: 0; margin: 0; line-height: 50px; margin-top:-10px;"
+                            onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
+                            
+                            <span class="dish-writing fw-bold fs-5">$${parseFloat(item.price).toFixed(2)}</span>
+                        </div>
                     </div>
-                </div>
-            `;
 
-            itemsContainer.appendChild(itemCard);
+                `;
+                itemsContainer.appendChild(itemCard);
+            });
         });
-    });
-}
-window.addEventListener('load', function () {
-    setTimeout(()=>{
-        //document.getElementById('loader').style.display = 'none';
-    }, 1000)
-}); 
+    }
+    window.addEventListener('load', function () {
+        setTimeout(()=>{
+            //document.getElementById('loader').style.display = 'none';
+        }, 1000)
+    }); 
 
 
-populateSidebarCategories();
+    populateSidebarCategories();
 
-/*Function to search within category
-function searchItems() {
-    const query = document.getElementById("searchInput").value.toLowerCase();
-    const itemCards = document.querySelectorAll("#itemsContainer .col-2");
-    itemCards.forEach(card => {
-        const titleElement = card.querySelector(".card-title");
-        if (titleElement) {
-            const titleText = titleElement.textContent.toLowerCase();
-            if (titleText.includes(query)) {
-                card.style.display = "";
-            } else {
-                card.style.display = "none";
+    /*Function to search within category
+    function searchItems() {
+        const query = document.getElementById("searchInput").value.toLowerCase();
+        const itemCards = document.querySelectorAll("#itemsContainer .col-2");
+        itemCards.forEach(card => {
+            const titleElement = card.querySelector(".card-title");
+            if (titleElement) {
+                const titleText = titleElement.textContent.toLowerCase();
+                if (titleText.includes(query)) {
+                    card.style.display = "";
+                } else {
+                    card.style.display = "none";
+                }
             }
-        }
-    });
-}*/
+        });
+    }*/
 
     function getCookie(name) {
         let cookieValue = null;
@@ -2223,5 +2458,216 @@ function searchItems() {
         }
         return cookieValue;
     }
+
+
+    $(document).ready(function() {
+        let cart = [];
+        let portion_multiplier = 1;
+        let ingredientsData = [];
+    
+        const lf = document.getElementById('id_lf_carried_forward_quantity');
+        const rm = document.getElementById('id_rm_carried_forward_quantity');
+        const quantity = document.getElementById('id_quantity');
+        const actual = document.getElementById('id_actual_quantity');
+    
+        // $('#id_dish').select2();
+    
+        // Reset button functionality
+        $('#id_reset').on('click', function() {
+            cart = [];
+            updateCartTable();
+        });
+    
+        // Submit button functionality
+        $('#id_submit').on('click', function() {
+            const postData = {
+                csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
+                cart: cart,
+                auto: true
+            };
+    
+            fetch('{% url "inventory:create_production_plan" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()
+                },
+                body: JSON.stringify(postData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: "Success",
+                        text: "Production plan created successfully!",
+                        icon: "success"
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                    cart = [];
+                    updateCartTable();
+                } else {
+                    Swal.fire({
+                        title: "Error",
+                        text: data.message,
+                        icon: "error"
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error submitting production plan:', error);
+            });
+        });
+    
+        // Dish selection event
+        $('#id_dish').on('change', function(e) {
+            const selectedProductId = e.target.value;
+    
+            const postData = {
+                csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
+                dish_id: selectedProductId,
+            };
+    
+            fetch('{% url "inventory:dish_json_detail" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()
+                },
+                body: JSON.stringify(postData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    ingredientsData = data.data; // Replaces previous data
+                    portion_multiplier = data.portion_multiplier;
+                } else {
+                    Swal.fire({
+                        title: "Error",
+                        text: data.message,
+                        icon: "error"
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error posting product data:', error);
+            });
+        });
+    
+        // Quantity input listener
+        $('#id_quantity').on('input', function(e) {
+            let quantityVal = parseFloat(e.target.value) || 0;
+            let lfVal = parseFloat(lf.value) || 0;
+            let rmVal = parseFloat(rm.value) || 0;
+    
+            let value = quantityVal - (lfVal + rmVal);
+            actual.value = value < 0 ? 0 : value;
+            actual.readOnly = true;
+            actual.style.backgroundColor = 'lightgray';
+        });
+    
+        // Calculate total cost based on dish and portion size
+        function total_dish_cost(portions) {
+            let cost_per_kg = 0;
+            let kgs = portions / portion_multiplier;
+    
+            ingredientsData.forEach((i) => {
+                cost_per_kg += i.quantity * i.cost;
+            });
+    
+            return kgs * cost_per_kg;
+        }
+    
+        // Add item to cart
+        $('#save-button').on('click', function() {
+            const portions = parseFloat($('#id_portions').val());
+            const dish_name = $('#select2-id_dish-container').text();
+
+            console.log(dish_name)
+
+            if (!ingredientsData.length || isNaN(portions) || portions <= 0) {
+                Swal.fire({
+                    title: "Invalid Entry",
+                    text: "Please select a dish and enter a valid portion size.",
+                    icon: "warning"
+                });
+                return;
+            }
+            /*
+            const item = {
+                dish: $('#id_dish option:selected').text(),
+                portions: portions,
+                total_cost: total_dish_cost(portions)
+            };
+    
+            cart.push(item);
+            updateCartTable();
+            */
+            
+            const dish_text = $('#id_dish option:selected').text();
+            const itemIndex = cart.findIndex(entry => entry.dish === dish_text);
+
+            if (itemIndex !== -1) {
+                cart[itemIndex].portions += portions;
+                cart[itemIndex].total_cost = total_dish_cost(cart[itemIndex].portions);
+            } else {
+                const item = {
+                    dish: dish_text,
+                    portions: portions,
+                    total_cost: total_dish_cost(portions)
+                };
+                cart.push(item);
+            }
+
+            updateCartTable();
+            $('#id_dish').val(null).trigger('change');
+            $('#id_portions').val(0);
+        });
+    
+        // Update cart table display
+        function updateCartTable() {
+            const cartItems = $('#cart-items');
+            cartItems.empty();
+    
+            cart.forEach((item, index) => {
+                cartItems.append(`
+                    <tr>
+                        <td>
+                            <button class="btn border bx bx-trash" onclick="deleteItem(${index})"></button>
+                            <span class='mx-2'>${item.dish}</span>
+                        </td>
+                        <td>
+                            <input type="number" class="form-control" value="${item.portions}" onchange="updateQuantity(${index}, this.value)">
+                        </td>
+                        <td>${item.total_cost.toFixed(2)}</td>
+                    </tr>
+                `);
+            });
+        }
+    
+        // Global functions for cart item actions
+        window.deleteItem = function(index) {
+            cart.splice(index, 1);
+            updateCartTable();
+        }
+    
+        window.updateQuantity = function(index, newPortions) {
+            newPortions = parseFloat(newPortions);
+    
+            if (isNaN(newPortions) || newPortions <= 0) {
+                Swal.fire({
+                    title: "Invalid Portion",
+                    text: "Please enter a valid portion number.",
+                    icon: "warning"
+                });
+                return;
+            }
+    
+            const item = cart[index];
+            item.portions = newPortions;
+            item.total_cost = total_dish_cost(newPortions);
+            updateCartTable();
+        }
+    });
     </script>
 {% endblock %}

@@ -11,7 +11,7 @@ def send_expense_creation_notification(expense_id):
         f"""
         The email is to notify you, on the creation of an expense for {expense.description}
         """
-        'admin@techcity.co.zw',
+        'Urban Eats',
         ['cassymyo@gmail.com']
     )
     # email.attach(f'EndOfDayReport.pdf', buffer.getvalue(), 'application/pdf')

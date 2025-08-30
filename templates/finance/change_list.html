@@ -61,8 +61,8 @@
                   <tr>
                         <td><small>{{ change.timestamp }}</small></td>
                         <td><small>{{ change.name }}</small></td>
-                        <td><small>{{ change.cashier }}</small></td>
-                        <td><small>{{ change.cashier_give }}</small></td>
+                        <td><small>{{ change.cashier.username }}</small></td>
+                        <td><small>{{ change.cashier_give.username }}</small></td>
                         <td><small>{{ change.phonenumber}}</small></td>
                         <td><small>{{ change.amount }}</small></td>
                         <td><small>{{ change.receipt_number }}</small></td>
@@ -95,21 +95,116 @@
             </div>
         </div>
 
+
+        <!--Change Authorization Modal-->
+        <div class="modal fade" id="AuthorizationModal" tabindex="-1" aria-labelledby="AuthorizationModalLabel" aria-hidden="false">
+            <div class="modal-dialog bg modal-dialog-centered">
+                <div class="modal-content p-3 shadow">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="AuthorizationModalLabel">Enter Supervisors Credentials</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form action="" method="POST" autocomplete="off">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username</label>
+                            <input 
+                                type="text" 
+                                id="s_username" 
+                                name="username" 
+                                class="form-control" 
+                                placeholder="Enter username" 
+                                autocomplete="off"
+                                required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <input 
+                                type="password" 
+                                id="s_password" 
+                                name="password" 
+                                class="form-control" 
+                                placeholder="Enter password" 
+                                autocomplete="new-password"
+                                required>
+                        </div>
+                        <button id="cash_upbutton" onclick="authorization()" type="button" class="btn btn-outline-dark w-100">Authenticate</button>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
     
    <script>
         new DataTable('#change_table')
 
         let changeId = null;
+        let authorized = true;
+
+         const authModal = new bootstrap.Modal(document.getElementById('AuthorizationModal'));
+
+        function showAuthModal() {
+            authModal.show();
+        }
 
         const displayAmount = (id) => {
-            $('#amountModal').modal('show');
-            changeId = id;
+            const filter = document.getElementById('filterSelect').value;
+            console.log(filter)
+            console.log(id)
+            if(filter === 'this_year' || filter === 'this_month' || filter === 'last_month') {
+                if(!authorized) {
+                    showAuthModal();
+                    changeId = id;
+                } else {
+                    $('#amountModal').modal('show');
+                    changeId = id;
+                }
+            } else {
+                $('#amountModal').modal('show');
+                changeId = id;
+            }   
         }
+        
+        const authorization = () => {
+            const username = document.querySelector('#s_username').value;
+            const password = document.querySelector('#s_password').value;
+            
+            
+            fetch('{% url "pos:void_authenticate" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                },
+                body: JSON.stringify({ username, password}) 
+            })
+            .then(response => response.json())
+            .then(authData => {
+                if (authData.success) {
+                    Swal.fire({
+                        title: 'Success!',
+                        text: 'Authentication successful!',
+                        icon: 'success',
+                    }).then(() => {
+                        authorized = true;
+                        authModal.hide();
+                        console.log(changeId);
+                        displayAmount(changeId);
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'Authentication unsuccessful!',
+                        icon: 'error',
+                    });
+                }
+            });
+        };
 
         function filterCashBook() {
             const filter = document.getElementById('filterSelect').value;
             window.location.href = `?filter=${filter}`;
+
         }
         
 
