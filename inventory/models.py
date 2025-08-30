@@ -127,7 +127,21 @@ class MinorProductionItems(models.Model):
     
     def __str__(self) -> str:
         return f'{self.minor_raw_material}'
-
+    
+    
+    
+class Declaration(models.Model):
+    dish = models.ForeignKey('inventory.dish', on_delete=models.CASCADE, null=True)
+    meal = models.ForeignKey('inventory.meal', on_delete=models.CASCADE, null=True)
+    kgs = models.FloatField(null=True)
+    expected = models.IntegerField(null=True)
+    declared = models.IntegerField(null=True)
+    sold = models.IntegerField(null=True)
+    staff = models.IntegerField(null=True)
+    left_over = models.IntegerField(null=True)
+    variance = models.FloatField(null=True)
+    
+    
 
 class AllocatedRawMaterials(models.Model):
     production = models.ForeignKey(Production, on_delete=models.CASCADE)

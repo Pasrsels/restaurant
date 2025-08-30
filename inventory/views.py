@@ -3222,7 +3222,7 @@ def create_end_of_day_declaration(request):
             products used,
             portions
         """
-        inventory = Inventory.objects.filter(branch=request.user.branch).values('id', 'quantity', 'name')
+        inventory = Product.objects.filter(branch=request.user.branch).values('id', 'quantity', 'name')
         dishes = Dish.objects.filter(branch=request.user.branch).values('id', 'name')
         meals = Meal.objects.filter(branch=request.user.branch).values('id', 'name')
         
@@ -3240,15 +3240,23 @@ def create_end_of_day_declaration(request):
         """
             [
                 {
-                    'dish/meal_id':id,
+                    'dish_id': id,
+                    'meal_id': id,
                     'quantity': int,
                 }
             ]
         """
         try:
             data = json.loads(request.body)
-            
-            
+            dish_id = data.get('dish_id', '')
+            meal_id = data.get('meal_id', '')
+            kgs = data.get('kgs')
+            expected = data.get('expected')
+            sold = data.get('sold')
+            staff = data.get('staff')
+            left_over = data.get('left_over')
+            variance = data.get('variance')
+
         except Exception as e:
             logger.error(f'Error processing declare item: {e}')
     
