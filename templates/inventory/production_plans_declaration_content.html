@@ -1,0 +1,67 @@
+{% load static %}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">Production Plans for Declaration</h5>
+                </div>
+                <div class="card-body">
+                                               {% if declaration_plans %}
+                               <div class="table-responsive">
+                                   <table class="table table-striped">
+                                       <thead>
+                                           <tr>
+                                               <th>Production Plan #</th>
+                                               <th>Date Created</th>
+                                               <th>Status</th>
+                                               <th>Declared</th>
+                                               <th>Actions</th>
+                                           </tr>
+                                       </thead>
+                                       <tbody>
+                                           {% for plan in declaration_plans %}
+                                        <tr>
+                                            <td>{{ plan.production_plan_number }}</td>
+                                            <td>{{ plan.date_created }}</td>
+                                            <td>
+                                                {% if plan.status %}
+                                                    <span class="badge bg-success">Confirmed</span>
+                                                {% else %}
+                                                    <span class="badge bg-warning">Pending</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if plan.declared %}
+                                                    <span class="badge bg-success">Declared</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">Not Declared</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if not plan.declared %}
+                                                    <a href="{% url 'inventory:declare_production_plan' plan.id %}" 
+                                                       class="btn btn-primary btn-sm">
+                                                        <i class="fas fa-edit"></i> Declare
+                                                    </a>
+                                                {% else %}
+                                                    <span class="text-muted">Already Declared</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                                                               {% endfor %}
+                                       </tbody>
+                                   </table>
+                               </div>
+                           {% else %}
+                               <div class="text-center py-4">
+                                   <h5 class="text-muted">No production plans ready for declaration</h5>
+                                   <p class="text-muted">Production plans that have been confirmed by the chef will appear here for declaration.</p>
+                               </div>
+                           {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

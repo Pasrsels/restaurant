@@ -62,7 +62,11 @@ from . forms import (
 
 from utils.supplier_best_price import best_price
 from utils.utils import render_to_pdf
-from permisions.permisions import admin_required
+from permisions.permisions import admin_required, chef_only_required, stores_person_only_required, chef_or_stores_view_required
+
+def is_ajax(request):
+    """Check if the request is an AJAX request"""
+    return request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
 @login_required
 def unit_of_measurement(request):
@@ -486,6 +490,28 @@ def suppliers(request):
     suppliers = Supplier.objects.filter(branch=request.user.branch)
     return render(request, 'inventory/suppliers.html', 
         {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            
             'suppliers':suppliers,
             'form':form
         }
@@ -881,12 +907,127 @@ def process_received_order(request):
 
 @login_required   
 def production_plans(request):
+    from datetime import datetime, timedelta
     
-
-    plans = Production.objects.filter(branch=request.user.branch).order_by('date_created') 
+    # Get date filter from request, default to today
+    selected_date = request.GET.get('date', datetime.now().strftime('%Y-%m-%d'))
+    date_filter = None
+    
+    try:
+        # Convert string to date object
+        if selected_date == 'yesterday':
+            filter_date = datetime.now().date() - timedelta(days=1)
+        elif selected_date == 'today':
+            filter_date = datetime.now().date()
+        elif selected_date == 'week':
+            # Calculate week start (Monday) and end (Sunday)
+            today = datetime.now().date()
+            week_start = today - timedelta(days=today.weekday())  # Monday
+            week_end = week_start + timedelta(days=6)  # Sunday
+            filter_date = week_start  # Use week start as filter date
+            date_filter = 'week'
+        else:
+            filter_date = datetime.strptime(selected_date, '%Y-%m-%d').date()
+    except:
+        filter_date = datetime.now().date()
+    
+    # Filter plans by date - date_created is already a DateField
+    if date_filter == 'week':
+        plans = Production.objects.filter(
+            branch=request.user.branch,
+            date_created__range=[week_start, week_end]
+        ).order_by('date_created')
+    else:
+        plans = Production.objects.filter(
+            branch=request.user.branch,
+            date_created=filter_date
+        ).order_by('date_created')
     transfer_count = Transfer.objects.filter(status=False, branch=request.user.branch).count()
+    products = Product.objects.filter(branch=request.user.branch).order_by('name')[:15]  # Limit to 15 products for sidebar
+
+    # Use different template for chefs and stores person
+    if request.user.role in ['chef', 'stores_person']:
+        # For stores person, get plans that are confirmed but not declared
+        if request.user.role == 'stores_person':
+            declaration_plans = Production.objects.filter(
+                branch=request.user.branch,
+                status=True,  # Confirmed by chef
+                declared=False  # Not yet declared by stores person
+            ).order_by('date_created')
+        else:
+            declaration_plans = plans
+            
+        context = {
+            'plans': plans, 
+            'declaration_plans': declaration_plans,
+            'transfer_count': transfer_count,
+            'products': products,
+            'selected_date': filter_date,
+            'today': datetime.now().date(),
+            'yesterday': datetime.now().date() - timedelta(days=1),
+            'date_filter': date_filter
+        }
+        
+        # Add week context if week filter is active
+        if date_filter == 'week':
+            context.update({
+                'week_start': week_start,
+                'week_end': week_end
+            })
+        
+        return render(request, 'inventory/production_plans_chef.html', context)
 
     return render(request, 'inventory/production_plans.html', {'plans': plans, 'transfer_count': transfer_count})
+
+@login_required
+def production_plans_admin(request):
+    from datetime import datetime, timedelta
+    
+    # Get date filter from request, default to today
+    selected_date = request.GET.get('date', datetime.now().strftime('%Y-%m-%d'))
+    date_filter = None
+    
+    try:
+        # Convert string to date object
+        if selected_date == 'yesterday':
+            filter_date = datetime.now().date() - timedelta(days=1)
+        elif selected_date == 'today':
+            filter_date = datetime.now().date()
+        elif selected_date == 'week':
+            # Calculate week start (Monday) and end (Sunday)
+            today = datetime.now().date()
+            week_start = today - timedelta(days=today.weekday())  # Monday
+            week_end = week_start + timedelta(days=6)  # Sunday
+            filter_date = week_start  # Use week start as filter date
+            date_filter = 'week'
+        else:
+            filter_date = datetime.strptime(selected_date, '%Y-%m-%d').date()
+    except:
+        filter_date = datetime.now().date()
+    
+    # Filter plans by date - date_created is already a DateField
+    if date_filter == 'week':
+        plans = Production.objects.filter(
+            branch=request.user.branch,
+            date_created__range=[week_start, week_end]
+        ).order_by('date_created')
+    else:
+        plans = Production.objects.filter(
+            branch=request.user.branch,
+            date_created=filter_date
+        ).order_by('date_created') 
+    
+    transfer_count = Transfer.objects.filter(status=False, branch=request.user.branch).count()
+    
+    # Always render the admin template (not the chef template)
+    return render(request, 'inventory/production_plans.html', {
+        'plans': plans, 
+        'transfer_count': transfer_count,
+        'selected_date': filter_date,
+        'today': datetime.now().date(),
+        'yesterday': datetime.now().date() - timedelta(days=1),
+        'date_filter': date_filter
+    })
 
 @login_required
 @transaction.atomic
@@ -909,8 +1050,7 @@ def create_production_plan(request):
             pass
             # return JsonResponse({'success': False, 'message': 'Please declare all the production plans you have.'}, status=400)
 
-        # Create a new production plan
-        production_plan = Production.objects.create(status=False, declared=False, branch=request.user.branch)
+        production_plan = None
 
         if auto_confirm:
                 if data.get('id'):
@@ -924,6 +1064,8 @@ def create_production_plan(request):
         else:
             # Create a new production plan
             production_plan = Production.objects.create(status=False, declared=False, branch=request.user.branch)
+
+        logger.info(f"production_plan: {production_plan.branch}")
 
         dish_names = [item.get('dish') for item in items if item.get('dish')]
         dishes = Dish.objects.filter(name__in=dish_names, branch = request.user.branch)
@@ -1038,8 +1180,19 @@ def dish_json_detail(request):
         data = json.loads(request.body)
         dish_id = data.get("dish_id")
         
+        logger.info(f"Received dish_id: {dish_id}, type: {type(dish_id)}")
+        
+        # Validate dish_id
+        if not dish_id or dish_id == '':
+            return JsonResponse({'success': False, 'message': 'Dish ID is required and cannot be empty'}, status=400)
+        
+        try:
+            dish_id = int(dish_id)
+        except (ValueError, TypeError):
+            return JsonResponse({'success': False, 'message': f'Invalid dish ID: {dish_id}. Must be a valid number.'}, status=400)
+        
         dish = Dish.objects.get(id=dish_id, branch=request.user.branch)
-        logger.info(dish)
+        logger.info(f"Found dish: {dish}")
         
         for ingredient in Ingredient.objects.filter(dish=dish, minor_raw_material__branch=request.user.branch):
             if dish == ingredient.dish:
@@ -1051,9 +1204,17 @@ def dish_json_detail(request):
                 }
             )
         
-        return JsonResponse({'success':True, 'data':ingredients, 'portion_multiplier':dish.portion_multiplier})
+        return JsonResponse({
+            'success': True,
+            'data': ingredients,
+            'portion_multiplier': dish.portion_multiplier
+        })
+        
     except Dish.DoesNotExist:
-        return JsonResponse({'success': False, 'message': f'Dish with ID: {dish_id} doesn\'t exist'}, status=404)
+        return JsonResponse({'success': False, 'message': f'Dish with ID {dish_id} not found in your branch'}, status=400)
+    except Exception as e:
+        logger.error(f"Error in dish_json_detail: {e}")
+        return JsonResponse({'success': False, 'message': f'{e}'}, status=400)
 
 
 @login_required
@@ -1254,7 +1415,7 @@ def production_plan_detail(request, pp_id):
 
         except Exception as e:
             messages.warning(request, f'Production Plan With ID: {pp_id}, doesn\t exists. Error is {e}')
-        logger.info(allocated_rm)
+
         return render(request, 'inventory/production_plan_detail.html', 
             {
                 'production_plan':production_plan,
@@ -1271,7 +1432,7 @@ def production_plan_detail(request, pp_id):
         )
  
 
-@login_required       
+@login_required
 def confirm_production_plan(request, pp_id):
     if request.method == 'GET':
         try:
@@ -2005,6 +2166,7 @@ def production_raw_materials(request):
     return render(request, 'inventory/production_rm.html', {'raw_materials':raw_materials})
 
 
+@login_required
 def confirm_declaration(request):
     if request.method == 'POST':
         # payload
@@ -2326,7 +2488,8 @@ def meal_list(request):
     )
 
 
-@login_required  
+@login_required
+@login_required
 def add_meal(request):
     dishes = Dish.objects.filter(branch=request.user.branch)
     meal_categories = MealCategory.objects.all()
@@ -3459,6 +3622,26 @@ def check_check_list(request):
         return JsonResponse({'success': False, 'message': str(e)}, status=400)
 
 @login_required
+def chef_checklist(request):
+    """Chef-specific checklist view"""
+    products = CheckList.objects.filter(date=datetime.datetime.today(), product__branch=request.user.branch)
+    non_production_products = Product.objects.filter(raw_material=False, branch=request.user.branch)
+    
+    check_list = []
+    for product in non_production_products:
+        if not products.filter(product=product).exists():
+            check_list.append(CheckList(
+                product=product,
+                status=False
+            ))
+    
+    CheckList.objects.bulk_create(check_list)
+    
+    products = CheckList.objects.filter(date=datetime.datetime.today(), product__branch=request.user.branch)
+    
+    return render(request, 'inventory/checklist_chef.html', {'products': products})
+
+@login_required
 def check_list_finished_products(request):
     products = CheckList.objects.filter(date=datetime.datetime.today(), product__branch = request.user.branch)
     non_production_products = ProductionRawMaterials.objects.filter(product__raw_material=False, product__branch = request.user.branch)
@@ -3975,3 +4158,1054 @@ def shift_data_to_main(request):
                 } 
             }, status = 200
         )
+
+@login_required   
+def production_plans_ajax(request):
+    """AJAX version of production_plans that returns only the content"""
+    from datetime import datetime, timedelta
+    selected_date = request.GET.get('date', datetime.now().strftime('%Y-%m-%d'))
+    date_filter = None
+    try:
+        if selected_date == 'yesterday': 
+            filter_date = datetime.now().date() - timedelta(days=1)
+        elif selected_date == 'today': 
+            filter_date = datetime.now().date()
+        elif selected_date == 'week':
+            today = datetime.now().date()
+            week_start = today - timedelta(days=today.weekday())
+            week_end = week_start + timedelta(days=6)
+            filter_date = week_start
+            date_filter = 'week'
+        else: 
+            filter_date = datetime.strptime(selected_date, '%Y-%m-%d').date()
+    except: 
+        filter_date = datetime.now().date()
+    
+    if date_filter == 'week':
+        plans = Production.objects.filter(branch=request.user.branch, date_created__range=[week_start, week_end]).order_by('date_created')
+    else:
+        plans = Production.objects.filter(branch=request.user.branch, date_created=filter_date).order_by('date_created') 
+    
+    transfer_count = Transfer.objects.filter(status=False, branch=request.user.branch).count()
+    products = Product.objects.filter(branch=request.user.branch).order_by('name')[:15]
+    
+    # For stores person, get plans that are confirmed but not declared
+    if request.user.role == 'stores_person':
+        declaration_plans = Production.objects.filter(
+            branch=request.user.branch,
+            status=True,  # Confirmed by chef
+            declared=False  # Not yet declared by stores person
+        ).order_by('date_created')
+    else:
+        declaration_plans = plans
+        
+    context = { 
+        'plans': plans, 
+        'declaration_plans': declaration_plans,
+        'transfer_count': transfer_count, 
+        'products': products, 
+        'selected_date': filter_date, 
+        'today': datetime.now().date(), 
+        'yesterday': datetime.now().date() - timedelta(days=1), 
+        'date_filter': date_filter 
+    }
+    if date_filter == 'week': 
+        context.update({'week_start': week_start, 'week_end': week_end})
+    
+    # Return different templates based on user role
+    if request.user.role == 'stores_person':
+        return render(request, 'inventory/production_plans_declaration_content.html', context)
+    else:
+        return render(request, 'inventory/production_plans_content.html', context)
+
+
+@chef_or_stores_view_required
+def production_declaration_table_ajax(request):
+    """AJAX view for production plan declaration table - simplified version"""
+    from datetime import datetime, timedelta
+    from decimal import Decimal
+    
+    # Debug logging
+    logger.info(f"User: {request.user.username}, Role: {request.user.role}, Branch: {request.user.branch}")
+    logger.info(f"Request method: {request.method}")
+    logger.info(f"Request path: {request.path}")
+    logger.info(f"User authenticated: {request.user.is_authenticated}")
+    
+    # Get all production plans for the branch, ordered by most recent first
+    plans = Production.objects.filter(
+        branch=request.user.branch
+    ).order_by('-date_created', '-time_created')
+    
+    logger.info(f"Found {plans.count()} production plans for branch {request.user.branch}")
+    
+    # Calculate additional data for each plan
+    for plan in plans:
+        # Get production items for this plan
+        plan_items = ProductionItems.objects.filter(production=plan)
+        
+        # Calculate planned amount (total portions requested) - handle None values
+        planned_amount = sum(item.portions or 0 for item in plan_items)
+        plan.planned_amount = planned_amount
+        
+        # Calculate actual production amount (total actual quantities) - handle None values
+        actual_production_amount = sum(item.actual_quantity or 0 for item in plan_items)
+        plan.actual_production_amount = actual_production_amount
+        
+        # Calculate production cost (total cost of all items) - handle None values
+        production_cost = sum(item.total_cost or 0 for item in plan_items)
+        plan.production_cost = production_cost
+        
+        # Calculate variance
+        variance = actual_production_amount - planned_amount
+        plan.variance = variance
+        
+        # Calculate positive and negative variance
+        if variance > 0:
+            plan.positive_variance = variance
+            plan.negative_variance = 0
+        elif variance < 0:
+            plan.positive_variance = 0
+            plan.negative_variance = abs(variance)  # Make it positive for display
+        else:
+            plan.positive_variance = 0
+            plan.negative_variance = 0
+        
+    context = {
+        'plans': plans,
+    }
+    
+    return render(request, 'inventory/production_declaration_table.html', context)
+
+@login_required
+@login_required
+def production_plan_detail_ajax(request, plan_id):
+    """AJAX view for detailed production plan information"""
+    try:
+        # Get the specific production plan
+        plan = Production.objects.get(id=plan_id, branch=request.user.branch)
+        
+        # Get production items for this plan
+        plan_items = ProductionItems.objects.filter(production=plan)
+        
+        # Get dish ingredients for display
+        dish_ingredients = Ingredient.objects.filter(minor_raw_material__branch=request.user.branch)
+        
+        # Get ingredients/raw materials for this plan with detailed information
+        ingredients = []
+        raw_materials = []
+        
+        for item in plan_items:
+            if hasattr(item, 'dish') and item.dish:
+                # Get ingredients for this dish
+                dish_ingredients_for_item = Ingredient.objects.filter(dish=item.dish, minor_raw_material__branch=request.user.branch)
+                for ing in dish_ingredients_for_item:
+                    try:
+                        # Calculate quantities - convert to Decimal for consistent calculations
+                        from decimal import Decimal
+                        ing_quantity = Decimal(str(ing.quantity))
+                        item_portions = Decimal(str(item.portions or 0))
+                        portion_multiplier = Decimal(str(item.dish.portion_multiplier or 1))
+                        
+                        required_quantity = float(ing_quantity * (item_portions / portion_multiplier))
+                        
+                        # Get production raw materials info
+                        production_inventory = ProductionRawMaterials.objects.filter(
+                            product=ing.minor_raw_material, 
+                            product__branch=request.user.branch
+                        ).first()
+                        current_quantity = float(production_inventory.quantity) if production_inventory else 0.0
+                        expected_quantity = required_quantity - current_quantity
+                        
+                        # Get override history
+                        overrided_raw_materials = OverrideHistory.objects.filter(
+                            raw_material_overrided=ing.minor_raw_material, 
+                            raw_material_overrided__branch=request.user.branch
+                        )
+                        
+                        total_overrides_up = sum(item.up if item.up else 0 for item in overrided_raw_materials)
+                        total_overrides_down = sum(item.down if item.down else 0 for item in overrided_raw_materials)
+                        
+                        # Check if raw material already exists in the list
+                        raw_material_found = next((rm for rm in raw_materials if rm['id'] == ing.minor_raw_material.id), None)
+                        
+                        if raw_material_found:
+                            raw_material_found['quantity'] += required_quantity
+                            raw_material_found['expected_quantity'] += expected_quantity
+                            raw_material_found['quantity_b_f'] += current_quantity
+                            # Update dollar amounts
+                            raw_material_found['planned_amount'] = raw_material_found['quantity'] * raw_material_found['cost_per_unit']
+                            raw_material_found['expected_amount'] = raw_material_found['quantity'] * raw_material_found['cost_per_unit']
+                            raw_material_found['declared_amount'] = raw_material_found['expected_quantity'] * raw_material_found['cost_per_unit'] if plan.declared else 0
+                            raw_material_found['actual_amount'] = raw_material_found['expected_quantity'] * raw_material_found['cost_per_unit'] if plan.declared else 0
+                            raw_material_found['variance_amount'] = (raw_material_found['expected_quantity'] - raw_material_found['quantity']) * raw_material_found['cost_per_unit'] if plan.declared else 0
+                        else:
+                            cost_per_unit = float(ing.minor_raw_material.cost or 0)
+                            total_cost = required_quantity * cost_per_unit
+                            
+                            # Calculate dollar amounts
+                            planned_amount = required_quantity * cost_per_unit
+                            expected_amount = required_quantity * cost_per_unit
+                            declared_amount = expected_quantity * cost_per_unit if plan.declared else 0
+                            actual_amount = expected_quantity * cost_per_unit if plan.declared else 0
+                            variance_amount = (expected_quantity - required_quantity) * cost_per_unit if plan.declared else 0
+                            
+                            raw_materials.append({
+                                'id': ing.minor_raw_material.id,
+                                'name': ing.minor_raw_material.name,
+                                'quantity_b_f': float(current_quantity),
+                                'quantity': float(required_quantity),
+                                'expected_quantity': float(expected_quantity),
+                                'accumulated_overrides_up': total_overrides_up,
+                                'accumulated_overrides_down': total_overrides_down,
+                                'unit': ing.minor_raw_material.unit.unit_name,
+                                'cost_per_unit': cost_per_unit,
+                                'total_cost': total_cost,
+                                'planned_amount': planned_amount,
+                                'expected_amount': expected_amount,
+                                'declared_amount': declared_amount,
+                                'actual_amount': actual_amount,
+                                'variance_amount': variance_amount,
+                            })
+                        
+                        # Add to ingredients list for basic info
+                        stock_available = float(ing.minor_raw_material.quantity or 0)
+                        stock_status = 'Sufficient' if stock_available >= required_quantity else 'Insufficient'
+                        cost_per_unit = float(ing.minor_raw_material.cost or 0)
+                        total_cost = required_quantity * cost_per_unit
+                        
+                        ingredients.append({
+                            'name': ing.minor_raw_material.name,
+                            'quantity_required': required_quantity,
+                            'unit': ing.minor_raw_material.unit.unit_name,
+                            'cost_per_unit': cost_per_unit,
+                            'total_cost': total_cost,
+                            'stock_available': stock_available,
+                            'stock_status': stock_status
+                        })
+                    except Exception as ing_error:
+                        logger.error(f"Error processing ingredient {ing.id}: {ing_error}")
+                        continue
+        
+        # Calculate totals and add cost per portion to plan items
+        total_planned_portions = sum(item.portions or 0 for item in plan_items)
+        total_actual_portions = sum(item.actual_quantity or 0 for item in plan_items)
+        total_production_cost = sum(item.total_cost or 0 for item in plan_items)
+        total_ingredients_cost = sum(ing['total_cost'] for ing in ingredients)
+        
+        # Add cost per portion to plan items
+        for item in plan_items:
+            if item.portions and item.portions > 0:
+                total_cost = float(item.total_cost or 0)
+                portions = float(item.portions)
+                item.cost_per_portion = total_cost / portions
+            else:
+                item.cost_per_portion = 0
+        
+        # Calculate variance
+        variance = total_actual_portions - total_planned_portions
+        
+        # Calculate revenue metrics for each plan item
+        total_expected_revenue = 0
+        total_actual_revenue = 0
+        total_unsold_portions = 0
+        
+        for item in plan_items:
+            # Calculate expected revenue (declared portions * dish price)
+            expected_revenue = float(item.portions or 0) * float(item.dish.price or 0)
+            item.expected_revenue = expected_revenue
+            total_expected_revenue += expected_revenue
+            
+            # Calculate actual revenue (sold portions * dish price)
+            actual_revenue = float(item.portions_sold or 0) * float(item.dish.price or 0)
+            item.actual_revenue = actual_revenue
+            total_actual_revenue += actual_revenue
+            
+            # Calculate unsold portions
+            unsold_portions = float(item.portions or 0) - float(item.portions_sold or 0)
+            item.unsold_portions = unsold_portions if unsold_portions > 0 else 0
+            total_unsold_portions += item.unsold_portions
+        
+        # Calculate revenue variance
+        revenue_variance = total_actual_revenue - total_expected_revenue
+        
+        context = {
+            'plan': plan,
+            'plan_items': plan_items,
+            'ingredients': ingredients,
+            'raw_materials': raw_materials,
+            'dish_ing': dish_ingredients,
+            'total_planned_portions': total_planned_portions,
+            'total_actual_portions': total_actual_portions,
+            'total_production_cost': total_production_cost,
+            'total_ingredients_cost': total_ingredients_cost,
+            'variance': variance,
+            'positive_variance': variance if variance > 0 else 0,
+            'negative_variance': abs(variance) if variance < 0 else 0,
+            'total_expected_revenue': total_expected_revenue,
+            'total_actual_revenue': total_actual_revenue,
+            'total_unsold_portions': total_unsold_portions,
+            'revenue_variance': revenue_variance,
+        }
+        
+        # Debug logging
+        logger.info(f"Context prepared successfully for plan {plan_id}")
+        logger.info(f"Plan items count: {len(plan_items)}")
+        
+        return render(request, 'inventory/production_plan_detail_dropdown.html', context)
+        
+    except Production.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Production plan not found'
+        }, status=404)
+    except Exception as e:
+        logger.error(f"Error in production_plan_detail_ajax: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+@login_required
+@chef_or_stores_view_required
+def production_plan_allocations_ajax(request, plan_id):
+    """AJAX view for production plan allocations"""
+    from datetime import datetime, timedelta
+    from decimal import Decimal
+    
+    try:
+        # Get the specific production plan
+        plan = Production.objects.get(id=plan_id, branch=request.user.branch)
+        
+        # Get production items for this plan
+        plan_items = ProductionItems.objects.filter(production=plan)
+        
+        # Get ingredients/raw materials allocations for this plan
+        allocations = []
+        for item in plan_items:
+            if hasattr(item, 'dish') and item.dish:
+                # Get ingredients for this dish
+                dish_ingredients = Ingredient.objects.filter(dish=item.dish)
+                for ing in dish_ingredients:
+                    allocations.append({
+                        'dish_name': item.dish.name,
+                        'planned_portions': item.portions or 0,
+                        'actual_portions': item.actual_quantity or 0,
+                        'ingredient_name': ing.minor_raw_material.name,
+                        'quantity_per_portion': ing.quantity,
+                        'total_quantity_required': ing.quantity * (item.portions or 0),
+                        'unit': ing.minor_raw_material.unit.unit_name,
+                        'cost_per_unit': ing.minor_raw_material.cost,
+                        'total_cost': ing.quantity * (item.portions or 0) * ing.minor_raw_material.cost,
+                        'stock_available': ing.minor_raw_material.quantity_in_stock or 0,
+                        'stock_status': 'Sufficient' if (ing.minor_raw_material.quantity_in_stock or 0) >= (ing.quantity * (item.portions or 0)) else 'Insufficient'
+                    })
+        
+        context = {
+            'plan': plan,
+            'allocations': allocations,
+            'total_items': plan_items.count(),
+            'total_ingredients': len(allocations),
+            'total_cost': sum(alloc['total_cost'] for alloc in allocations),
+            'insufficient_stock_count': len([alloc for alloc in allocations if alloc['stock_status'] == 'Insufficient'])
+        }
+        
+        return render(request, 'inventory/production_plan_allocations.html', context)
+        
+    except Production.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Production plan not found'
+        }, status=404)
+    except Exception as e:
+        logger.error(f"Error in production_plan_allocations_ajax: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+@login_required
+@chef_only_required
+def create_production_plan_ajax(request):
+    """AJAX version of create_production_plan"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            logger.info(data)
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': f'Invalid JSON data: {e}'}, status=400)
+
+        items = data.get('cart', [])
+        if not items or not isinstance(items, list):
+            return JsonResponse({'success': False, 'message': 'Invalid data: items should be a list'}, status=400)
+        
+        production_plan = None
+        auto_confirm = data.get('auto', '')
+
+        if Production.objects.filter(declared=False, branch=request.user.branch).exists():
+            pass
+            # return JsonResponse({'success': False, 'message': 'Please declare all the production plans you have.'}, status=400)
+
+        # Create a new production plan
+        production_plan = Production.objects.create(status=False, declared=False, branch=request.user.branch)
+
+        logger.info(f"production_plan: {production_plan.branch}")
+
+        if auto_confirm:
+            if data.get('id'):
+                production_plan = Production.objects.get(id = data.get('id'), branch=request.user.branch)
+            else:
+                production_latest = Production.objects.filter(date_created = datetime.date.today(), branch=request.user.branch).order_by('-time_created').first()
+                if production_latest:
+                    production_plan = production_latest
+                else:
+                    return JsonResponse({'success': False, 'message': 'No production Plan for Today.'}, status=400)
+        else:
+            # Create a new production plan
+            production_plan = Production.objects.create(status=False, declared=False, branch=request.user.branch)
+
+        # Process each item in the cart
+        for item in items:
+            dish_id = item.get('dish_id')
+            portions = item.get('portions', 0)
+            
+            try:
+                dish = Dish.objects.get(id=dish_id, branch=request.user.branch)
+                
+                # Calculate total cost based on dish cost and portions
+                total_cost = dish.cost * portions if dish.cost else 0
+                
+                # Create production item
+                ProductionItems.objects.create(
+                    production=production_plan,
+                    dish=dish,
+                    portions=portions,
+                    total_cost=total_cost
+                )
+                
+            except Dish.DoesNotExist:
+                return JsonResponse({'success': False, 'message': f'Dish with ID {dish_id} not found'}, status=400)
+
+        return JsonResponse({
+            'success': True, 
+            'message': f'Production plan {production_plan.production_plan_number} created successfully!',
+            'production_plan_id': production_plan.id
+        })
+    
+    # GET request - show the form
+    dishes = Dish.objects.filter(branch=request.user.branch)
+    form = ProductionPlanInlineForm()
+    form.fields['dish'].queryset = dishes
+    context = {
+        'dishes': dishes,
+        'form': form
+    }
+    return render(request, 'inventory/create_production_plan_content.html', context)
+
+@login_required
+def dish_list_ajax(request):
+    """AJAX version of dish_list"""
+    dishes = Dish.objects.filter(branch=request.user.branch)
+    context = {
+        'dishes': dishes
+    }
+    return render(request, 'inventory/dish_list_content.html', context)
+
+@login_required
+def meal_list_ajax(request):
+    """AJAX version of meal_list"""
+    meals = Meal.objects.filter(branch=request.user.branch)
+    context = {
+        'meals': meals
+    }
+    return render(request, 'inventory/meal_list_content.html', context)
+
+@login_required
+def chef_checklist_ajax(request):
+    """AJAX version of chef_checklist"""
+    products = Product.objects.filter(branch=request.user.branch).order_by('name')
+    context = {
+        'products': products
+    }
+    return render(request, 'inventory/chef_checklist_content.html', context)
+
+@login_required
+def test_ajax_view(request):
+    """Simple test view for debugging AJAX"""
+    return render(request, 'inventory/test_content.html', {})
+
+@login_required
+@chef_only_required
+def add_dish_ajax(request):
+    """AJAX version of add_dish for dynamic loading in chef interface"""
+    form = IngredientForm()
+    dish_form = DishForm()
+    
+    if request.method == 'GET':
+        r_m = Product.objects.filter(raw_material=True, branch=request.user.branch)
+        context = {
+            'r_m': r_m,
+            'form': form,
+            'dish_form': dish_form
+        }
+        return render(request, 'inventory/add_dish_content.html', context)
+    
+    # POST handling remains the same as original add_dish
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            logger.info(data)
+            cart = data.get('cart')
+        
+            dish_name = data.get('name')
+            portion_multiplier = data.get('portion_multiplier')
+            cost = data.get('dish_cost')
+            selling_price = data.get('selling_price')
+            category = data.get('category')
+
+            logger.info(cart)
+            
+            if not dish_name or not portion_multiplier or not cost or not selling_price:
+                return JsonResponse({'success': False, 'message': f'Please fill all the missing data'}, status=400)
+            
+            with transaction.atomic():
+                dish = Dish.objects.create(
+                    cost = cost,
+                    name = dish_name,
+                    portion_multiplier = portion_multiplier,
+                    price = selling_price,
+                    category=category,
+                    branch=request.user.branch
+                )
+                
+                for item in cart:
+                    raw_material = Product.objects.get(name=item.get('raw_material'), branch=request.user.branch)
+                    Ingredient.objects.create(
+                        dish=dish,
+                        note=item.get('note'),
+                        minor_raw_material=raw_material,
+                        quantity=item.get('quantity'),
+                    )
+                
+                return JsonResponse({
+                    'success': True, 
+                    'message': f'Dish {dish.name} created successfully!',
+                    'dish_id': dish.id
+                })
+                
+        except Exception as e:
+            logger.error(f"Error creating dish: {e}")
+            return JsonResponse({'success': False, 'message': f'{e}'}, status=400)
+
+@login_required
+@chef_or_stores_view_required
+def view_production_plan(request, pp_id):
+    """
+    View production plan with detailed comparison of planned vs produced quantities
+    Shows variance analysis with modern table design
+    """
+    try:
+        production_plan = Production.objects.get(id=pp_id, branch=request.user.branch)
+        production_items = ProductionItems.objects.filter(production=production_plan)
+        
+        # Get all ingredients for the dishes in this production plan
+        dish_ingredients = Ingredient.objects.filter(
+            dish__in=[item.dish for item in production_items],
+            minor_raw_material__branch=request.user.branch
+        )
+        
+        # Prepare data for the variance table
+        variance_data = []
+        
+        # Process dishes/portions
+        for item in production_items:
+            planned_portions = item.planned_portions or 0
+            produced_portions = item.portions or 0
+            variance = produced_portions - planned_portions
+            
+            variance_data.append({
+                'type': 'Portion',
+                'name': item.dish.name,
+                'planned_quantity': planned_portions,
+                'produced_quantity': produced_portions,
+                'variance': variance,
+                'unit': 'portions',
+                'date': production_plan.date_created,
+                'time': production_plan.time_created
+            })
+        
+        # Process ingredients
+        for item in production_items:
+            for ing in dish_ingredients.filter(dish=item.dish):
+                # Calculate planned quantity based on planned portions
+                planned_quantity = ing.quantity * (item.planned_portions / item.dish.portion_multiplier) if item.planned_portions else 0
+                
+                # Calculate produced quantity based on actual portions
+                produced_quantity = ing.quantity * (item.portions / item.dish.portion_multiplier) if item.portions else 0
+                
+                variance = produced_quantity - planned_quantity
+                
+                variance_data.append({
+                    'type': 'Ingredient',
+                    'name': f"{item.dish.name} - {ing.minor_raw_material.name}",
+                    'planned_quantity': round(planned_quantity, 2),
+                    'produced_quantity': round(produced_quantity, 2),
+                    'variance': round(variance, 2),
+                    'unit': ing.minor_raw_material.unit.unit_name if ing.minor_raw_material.unit else 'units',
+                    'date': production_plan.date_created,
+                    'time': production_plan.time_created
+                })
+        
+        # Sort by date and time (most recent first)
+        variance_data.sort(key=lambda x: (x['date'], x['time']), reverse=True)
+        
+        context = {
+            'production_plan': production_plan,
+            'variance_data': variance_data,
+            'total_items': len(variance_data),
+            'positive_variance_count': len([item for item in variance_data if item['variance'] > 0]),
+            'negative_variance_count': len([item for item in variance_data if item['variance'] < 0]),
+            'zero_variance_count': len([item for item in variance_data if item['variance'] == 0]),
+        }
+        
+        return render(request, 'inventory/view_production_plan.html', context)
+        
+    except Production.DoesNotExist:
+        messages.error(request, f'Production Plan with ID: {pp_id} does not exist.')
+        return redirect('inventory:production_plans')
+    except Exception as e:
+        messages.error(request, f'Error loading production plan: {str(e)}')
+        return redirect('inventory:production_plans')
+
+@login_required
+@chef_or_stores_view_required
+def production_analysis_api(request):
+    """
+    API endpoint to provide production analysis data for the analysis page
+    Returns comprehensive data for all production plans with filtering capabilities
+    """
+    try:
+        from datetime import datetime, timedelta
+        import json
+        
+        # Get filter parameters
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+        status_filter = request.GET.get('status', 'all')
+        
+        # Base queryset - get all production plans for the user's branch
+        production_plans = Production.objects.filter(branch=request.user.branch)
+        
+        # Apply date filters if provided
+        if start_date and end_date:
+            try:
+                start = datetime.strptime(start_date, '%Y-%m-%d').date()
+                end = datetime.strptime(end_date, '%Y-%m-%d').date()
+                production_plans = production_plans.filter(date_created__range=[start, end])
+            except ValueError:
+                pass
+        
+        # Apply status filter
+        if status_filter == 'confirmed':
+            production_plans = production_plans.filter(status=True)
+        elif status_filter == 'declared':
+            production_plans = production_plans.filter(declared=True)
+        elif status_filter == 'completed':
+            production_plans = production_plans.filter(status=True, declared=True)
+        
+        # Order by most recent first
+        production_plans = production_plans.order_by('-date_created', '-time_created')
+        
+        analysis_data = []
+        
+        for plan in production_plans:
+            # Get production items for this plan
+            production_items = ProductionItems.objects.filter(production=plan)
+            
+            # Get all ingredients for the dishes in this production plan
+            dish_ingredients = Ingredient.objects.filter(
+                dish__in=[item.dish for item in production_items],
+                minor_raw_material__branch=request.user.branch
+            )
+            
+            # Process dishes/portions
+            for item in production_items:
+                # Planned portions come from the database (what chef planned)
+                planned_portions = item.planned_portions or 0
+                # Produced portions are what was actually declared by stores person
+                produced_portions = item.portions or 0
+                variance = produced_portions - planned_portions
+                
+                # Determine status
+                if plan.status and plan.declared:
+                    status = 'completed'
+                elif plan.status:
+                    status = 'confirmed'
+                elif plan.declared:
+                    status = 'declared'
+                else:
+                    status = 'pending'
+                
+                analysis_data.append({
+                    'id': f"{plan.id}-{item.id}-portion",
+                    'plan_number': plan.production_plan_number,
+                    'date': plan.date_created.isoformat(),
+                    'item_name': item.dish.name,
+                    'type': 'Portion',
+                    'planned_quantity': planned_portions,
+                    'produced_quantity': produced_portions,
+                    'variance': variance,
+                    'unit': 'portions',
+                    'status': status
+                })
+            
+            # Process ingredients
+            for item in production_items:
+                for ing in dish_ingredients.filter(dish=item.dish):
+                    # Planned portions come from the database (what chef planned)
+                    planned_portions = item.planned_portions or 0
+                    
+                    # Calculate planned quantity based on planned portions
+                    planned_quantity = ing.quantity * (planned_portions / item.dish.portion_multiplier) if planned_portions else 0
+                    
+                    # Calculate produced quantity based on actual portions (what was declared)
+                    produced_quantity = ing.quantity * (item.portions / item.dish.portion_multiplier) if item.portions else 0
+                    
+                    variance = produced_quantity - planned_quantity
+                    
+                    # Determine status
+                    if plan.status and plan.declared:
+                        status = 'completed'
+                    elif plan.status:
+                        status = 'confirmed'
+                    elif plan.declared:
+                        status = 'declared'
+                    else:
+                        status = 'pending'
+                    
+                    analysis_data.append({
+                        'id': f"{plan.id}-{item.id}-{ing.id}",
+                        'plan_number': plan.production_plan_number,
+                        'date': plan.date_created.isoformat(),
+                        'item_name': f"{item.dish.name} - {ing.minor_raw_material.name}",
+                        'type': 'Ingredient',
+                        'planned_quantity': round(planned_quantity, 2),
+                        'produced_quantity': round(produced_quantity, 2),
+                        'variance': round(variance, 2),
+                        'unit': ing.minor_raw_material.unit.unit_name if ing.minor_raw_material.unit else 'units',
+                        'status': status
+                    })
+        
+        return JsonResponse({
+            'success': True,
+            'data': analysis_data,
+            'total_count': len(analysis_data),
+            'plans_count': len(set(item['plan_number'] for item in analysis_data))
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in production analysis API: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+@login_required
+@chef_or_stores_view_required
+def stock_analysis_api(request):
+    """API endpoint for stock analysis data"""
+    try:
+        # Get filter parameters
+        product_type = request.GET.get('product_type')
+        stock_status = request.GET.get('stock_status')
+        search = request.GET.get('search')
+        
+        # Base queryset - combine ingredients and dishes
+        data = []
+        
+        # Get ingredients
+        ingredients = Ingredient.objects.all()
+        if search:
+            ingredients = ingredients.filter(name__icontains=search)
+        
+        for ingredient in ingredients:
+            # Determine stock status
+            current_stock = ingredient.current_stock or 0
+            min_stock = ingredient.min_stock_level or 0
+            
+            if current_stock <= 0:
+                stock_status_value = 'out_of_stock'
+            elif current_stock <= min_stock:
+                stock_status_value = 'low_stock'
+            else:
+                stock_status_value = 'in_stock'
+            
+            # Apply filters
+            if stock_status and stock_status != 'all' and stock_status_value != stock_status:
+                continue
+                
+            if product_type and product_type != 'all':
+                if product_type == 'ingredient' and ingredient.type != 'ingredient':
+                    continue
+                elif product_type == 'raw' and ingredient.type != 'raw':
+                    continue
+            
+            data.append({
+                'id': f"ingredient_{ingredient.id}",
+                'name': ingredient.name,
+                'type': ingredient.type or 'ingredient',
+                'description': ingredient.description or '',
+                'current_stock': current_stock,
+                'min_stock_level': min_stock,
+                'stock_status': stock_status_value,
+                'unit': ingredient.unit,
+                'last_updated': ingredient.updated_at.isoformat() if ingredient.updated_at else ingredient.created_at.isoformat()
+            })
+        
+        # Get dishes (finished products)
+        dishes = Dish.objects.all()
+        if search:
+            dishes = dishes.filter(name__icontains=search)
+        
+        for dish in dishes:
+            # For dishes, we might not have stock tracking, so we'll show as available
+            current_stock = getattr(dish, 'current_stock', 0) or 0
+            min_stock = getattr(dish, 'min_stock_level', 0) or 0
+            
+            if current_stock <= 0:
+                stock_status_value = 'out_of_stock'
+            elif current_stock <= min_stock:
+                stock_status_value = 'low_stock'
+            else:
+                stock_status_value = 'in_stock'
+            
+            # Apply filters
+            if stock_status and stock_status != 'all' and stock_status_value != stock_status:
+                continue
+                
+            if product_type and product_type != 'all':
+                if product_type == 'finished' and dish.type != 'finished':
+                    continue
+            
+            data.append({
+                'id': f"dish_{dish.id}",
+                'name': dish.name,
+                'type': 'finished',
+                'description': dish.description or '',
+                'current_stock': current_stock,
+                'min_stock_level': min_stock,
+                'stock_status': stock_status_value,
+                'unit': 'portions',
+                'last_updated': dish.updated_at.isoformat() if hasattr(dish, 'updated_at') and dish.updated_at else dish.created_at.isoformat()
+            })
+        
+        # Sort by name
+        data.sort(key=lambda x: x['name'])
+        
+        return JsonResponse({
+            'success': True,
+            'data': data
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+@login_required
+@chef_or_stores_view_required
+def stock_item_details_api(request, item_id):
+    """API endpoint for detailed stock item information"""
+    try:
+        item_type, item_pk = item_id.split('_', 1)
+        
+        if item_type == 'ingredient':
+            item = Ingredient.objects.get(id=item_pk)
+            usage_history = []  # You can implement usage history tracking here
+            
+            data = {
+                'id': item.id,
+                'name': item.name,
+                'type': item.type or 'ingredient',
+                'description': item.description or '',
+                'current_stock': item.current_stock or 0,
+                'min_stock_level': item.min_stock_level or 0,
+                'unit': item.unit,
+                'stock_status': get_stock_status(item.current_stock or 0, item.min_stock_level or 0),
+                'last_updated': item.updated_at.isoformat() if item.updated_at else item.created_at.isoformat(),
+                'usage_history': usage_history
+            }
+        elif item_type == 'dish':
+            item = Dish.objects.get(id=item_pk)
+            usage_history = []  # You can implement usage history tracking here
+            
+            data = {
+                'id': item.id,
+                'name': item.name,
+                'type': 'finished',
+                'description': item.description or '',
+                'current_stock': getattr(item, 'current_stock', 0) or 0,
+                'min_stock_level': getattr(item, 'min_stock_level', 0) or 0,
+                'unit': 'portions',
+                'stock_status': get_stock_status(getattr(item, 'current_stock', 0) or 0, getattr(item, 'min_stock_level', 0) or 0),
+                'last_updated': item.updated_at.isoformat() if hasattr(item, 'updated_at') and item.updated_at else item.created_at.isoformat(),
+                'usage_history': usage_history
+            }
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': 'Invalid item type'
+            }, status=400)
+        
+        return JsonResponse({
+            'success': True,
+            'data': data
+        })
+        
+    except (Ingredient.DoesNotExist, Dish.DoesNotExist):
+        return JsonResponse({
+            'success': False,
+            'error': 'Item not found'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+@login_required
+@chef_or_stores_view_required
+def production_item_details_api(request, item_id):
+    """API endpoint for detailed production item information"""
+    try:
+        # Parse the item_id to extract plan_id, item_id, and type
+        parts = item_id.split('-')
+        if len(parts) >= 3:
+            plan_id = parts[0]
+            item_id_part = parts[1]
+            item_type = parts[2]
+            
+            if item_type == 'portion':
+                # Handle dish/portion items
+                production_item = ProductionItems.objects.get(id=item_id_part)
+                dish = production_item.dish
+                
+                data = {
+                    'id': production_item.id,
+                    'item_name': dish.name,
+                    'type': 'Dish',
+                    'plan_number': production_item.production.production_plan_number,
+                    'date': production_item.production.date_created.isoformat(),
+                    'planned_quantity': production_item.planned_portions or 0,
+                    'produced_quantity': production_item.portions or 0,
+                    'variance': (production_item.portions or 0) - (production_item.planned_portions or 0),
+                    'unit': 'portions',
+                    'status': get_production_status(production_item.production),
+                    'notes': production_item.notes or '',
+                    'responsible_person': production_item.production.created_by.username if production_item.production.created_by else 'Not specified'
+                }
+            else:
+                # Handle ingredient items
+                data = {
+                    'id': item_id,
+                    'item_name': 'Ingredient Item',
+                    'type': 'Ingredient',
+                    'plan_number': 'N/A',
+                    'date': 'N/A',
+                    'planned_quantity': 0,
+                    'produced_quantity': 0,
+                    'variance': 0,
+                    'unit': 'N/A',
+                    'status': 'N/A',
+                    'notes': 'Ingredient details not available',
+                    'responsible_person': 'Not specified'
+                }
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': 'Invalid item ID format'
+            }, status=400)
+        
+        return JsonResponse({
+            'success': True,
+            'data': data
+        })
+        
+    except ProductionItems.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Production item not found'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+@login_required
+@chef_or_stores_view_required
+def notifications_api(request):
+    """API endpoint for notifications"""
+    try:
+        # For now, we'll return mock notifications
+        # In a real implementation, you'd have a Notification model
+        notifications = [
+            {
+                'id': 1,
+                'title': 'Low Stock Alert',
+                'message': 'Tomatoes are running low on stock',
+                'timestamp': '2024-01-15T10:30:00Z',
+                'type': 'stock_alert'
+            },
+            {
+                'id': 2,
+                'title': 'Production Plan Confirmed',
+                'message': 'Production plan #123 has been confirmed by chef',
+                'timestamp': '2024-01-15T09:15:00Z',
+                'type': 'production_update'
+            }
+        ]
+        
+        return JsonResponse({
+            'success': True,
+            'notifications': notifications
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+@login_required
+@chef_or_stores_view_required
+def clear_notifications_api(request):
+    """API endpoint to clear notifications"""
+    if request.method == 'POST':
+        try:
+            # In a real implementation, you'd mark notifications as read
+            # For now, we'll just return success
+            return JsonResponse({
+                'success': True,
+                'message': 'Notifications cleared successfully'
+            })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            }, status=500)
+    else:
+        return JsonResponse({
+            'success': False,
+            'error': 'Method not allowed'
+        }, status=405)
+
+def get_stock_status(current_stock, min_stock):
+    """Helper function to determine stock status"""
+    if current_stock <= 0:
+        return 'out_of_stock'
+    elif current_stock <= min_stock:
+        return 'low_stock'
+    else:
+        return 'in_stock'
+

@@ -115,6 +115,24 @@
 </div>
 
 <script>
+    // Define finalConfirm function IMMEDIATELY to prevent "not defined" errors
+    window.finalConfirm = function() {
+        console.warn('finalConfirm function called but not properly loaded. Please refresh the page.');
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Function Not Available',
+                text: 'The confirm function is not available. Please refresh the page and try again.'
+            });
+        } else {
+            alert('The confirm function is not available. Please refresh the page and try again.');
+        }
+    };
+    
+    // Also define as regular function for compatibility
+    function finalConfirm() {
+        window.finalConfirm();
+    }
     
     document.addEventListener('DOMContentLoaded', function () {
         const inputs_state = document.querySelectorAll('.used-quantity');

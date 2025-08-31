@@ -1,0 +1,77 @@
+{% load static %}
+
+<h3 style="color: #333; margin-bottom: 20px;">Meals Management</h3>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">All Meals</h5>
+        <button class="btn btn-primary btn-sm" onclick="loadPage('{% url 'inventory:add_meal' %}')">
+            <i class="fas fa-plus"></i> Add New Meal
+        </button>
+    </div>
+    <div class="card-body">
+        {% if meals %}
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for meal in meals %}
+                            <tr>
+                                <td>{{ meal.name }}</td>
+                                <td>{{ meal.category.name|default:"No Category" }}</td>
+                                <td>${{ meal.price }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="loadPage('{% url 'inventory:edit_meal' meal.id %}')">
+                                        Edit
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteMeal({{ meal.id }})">
+                                        Delete
+                                    </button>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-4">
+                <p class="text-muted">No meals found.</p>
+                <button class="btn btn-primary" onclick="loadPage('{% url 'inventory:add_meal' %}')">
+                    Create Your First Meal
+                </button>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    function deleteMeal(mealId) {
+        if (confirm('Are you sure you want to delete this meal?')) {
+            fetch(`/inventory/meals/delete/${mealId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    loadPage('{% url "inventory:meal_list_ajax" %}');
+                } else {
+                    alert('Error deleting meal');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error deleting meal');
+            });
+        }
+    }
+</script>

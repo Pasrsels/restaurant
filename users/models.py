@@ -53,6 +53,7 @@ class Branch(models.Model):
 
     def __str__(self):
         return self.branch_name
+
 class User(AbstractUser):
     
     USER_ROLES = (
@@ -60,7 +61,8 @@ class User(AbstractUser):
         ('chef', 'Chef'),
         ('sales', 'Salesperson'),
         ('accountant', 'Accountant'),
-        ('owner', 'Owner')
+        ('owner', 'Owner'), 
+        ('stores_person', 'Stores Person')
     )
     
     phonenumber = models.CharField(max_length=13)

@@ -2,6 +2,7 @@ from django import forms
 from loguru import logger
 from users.models import User, Company, Branch
 from django.contrib.auth.forms import UserCreationForm
+
 class UserRegistrationForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput)
 
@@ -14,10 +15,22 @@ class UserRegistrationForm(forms.ModelForm):
             'email',
             'phonenumber',
             'company',
-            # 'branch',
             'role',
             'password',
         ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Filter companies
+        if 'company' in self.fields:
+            self.fields['company'].queryset = Company.objects.all()
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.set_password(self.cleaned_data["password"])
+        if commit:
+            user.save()
+        return user
 
 
 class UserDetailsForm(forms.ModelForm):
@@ -32,8 +45,24 @@ class UserDetailsForm(forms.ModelForm):
             'phonenumber',
             'role',
             'company',
-            # 'branch'
+            'branch'
         ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Filter branches based on selected company
+        if 'company' in self.fields:
+            self.fields['company'].queryset = Company.objects.all()
+        if 'branch' in self.fields:
+            self.fields['branch'].queryset = Branch.objects.none()
+            if 'company' in self.data:
+                try:
+                    company_id = int(self.data.get('company'))
+                    self.fields['branch'].queryset = Branch.objects.filter(company_id=company_id)
+                except (ValueError, TypeError):
+                    pass
+            elif self.instance.pk and self.instance.company:
+                self.fields['branch'].queryset = self.instance.company.branch_set.all()
 
 
 class UserDetailsForm2(forms.ModelForm):
@@ -47,8 +76,15 @@ class UserDetailsForm2(forms.ModelForm):
             'email',
             'phonenumber',
             'role',
-            # 'branch'
+            'branch'
         ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Filter branches based on current user's company
+        if 'branch' in self.fields:
+            self.fields['branch'].queryset = Branch.objects.filter(company=self.instance.company if self.instance.pk else None)
+
 
 class CompanyForm(forms.ModelForm):
     class Meta:

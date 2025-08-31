@@ -1,5 +1,6 @@
 from django.urls import path
 from .views import *
+from .store_views import store_checklist, store_checklist_ajax, store_check_list_all_products, store_check_list_finished_products, store_check_list_raw_products
 
 
 app_name = 'inventory'
@@ -20,12 +21,29 @@ urlpatterns = [
     
     # production plan 
     path('production/plan/list', production_plans, name='production_plans'),
+    path('production/plan/ajax', production_plans_ajax, name='production_plans_ajax'),
+    path('production/plan/admin', production_plans_admin, name='production_plans_admin'),
+    path('production/declaration/table/ajax', production_declaration_table_ajax, name='production_declaration_table_ajax'),
+    path('production_plan/detail/<int:plan_id>/ajax', production_plan_detail_ajax, name='production_plan_detail_ajax'),
+    path('production_plan/allocations/<int:plan_id>/', production_plan_allocations_ajax, name='production_plan_allocations_ajax'),
+    path('create/production/plan/ajax', create_production_plan_ajax, name='create_production_plan_ajax'),
+    path('dishes/ajax', dish_list_ajax, name='dish_list_ajax'),
+    path('meals/ajax', meal_list_ajax, name='meal_list_ajax'),
+    path('chef/checklist/ajax', chef_checklist_ajax, name='chef_checklist_ajax'),
+    path('test/ajax', test_ajax_view, name='test_ajax_view'),
     path('confirm_declaration/', confirm_declaration, name='confirm_declaration'),
     path('create/production/plan', create_production_plan, name='create_production_plan'),
     path('yesterdays/left/overs/', yeseterdays_left_overs, name='yeseterdays_left_overs'),
     path('declared/production/plan/', yeseterdays_left_overs, name='declared_production_plan'),
     path('update_production_plan/<int:pp_id>/', update_production_plan, name='update_production_plan'),
     path('production_plan/detail/<int:pp_id>/', production_plan_detail, name='production_plan_detail'),
+    path('view/production/plan/<int:pp_id>/', view_production_plan, name='view_production_plan'),
+    path('api/production-analysis-data/', production_analysis_api, name='production_analysis_api'),
+    path('api/stock-analysis-data/', stock_analysis_api, name='stock_analysis_api'),
+    path('api/stock-item-details/<int:item_id>/', stock_item_details_api, name='stock_item_details_api'),
+    path('api/production-item-details/<int:item_id>/', production_item_details_api, name='production_item_details_api'),
+    path('api/notifications/', notifications_api, name='notifications_api'),
+    path('api/clear-notifications/', clear_notifications_api, name='clear_notifications_api'),
     path('confirm/production_plan/<int:pp_id>/', confirm_production_plan, name='confirm_production_plan'),
     path('declare/production_plan/<int:pp_id>/', declare_production_plan, name='declare_production_plan'),
     path('process/production_plan/<int:pp_id>/', process_production_plan_confirmation, name='process_production_plan'),
@@ -39,6 +57,14 @@ urlpatterns = [
     path('production-plan/delete/<int:id>/', production_plan_delete, name="production_plan_delete"),
     path('declare-production-plan/<int:pp_id>/', new_declare_production, name="declare_production"),
     path('latest-declare-production-plan/', latest_declare_production, name="latest_declare_production"),
+
+    # Store Checklist URLs
+    path('store/checklist/ajax', store_checklist_ajax, name='store_checklist_ajax'),
+    path('store/checklist/', store_checklist, name='store_checklist'),
+    path('store/checklist/all', store_check_list_all_products, name='store_check_list_all_products'),
+    path('store/checklist/finished', store_check_list_finished_products, name='store_check_list_finished_products'),
+    path('store/checklist/raw', store_check_list_raw_products, name='store_check_list_raw_products'),
+    path('store/checklist/check', check_check_list, name='store_check_check_list'),
 
     # supplier
     path('suppliers/list', suppliers, name='suppliers'),
@@ -64,6 +90,7 @@ urlpatterns = [
     path('dishes/', DishListView.as_view(), name='dish_list'),
     path('edit_dish/<int:dish_id>/', edit_dish, name='edit_dish'),
     path('create/dish/', add_dish, name='dish_create'),
+    path('create/dish/ajax/', add_dish_ajax, name='add_dish_ajax'),
     path('dishes/<int:pk>/edit/', DishUpdateView.as_view(), name='dish_update'),
     path('dishes/<int:pk>/delete/', DishDeleteView.as_view(), name='dish_delete'),
     path('dish_json_detail/', dish_json_detail, name='dish_json_detail'),
@@ -110,6 +137,7 @@ urlpatterns = [
     path('check_list/all', check_list_all_products, name='check_list_all_products'),
     path('check_list/finished', check_list_finished_products, name='check_list_finished_products'),
     path('check_list/raw', check_list_raw_products, name='check_list_raw_products'),
+    path('chef/checklist/', chef_checklist, name='chef_checklist'),
 
     #budgets
     path('budgets/', budget, name='budget'),

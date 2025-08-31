@@ -1,0 +1,2553 @@
+{% extends "base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}
+    Production Plan Analysis
+{% endblock title %}
+
+{% block content %}
+<div class="production-analysis-layout">
+    <!-- Sidebar -->
+    <div class="analysis-sidebar">
+                 <div class="sidebar-header">
+             <div class="user-info">
+                 <i class="bx bx-user-circle"></i>
+                 <div class="user-details">
+                     <span class="username">{{ request.user.username }}</span>
+                     <span class="user-role">{{ request.user.get_role_display }}</span>
+                 </div>
+             </div>
+             {% if request.user.role == 'stores_person' %}
+             <div class="notification-bell">
+                 <i class="bx bx-bell" id="notificationBell"></i>
+                 <span class="notification-badge" id="notificationCount">0</span>
+                 <div class="notification-dropdown" id="notificationDropdown">
+                     <div class="notification-header">
+                         <h4>Stock Updates</h4>
+                         <button class="clear-notifications" onclick="clearNotifications()">Clear All</button>
+                     </div>
+                     <div class="notification-list" id="notificationList">
+                         <!-- Notifications will be loaded here -->
+                     </div>
+                 </div>
+             </div>
+             {% endif %}
+         </div>
+        
+        <hr class="sidebar-divider">
+        
+                 <div class="sidebar-section">
+             <h4 class="sidebar-title">Analysis Type</h4>
+             <div class="analysis-type-selector">
+                 <button class="analysis-type-btn active" data-type="production">
+                     <i class="bx bx-bar-chart-alt-2"></i>
+                     Production Analysis
+                 </button>
+                 <button class="analysis-type-btn" data-type="stock">
+                     <i class="bx bx-package"></i>
+                     Stock Analysis
+                 </button>
+             </div>
+         </div>
+         
+         <div class="sidebar-section">
+             <h4 class="sidebar-title">Filter Options</h4>
+             <p class="sidebar-subtitle">Customize your analysis view</p>
+         </div>
+        
+                 <div class="sidebar-filters" id="productionFilters">
+             <div class="filter-group">
+                 <label class="filter-label">
+                     <i class="bx bx-filter-alt filter-icon"></i>
+                     Status Filter
+                 </label>
+                 <select id="statusFilter" class="status-select">
+                     <option value="all">All Status</option>
+                     <option value="confirmed">Confirmed Only</option>
+                     <option value="declared">Declared Only</option>
+                     <option value="completed">Completed</option>
+                 </select>
+             </div>
+             
+             <hr class="filter-divider">
+             
+             <div class="filter-group">
+                 <label class="filter-label">
+                     <i class="bx bx-calendar filter-icon"></i>
+                     Period Filter
+                 </label>
+                 <div class="filter-buttons">
+                     <button class="filter-btn active" data-period="today">
+                         <i class="bx bx-sun filter-btn-icon"></i>
+                         Today
+                     </button>
+                     <button class="filter-btn" data-period="yesterday">
+                         <i class="bx bx-time filter-btn-icon"></i>
+                         Yesterday
+                     </button>
+                     <button class="filter-btn" data-period="week">
+                         <i class="bx bx-calendar-week filter-btn-icon"></i>
+                         This Week
+                     </button>
+                     <button class="filter-btn" data-period="month">
+                         <i class="bx bx-calendar filter-btn-icon"></i>
+                         This Month
+                     </button>
+                     <button class="filter-btn" data-period="quarter">
+                         <i class="bx bx-calendar-check filter-btn-icon"></i>
+                         This Quarter
+                     </button>
+                     <button class="filter-btn" data-period="year">
+                         <i class="bx bx-calendar-star filter-btn-icon"></i>
+                         This Year
+                     </button>
+                 </div>
+             </div>
+             
+             <hr class="filter-divider">
+             
+             <div class="filter-group">
+                 <label class="filter-label">
+                     <i class="bx bx-calendar-edit filter-icon"></i>
+                     Custom Date Range
+                 </label>
+                 <div class="date-inputs">
+                     <input type="date" id="startDate" class="date-input" onchange="applyFilters()">
+                     <span class="date-separator">to</span>
+                     <input type="date" id="endDate" class="date-input" onchange="applyFilters()">
+                 </div>
+             </div>
+         </div>
+         
+         <div class="sidebar-filters" id="stockFilters" style="display: none;">
+             <div class="filter-group">
+                 <label class="filter-label">
+                     <i class="bx bx-category filter-icon"></i>
+                     Product Type
+                 </label>
+                 <select id="productTypeFilter" class="status-select">
+                     <option value="all">All Types</option>
+                     <option value="finished">Finished Products</option>
+                     <option value="ingredient">Ingredients</option>
+                     <option value="raw">Raw Materials</option>
+                 </select>
+             </div>
+             
+             <hr class="filter-divider">
+             
+             <div class="filter-group">
+                 <label class="filter-label">
+                     <i class="bx bx-package filter-icon"></i>
+                     Stock Status
+                 </label>
+                 <select id="stockStatusFilter" class="status-select">
+                     <option value="all">All Items</option>
+                     <option value="in_stock">In Stock</option>
+                     <option value="low_stock">Low Stock</option>
+                     <option value="out_of_stock">Out of Stock</option>
+                 </select>
+             </div>
+             
+             <hr class="filter-divider">
+             
+             <div class="filter-group">
+                 <label class="filter-label">
+                     <i class="bx bx-search filter-icon"></i>
+                     Search Items
+                 </label>
+                 <input type="text" id="stockSearchInput" class="date-input" placeholder="Search by name..." onkeyup="applyStockFilters()">
+             </div>
+         </div>
+        
+        <div class="sidebar-footer">
+            <button class="btn btn-outline-secondary sidebar-btn" onclick="window.history.back()">
+                <i class="bx bx-arrow-back"></i> Back
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="content-header">
+            <h2 class="page-title">Production Analysis Dashboard</h2>
+            <p class="page-subtitle">Real-time variance analysis and performance metrics</p>
+        </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-cards">
+        <div class="summary-card">
+            <div class="card-icon">
+                <i class="bx bx-package"></i>
+            </div>
+            <div class="card-content">
+                <h3 id="totalPlans">0</h3>
+                <p>Total Plans</p>
+            </div>
+        </div>
+        <div class="summary-card">
+            <div class="card-icon positive">
+                <i class="bx bx-trending-up"></i>
+            </div>
+            <div class="card-content">
+                <h3 id="positiveVariance">0</h3>
+                <p>Positive Variance</p>
+            </div>
+        </div>
+        <div class="summary-card">
+            <div class="card-icon negative">
+                <i class="bx bx-trending-down"></i>
+            </div>
+            <div class="card-content">
+                <h3 id="negativeVariance">0</h3>
+                <p>Negative Variance</p>
+            </div>
+        </div>
+        <div class="summary-card">
+            <div class="card-icon neutral">
+                <i class="bx bx-target-lock"></i>
+            </div>
+            <div class="card-content">
+                <h3 id="onTarget">0</h3>
+                <p>On Target</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analysis Table -->
+    <div class="analysis-table-container">
+        <div class="table-header">
+            <h3>Variance Analysis</h3>
+            <div class="table-actions">
+                <button class="btn btn-outline-secondary" onclick="exportData()">
+                    <i class="bx bx-download"></i> Export
+                </button>
+                <button class="btn btn-outline-secondary" onclick="refreshData()">
+                    <i class="bx bx-refresh"></i> Refresh
+                </button>
+            </div>
+        </div>
+        
+        <div class="table-wrapper">
+            <div class="modern-table">
+                                 <div class="table-header-row" id="productionTableHeader">
+                     <div class="table-cell header-cell">
+                         <i class="bx bx-calendar-alt"></i>
+                         <span>Production Plan</span>
+                     </div>
+                     <div class="table-cell header-cell">
+                         <i class="bx bx-time"></i>
+                         <span>Date & Time</span>
+                     </div>
+                     <div class="table-cell header-cell">
+                         <i class="bx bx-food-menu"></i>
+                         <span>Item Details</span>
+                     </div>
+                     <div class="table-cell header-cell">
+                         <i class="bx bx-target-lock"></i>
+                         <span>Planned Quantity</span>
+                     </div>
+                     <div class="table-cell header-cell">
+                         <i class="bx bx-check-circle"></i>
+                         <span>Produced Quantity</span>
+                     </div>
+                     <div class="table-cell header-cell">
+                         <i class="bx bx-trending-up"></i>
+                         <span>Variance</span>
+                     </div>
+                     <div class="table-cell header-cell">
+                         <i class="bx bx-info-circle"></i>
+                         <span>Status</span>
+                     </div>
+                     <div class="table-cell header-cell">
+                         <i class="bx bx-info-circle"></i>
+                         <span>Details</span>
+                     </div>
+                 </div>
+                 
+                 <div class="table-header-row" id="stockTableHeader" style="display: none;">
+                     <div class="table-cell header-cell">
+                         <i class="bx bx-package"></i>
+                         <span>Item Name</span>
+                     </div>
+                     <div class="table-cell header-cell">
+                         <i class="bx bx-category"></i>
+                         <span>Type</span>
+                     </div>
+                     <div class="table-cell header-cell">
+                         <i class="bx bx-package"></i>
+                         <span>Current Stock</span>
+                     </div>
+                     <div class="table-cell header-cell">
+                         <i class="bx bx-target-lock"></i>
+                         <span>Min Stock Level</span>
+                     </div>
+                     <div class="table-cell header-cell">
+                         <i class="bx bx-trending-up"></i>
+                         <span>Status</span>
+                     </div>
+                     <div class="table-cell header-cell">
+                         <i class="bx bx-calendar"></i>
+                         <span>Last Updated</span>
+                     </div>
+                     <div class="table-cell header-cell">
+                         <i class="bx bx-info-circle"></i>
+                         <span>Details</span>
+                     </div>
+                 </div>
+                
+                <div class="table-body" id="analysisTableBody">
+                    <!-- Data will be loaded dynamically -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="table-footer">
+            <div class="pagination-info">
+                <span id="showingInfo">Showing 0 of 0 results</span>
+            </div>
+            <div class="pagination-controls">
+                <button class="btn btn-outline-secondary" onclick="previousPage()" id="prevBtn">Previous</button>
+                <span id="pageInfo">Page 1</span>
+                <button class="btn btn-outline-secondary" onclick="nextPage()" id="nextBtn">Next</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Main Layout */
+.production-analysis-layout {
+    display: flex;
+    min-height: 100vh;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #f8fafc;
+}
+
+/* Sidebar Styles */
+.analysis-sidebar {
+    width: 240px;
+    background: white;
+    border-right: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+}
+
+.sidebar-header {
+    padding: 20px 16px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.user-info i {
+    font-size: 24px;
+    color: #667eea;
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.username {
+    font-weight: 600;
+    color: #1e293b;
+    font-size: 14px;
+}
+
+.user-role {
+    color: #64748b;
+    font-size: 12px;
+    text-transform: capitalize;
+}
+
+.sidebar-divider {
+    border: none;
+    height: 1px;
+    background: #e2e8f0;
+    margin: 0;
+}
+
+.sidebar-section {
+    padding: 16px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.sidebar-title {
+    margin: 0 0 4px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.sidebar-subtitle {
+    margin: 0;
+    font-size: 11px;
+    color: #64748b;
+}
+
+.sidebar-filters {
+    flex: 1;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.filter-label {
+    font-weight: 600;
+    color: #374151;
+    font-size: 12px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.filter-icon {
+    font-size: 10px;
+    color: #9ca3af;
+    opacity: 0.7;
+}
+
+.filter-btn-icon {
+    font-size: 10px;
+    color: #9ca3af;
+    opacity: 0.7;
+    margin-right: 4px;
+}
+
+.filter-divider {
+    border: none;
+    height: 1px;
+    background: #e2e8f0;
+    margin: 16px 0;
+}
+
+.sidebar-footer {
+    padding: 16px;
+    border-top: 1px solid #f1f5f9;
+}
+
+.sidebar-btn {
+    width: 100%;
+    justify-content: center;
+}
+
+/* Main Content */
+.main-content {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+}
+
+.content-header {
+    margin-bottom: 24px;
+}
+
+.page-title {
+    margin: 0 0 8px 0;
+    font-size: 28px;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.page-subtitle {
+    margin: 0;
+    font-size: 14px;
+    color: #64748b;
+}
+
+.filter-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.filter-btn {
+    padding: 6px 10px;
+    border: 1px solid #e5e7eb;
+    background: white;
+    border-radius: 6px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: left;
+    width: 100%;
+    display: flex;
+    align-items: center;
+}
+
+.filter-btn.active,
+.filter-btn:hover {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
+.filter-btn.active .filter-btn-icon,
+.filter-btn:hover .filter-btn-icon {
+    color: white;
+    opacity: 0.9;
+}
+
+.date-inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.date-input {
+    padding: 6px 8px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 11px;
+    width: 100%;
+}
+
+.date-separator {
+    font-size: 10px;
+    color: #64748b;
+    text-align: center;
+    margin: 3px 0;
+}
+
+.status-select {
+    padding: 6px 8px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 11px;
+    width: 100%;
+}
+
+/* Summary Cards */
+.summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.summary-card {
+    background: white;
+    border-radius: 8px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s ease;
+}
+
+.summary-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.card-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: white;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.card-icon.positive {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.card-icon.negative {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.card-icon.neutral {
+    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+}
+
+.card-content h3 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.card-content p {
+    margin: 2px 0 0 0;
+    color: #6b7280;
+    font-size: 12px;
+}
+
+/* Modern Table Styles */
+.analysis-table-container {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.table-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #f3f4f6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.table-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.table-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+}
+
+.modern-table {
+    width: 100%;
+    min-width: 800px;
+}
+
+.table-header-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 2fr 1.5fr 1.5fr 1fr 1fr;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.header-cell {
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: #374151;
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+.header-cell i {
+    font-size: 16px;
+    opacity: 0.6;
+}
+
+.table-body {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.table-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 2fr 1.5fr 1.5fr 1fr 1fr;
+    border-bottom: 1px solid #f3f4f6;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.table-row:hover {
+    background: #f9fafb;
+    transform: scale(1.01);
+}
+
+.table-cell {
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    color: #374151;
+}
+
+.table-cell.plan-number {
+    font-weight: 600;
+    color: #667eea;
+}
+
+.table-cell.date-time {
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.table-cell.item-details {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+.item-name {
+    font-weight: 600;
+    color: #111827;
+}
+
+.item-type {
+    font-size: 12px;
+    color: #6b7280;
+    background: #f3f4f6;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.table-cell.planned-data,
+.table-cell.produced-data {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+.quantity-value {
+    font-weight: 600;
+    color: #111827;
+}
+
+.quantity-unit {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.table-cell.variance {
+    font-weight: 600;
+}
+
+.variance.positive {
+    color: #10b981;
+}
+
+.variance.negative {
+    color: #ef4444;
+}
+
+.variance.neutral {
+    color: #6b7280;
+}
+
+.table-cell.status {
+    justify-content: center;
+}
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-badge.completed {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.status-badge.confirmed {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.status-badge.declared {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status-badge.pending {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+/* Loading Effects */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #f3f4f6;
+    border-radius: 50%;
+    border-top-color: #667eea;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Table Footer */
+.table-footer {
+    padding: 20px 24px;
+    border-top: 1px solid #f3f4f6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.pagination-info {
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+#pageInfo {
+    font-weight: 600;
+    color: #374151;
+}
+
+/* Modern Table Styles */
+.analysis-table-container {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.table-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #f3f4f6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.table-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.table-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+}
+
+.modern-table {
+    width: 100%;
+    min-width: 800px;
+}
+
+.table-header-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 2fr 1.5fr 1.5fr 1fr 1fr;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.header-cell {
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: #374151;
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+.header-cell i {
+    font-size: 16px;
+    opacity: 0.6;
+}
+
+.table-body {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.table-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 2fr 1.5fr 1.5fr 1fr 1fr;
+    border-bottom: 1px solid #f3f4f6;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.table-row:hover {
+    background: #f9fafb;
+    transform: scale(1.01);
+}
+
+.table-cell {
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    color: #374151;
+}
+
+.table-cell.plan-number {
+    font-weight: 600;
+    color: #667eea;
+}
+
+.table-cell.date-time {
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.table-cell.item-details {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+.item-name {
+    font-weight: 600;
+    color: #111827;
+}
+
+.item-type {
+    font-size: 12px;
+    color: #6b7280;
+    background: #f3f4f6;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.table-cell.planned-data,
+.table-cell.produced-data {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+.quantity-value {
+    font-weight: 600;
+    color: #111827;
+}
+
+.quantity-unit {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.table-cell.variance {
+    font-weight: 600;
+}
+
+.variance.positive {
+    color: #10b981;
+}
+
+.variance.negative {
+    color: #ef4444;
+}
+
+.variance.neutral {
+    color: #6b7280;
+}
+
+.table-cell.status {
+    justify-content: center;
+}
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-badge.completed {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.status-badge.confirmed {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.status-badge.declared {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status-badge.pending {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+/* Loading Effects */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #f3f4f6;
+    border-radius: 50%;
+    border-top-color: #667eea;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Table Footer */
+.table-footer {
+    padding: 20px 24px;
+    border-top: 1px solid #f3f4f6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.pagination-info {
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+#pageInfo {
+    font-weight: 600;
+    color: #374151;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6b7280;
+}
+
+.empty-state i {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.empty-state h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.empty-state p {
+    margin: 0;
+    font-size: 14px;
+}
+
+/* Updated Table Cell Styles */
+.table-cell.planned-quantity,
+.table-cell.produced-quantity {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+
+.table-cell.planned-quantity.has-data {
+    background: rgba(59, 130, 246, 0.05);
+}
+
+.table-cell.produced-quantity.has-data {
+    background: rgba(16, 185, 129, 0.05);
+}
+
+.table-cell.planned-quantity.no-data,
+.table-cell.produced-quantity.no-data {
+    opacity: 0.5;
+}
+
+.monetary-value {
+    font-size: 10px;
+    color: #059669;
+    font-weight: 600;
+}
+
+.totals-row {
+    background: #f8fafc;
+    border-top: 2px solid #e2e8f0;
+}
+
+.totals-row .table-cell {
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.planned-total .quantity-value {
+    color: #1d4ed8;
+}
+
+.produced-total .quantity-value {
+    color: #059669;
+}
+
+/* Remove borders and make rows thinner */
+.table-header-row {
+    border-bottom: none !important;
+}
+
+.table-row {
+    border-bottom: none !important;
+    padding: 4px 0 !important;
+}
+
+.table-cell {
+    padding: 6px 10px !important;
+    font-size: 11px !important;
+}
+
+.header-cell {
+    padding: 6px 10px !important;
+    font-size: 11px !important;
+}
+
+.header-cell i {
+    font-size: 12px !important;
+}
+
+.item-name {
+    font-size: 11px !important;
+}
+
+.item-type {
+    font-size: 10px !important;
+    padding: 1px 6px !important;
+}
+
+.quantity-value {
+    font-size: 11px !important;
+}
+
+.quantity-unit {
+    font-size: 10px !important;
+}
+
+.monetary-value {
+    font-size: 9px !important;
+}
+
+/* Make table header thinner */
+.table-header {
+    padding: 12px 16px !important;
+}
+
+.table-header h3 {
+    font-size: 16px !important;
+}
+
+.table-actions {
+    gap: 8px !important;
+}
+
+.table-actions .btn {
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .production-analysis-layout {
+        flex-direction: column;
+    }
+    
+    .analysis-sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .sidebar-filters {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    
+    .filter-group {
+        flex: 1;
+        min-width: 200px;
+    }
+    
+    .filter-buttons {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    
+    .filter-btn {
+        width: auto;
+        min-width: 80px;
+    }
+    
+    .date-inputs {
+        flex-direction: row;
+        align-items: center;
+    }
+    
+    .date-input {
+        width: auto;
+        flex: 1;
+    }
+    
+    .main-content {
+        padding: 16px;
+    }
+    
+    .summary-cards {
+        grid-template-columns: 1fr;
+    }
+    
+    .table-header {
+        flex-direction: column;
+        gap: 16px;
+    }
+    
+    .table-footer {
+        flex-direction: column;
+        gap: 16px;
+    }
+}
+
+/* Button Styles */
+.btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    border: 1px solid #e5e7eb;
+    background: white;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
+.btn-outline-secondary {
+    background: transparent;
+    color: #6b7280;
+    border-color: #d1d5db;
+}
+
+.btn-outline-secondary:hover {
+    background: #f9fafb;
+    color: #374151;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6b7280;
+}
+
+.empty-state i {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.empty-state h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.empty-state p {
+    margin: 0;
+    font-size: 14px;
+}
+
+/* Analysis Type Selector */
+.analysis-type-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.analysis-type-btn {
+    padding: 8px 12px;
+    border: 1px solid #e5e7eb;
+    background: white;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: left;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.analysis-type-btn.active,
+.analysis-type-btn:hover {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
+.analysis-type-btn i {
+    font-size: 14px;
+}
+
+/* Notification Bell */
+.notification-bell {
+    position: relative;
+    cursor: pointer;
+    margin-left: auto;
+}
+
+.notification-bell i {
+    font-size: 20px;
+    color: #6b7280;
+    transition: color 0.3s ease;
+}
+
+.notification-bell:hover i {
+    color: #667eea;
+}
+
+.notification-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #ef4444;
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    display: none;
+}
+
+.notification-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 320px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    display: none;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.notification-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid #f3f4f6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.notification-header h4 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.clear-notifications {
+    background: none;
+    border: none;
+    color: #667eea;
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.notification-list {
+    padding: 8px 0;
+}
+
+.notification-item {
+    padding: 12px 16px;
+    border-bottom: 1px solid #f9fafb;
+    display: flex;
+    gap: 12px;
+    transition: background-color 0.2s ease;
+}
+
+.notification-item:hover {
+    background: #f9fafb;
+}
+
+.notification-item:last-child {
+    border-bottom: none;
+}
+
+.notification-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #667eea;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.notification-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.notification-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: #111827;
+    margin-bottom: 4px;
+}
+
+.notification-message {
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 4px;
+    line-height: 1.4;
+}
+
+.notification-time {
+    font-size: 11px;
+    color: #9ca3af;
+}
+
+.no-notifications {
+    padding: 20px;
+    text-align: center;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+}
+
+.modal-content {
+    background-color: white;
+    margin: 5% auto;
+    padding: 0;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.close {
+    color: #6b7280;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.close:hover {
+    color: #111827;
+}
+
+.modal-body {
+    padding: 24px;
+}
+
+.detail-section {
+    margin-bottom: 24px;
+}
+
+.detail-section:last-child {
+    margin-bottom: 0;
+}
+
+.detail-section h4 {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+    border-bottom: 2px solid #f3f4f6;
+    padding-bottom: 8px;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.detail-item label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.detail-item span {
+    font-size: 14px;
+    color: #111827;
+    font-weight: 500;
+}
+
+.usage-history {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 12px;
+}
+
+.usage-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #f9fafb;
+}
+
+.usage-item:last-child {
+    border-bottom: none;
+}
+
+.usage-date {
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.usage-details {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+}
+
+.usage-quantity {
+    font-size: 13px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.usage-purpose {
+    font-size: 11px;
+    color: #6b7280;
+}
+
+/* Stock Table Styles */
+.stock-row {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.stock-row:hover {
+    background: #f9fafb;
+    transform: scale(1.01);
+}
+
+.item-name-cell {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+.item-description {
+    font-size: 10px;
+    color: #6b7280;
+    font-style: italic;
+}
+
+.item-type-cell {
+    justify-content: center;
+}
+
+.type-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.type-badge.finished {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.type-badge.ingredient {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.type-badge.raw {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.stock-quantity {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+
+.stock-quantity.negative {
+    background: rgba(239, 68, 68, 0.1);
+    border-left: 3px solid #ef4444;
+}
+
+.stock-quantity.neutral {
+    background: rgba(107, 114, 128, 0.1);
+    border-left: 3px solid #6b7280;
+}
+
+.stock-quantity.positive {
+    background: rgba(16, 185, 129, 0.1);
+    border-left: 3px solid #10b981;
+}
+
+.min-stock {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+
+.stock-status {
+    justify-content: center;
+}
+
+.last-updated {
+    color: #6b7280;
+    font-size: 12px;
+}
+
+.details-cell {
+    justify-content: center;
+}
+
+.btn-details {
+    background: none;
+    border: none;
+    color: #667eea;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    font-size: 16px;
+}
+
+.btn-details:hover {
+    background: #667eea;
+    color: white;
+    transform: scale(1.1);
+}
+
+/* Tooltip Styles */
+.table-row[title] {
+    position: relative;
+}
+
+.table-row[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #111827;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    pointer-events: none;
+}
+
+.table-row[title]:hover::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: #111827;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+/* Updated Grid Layouts */
+.table-header-row#productionTableHeader {
+    grid-template-columns: 1fr 1fr 2fr 1.5fr 1.5fr 1fr 1fr 0.5fr;
+}
+
+.table-header-row#stockTableHeader {
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 0.5fr;
+}
+
+.production-row {
+    grid-template-columns: 1fr 1fr 2fr 1.5fr 1.5fr 1fr 1fr 0.5fr;
+}
+
+.stock-row {
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 0.5fr;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .notification-dropdown {
+        width: 280px;
+        right: -20px;
+    }
+    
+    .modal-content {
+        width: 95%;
+        margin: 10% auto;
+    }
+    
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<script>
+let currentPage = 1;
+let itemsPerPage = 20;
+let allData = [];
+let filteredData = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    setDefaultDates();
+    loadAnalysisData();
+    setupEventListeners();
+});
+
+ function setDefaultDates() {
+     const today = new Date();
+     
+     document.getElementById('startDate').value = today.toISOString().split('T')[0];
+     document.getElementById('endDate').value = today.toISOString().split('T')[0];
+ }
+
+function setupEventListeners() {
+    // Period filter buttons
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            applyPeriodFilter(this.dataset.period);
+        });
+    });
+    
+    // Status filter
+    document.getElementById('statusFilter').addEventListener('change', applyFilters);
+    
+    // Analysis type buttons
+    document.querySelectorAll('.analysis-type-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.analysis-type-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            switchAnalysisType(this.dataset.type);
+        });
+    });
+    
+    // Stock filters
+    const productTypeFilter = document.getElementById('productTypeFilter');
+    const stockStatusFilter = document.getElementById('stockStatusFilter');
+    
+    if (productTypeFilter) {
+        productTypeFilter.addEventListener('change', applyStockFilters);
+    }
+    if (stockStatusFilter) {
+        stockStatusFilter.addEventListener('change', applyStockFilters);
+    }
+}
+
+function applyPeriodFilter(period) {
+    const today = new Date();
+    let startDate = new Date();
+    
+    switch(period) {
+        case 'today':
+            startDate = today;
+            break;
+        case 'yesterday':
+            startDate.setDate(today.getDate() - 1);
+            break;
+        case 'week':
+            startDate.setDate(today.getDate() - 7);
+            break;
+        case 'month':
+            startDate.setMonth(today.getMonth() - 1);
+            break;
+        case 'quarter':
+            startDate.setMonth(today.getMonth() - 3);
+            break;
+        case 'year':
+            startDate.setFullYear(today.getFullYear() - 1);
+            break;
+    }
+    
+    document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
+    document.getElementById('endDate').value = today.toISOString().split('T')[0];
+    applyFilters();
+}
+
+
+
+function applyFilters() {
+    currentPage = 1;
+    loadAnalysisData();
+}
+
+function loadAnalysisData() {
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    const status = document.getElementById('statusFilter').value;
+    
+    // Show loading state
+    showLoading();
+    
+    const params = new URLSearchParams();
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    if (status && status !== 'all') params.append('status', status);
+    
+    fetch(`/inventory/api/production-analysis-data/?${params.toString()}`)
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+            if (data.success) {
+                allData = data.data;
+                filteredData = data.data;
+                updateTable();
+                updateSummaryCards();
+            } else {
+                console.error('API Error:', data.error);
+                showEmptyState('Error loading data. Please try again.');
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            console.error('Error loading data:', error);
+            showEmptyState('Network error. Please check your connection.');
+        });
+}
+
+function showLoading() {
+    const tableBody = document.getElementById('analysisTableBody');
+    tableBody.innerHTML = `
+        <div class="table-row loading">
+            <div class="table-cell" colspan="7">
+                <div style="text-align: center; padding: 40px;">
+                    <div class="loading-spinner"></div>
+                    <p style="margin-top: 16px; color: #6b7280;">Loading analysis data...</p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function hideLoading() {
+    // Loading state will be replaced by actual data
+}
+
+function showEmptyState(message) {
+    const tableBody = document.getElementById('analysisTableBody');
+    tableBody.innerHTML = `
+        <div class="empty-state">
+            <i class="bx bx-bar-chart-alt-2"></i>
+            <h3>No Data Available</h3>
+            <p>${message}</p>
+        </div>
+    `;
+}
+
+function updateTable() {
+    const tableBody = document.getElementById('analysisTableBody');
+    
+    if (filteredData.length === 0) {
+        showEmptyState('No production plans found for the selected criteria.');
+        return;
+    }
+    
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const pageData = filteredData.slice(startIndex, endIndex);
+    
+    let totalPlannedValue = 0;
+    let totalProducedValue = 0;
+    
+         tableBody.innerHTML = pageData.map(item => {
+         // Calculate monetary values (assuming $10 per unit for demonstration)
+         const plannedValue = item.planned_quantity * 10;
+         const producedValue = item.produced_quantity * 10;
+         totalPlannedValue += plannedValue;
+         totalProducedValue += producedValue;
+         
+         // Create tooltip content
+         const tooltipContent = `
+             <strong>${item.item_name}</strong><br>
+             Type: ${item.type}<br>
+             Plan: #${item.plan_number}<br>
+             Date: ${formatDate(item.date)}<br>
+             Status: ${item.status}
+         `;
+         
+         return `
+             <div class="table-row production-row" data-item-id="${item.id}" title="${tooltipContent}">
+                 <div class="table-cell plan-number">
+                     #${item.plan_number}
+                 </div>
+                 <div class="table-cell date-time">
+                     ${formatDate(item.date)}
+                 </div>
+                 <div class="table-cell item-details">
+                     <div class="item-name">${item.item_name}</div>
+                     <div class="item-type">${item.type}</div>
+                 </div>
+                 <div class="table-cell planned-quantity ${item.planned_quantity > 0 ? 'has-data' : 'no-data'}">
+                     <div class="quantity-value">${item.planned_quantity}</div>
+                     <div class="quantity-unit">${item.unit}</div>
+                     <div class="monetary-value">$${plannedValue.toFixed(2)}</div>
+                 </div>
+                 <div class="table-cell produced-quantity ${item.produced_quantity > 0 ? 'has-data' : 'no-data'}">
+                     <div class="quantity-value">${item.produced_quantity}</div>
+                     <div class="quantity-unit">${item.unit}</div>
+                     <div class="monetary-value">$${producedValue.toFixed(2)}</div>
+                 </div>
+                 <div class="table-cell variance ${getVarianceClass(item.variance)}">
+                     ${formatVariance(item.variance)} ${item.unit}
+                 </div>
+                 <div class="table-cell status">
+                     <span class="status-badge ${item.status}">${item.status}</span>
+                 </div>
+                 <div class="table-cell details-cell">
+                     <button class="btn-details" onclick="showItemDetails('${item.id}', 'production')" title="View detailed information">
+                         <i class="bx bx-info-circle"></i>
+                     </button>
+                 </div>
+             </div>
+         `;
+     }).join('');
+    
+         // Add totals row
+     tableBody.innerHTML += `
+         <div class="table-row totals-row">
+             <div class="table-cell">
+                 <strong>Totals</strong>
+             </div>
+             <div class="table-cell"></div>
+             <div class="table-cell"></div>
+             <div class="table-cell planned-total">
+                 <div class="quantity-value">$${totalPlannedValue.toFixed(2)}</div>
+                 <div class="quantity-unit">Total Planned</div>
+             </div>
+             <div class="table-cell produced-total">
+                 <div class="quantity-value">$${totalProducedValue.toFixed(2)}</div>
+                 <div class="quantity-unit">Total Produced</div>
+             </div>
+             <div class="table-cell"></div>
+             <div class="table-cell"></div>
+             <div class="table-cell"></div>
+         </div>
+     `;
+    
+    updatePagination();
+}
+
+function updateSummaryCards() {
+    const totalPlans = new Set(filteredData.map(item => item.plan_number)).size;
+    const positiveVariance = filteredData.filter(item => item.variance > 0).length;
+    const negativeVariance = filteredData.filter(item => item.variance < 0).length;
+    const onTarget = filteredData.filter(item => item.variance === 0).length;
+    
+    document.getElementById('totalPlans').textContent = totalPlans;
+    document.getElementById('positiveVariance').textContent = positiveVariance;
+    document.getElementById('negativeVariance').textContent = negativeVariance;
+    document.getElementById('onTarget').textContent = onTarget;
+}
+
+function updatePagination() {
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+    const startItem = (currentPage - 1) * itemsPerPage + 1;
+    const endItem = Math.min(currentPage * itemsPerPage, filteredData.length);
+    
+    document.getElementById('showingInfo').textContent = 
+        `Showing ${startItem} to ${endItem} of ${filteredData.length} results`;
+    document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
+    
+    document.getElementById('prevBtn').disabled = currentPage === 1;
+    document.getElementById('nextBtn').disabled = currentPage === totalPages;
+}
+
+function previousPage() {
+    if (currentPage > 1) {
+        currentPage--;
+        updateTable();
+    }
+}
+
+function nextPage() {
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+    if (currentPage < totalPages) {
+        currentPage++;
+        updateTable();
+    }
+}
+
+function getVarianceClass(variance) {
+    if (variance > 0) return 'positive';
+    if (variance < 0) return 'negative';
+    return 'neutral';
+}
+
+function formatVariance(variance) {
+    const sign = variance > 0 ? '+' : '';
+    return `${sign}${variance}`;
+}
+
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+function showItemDetails(itemId) {
+    // Add click effect and show details modal if needed
+    console.log('Item clicked:', itemId);
+}
+
+function exportData() {
+    // Implement export functionality
+    console.log('Exporting data...');
+}
+
+function refreshData() {
+    loadAnalysisData();
+}
+
+// Stock Analysis Functions
+function loadStockData() {
+    showLoading();
+    
+    const productType = document.getElementById('productTypeFilter').value;
+    const stockStatus = document.getElementById('stockStatusFilter').value;
+    const searchTerm = document.getElementById('stockSearchInput').value;
+    
+    const params = new URLSearchParams();
+    if (productType && productType !== 'all') params.append('product_type', productType);
+    if (stockStatus && stockStatus !== 'all') params.append('stock_status', stockStatus);
+    if (searchTerm) params.append('search', searchTerm);
+    
+    fetch(`/inventory/api/stock-analysis-data/?${params.toString()}`)
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+            if (data.success) {
+                allData = data.data;
+                filteredData = data.data;
+                updateStockTable();
+                updateStockSummaryCards();
+            } else {
+                console.error('API Error:', data.error);
+                showEmptyState('Error loading stock data. Please try again.');
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            console.error('Error loading stock data:', error);
+            showEmptyState('Network error. Please check your connection.');
+        });
+}
+
+function updateStockTable() {
+    const tableBody = document.getElementById('analysisTableBody');
+    
+    if (filteredData.length === 0) {
+        showEmptyState('No stock items found for the selected criteria.');
+        return;
+    }
+    
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const pageData = filteredData.slice(startIndex, endIndex);
+    
+    tableBody.innerHTML = pageData.map(item => {
+        const stockStatusClass = getStockStatusClass(item.stock_status);
+        const stockStatusText = getStockStatusText(item.stock_status);
+        
+        return `
+            <div class="table-row stock-row" data-item-id="${item.id}" data-item-type="${item.type}">
+                <div class="table-cell item-name-cell" title="${item.description || 'No description available'}">
+                    <div class="item-name">${item.name}</div>
+                    <div class="item-description">${item.description || 'No description'}</div>
+                </div>
+                <div class="table-cell item-type-cell">
+                    <span class="type-badge ${item.type}">${item.type}</span>
+                </div>
+                <div class="table-cell stock-quantity ${stockStatusClass}">
+                    <div class="quantity-value">${item.current_stock}</div>
+                    <div class="quantity-unit">${item.unit}</div>
+                </div>
+                <div class="table-cell min-stock">
+                    <div class="quantity-value">${item.min_stock_level}</div>
+                    <div class="quantity-unit">${item.unit}</div>
+                </div>
+                <div class="table-cell stock-status">
+                    <span class="status-badge ${stockStatusClass}">${stockStatusText}</span>
+                </div>
+                <div class="table-cell last-updated">
+                    ${formatDate(item.last_updated)}
+                </div>
+                <div class="table-cell details-cell">
+                    <button class="btn-details" onclick="showItemDetails('${item.id}', 'stock')" title="View detailed information">
+                        <i class="bx bx-info-circle"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    updatePagination();
+}
+
+function updateStockSummaryCards() {
+    const totalItems = filteredData.length;
+    const inStock = filteredData.filter(item => item.stock_status === 'in_stock').length;
+    const lowStock = filteredData.filter(item => item.stock_status === 'low_stock').length;
+    const outOfStock = filteredData.filter(item => item.stock_status === 'out_of_stock').length;
+    
+    document.getElementById('totalPlans').textContent = totalItems;
+    document.getElementById('positiveVariance').textContent = inStock;
+    document.getElementById('negativeVariance').textContent = outOfStock;
+    document.getElementById('onTarget').textContent = lowStock;
+}
+
+function getStockStatusClass(status) {
+    switch(status) {
+        case 'in_stock': return 'positive';
+        case 'low_stock': return 'neutral';
+        case 'out_of_stock': return 'negative';
+        default: return 'neutral';
+    }
+}
+
+function getStockStatusText(status) {
+    switch(status) {
+        case 'in_stock': return 'In Stock';
+        case 'low_stock': return 'Low Stock';
+        case 'out_of_stock': return 'Out of Stock';
+        default: return 'Unknown';
+    }
+}
+
+function applyStockFilters() {
+    currentPage = 1;
+    loadStockData();
+}
+
+// Modal Functions
+function showItemDetails(itemId, type = 'production') {
+    const modal = document.getElementById('detailModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+    
+    if (type === 'stock') {
+        modalTitle.textContent = 'Stock Item Details';
+        // Load stock item details
+        loadStockItemDetails(itemId, modalBody);
+    } else {
+        modalTitle.textContent = 'Production Item Details';
+        // Load production item details
+        loadProductionItemDetails(itemId, modalBody);
+    }
+    
+    modal.style.display = 'block';
+}
+
+function closeModal() {
+    document.getElementById('detailModal').style.display = 'none';
+}
+
+function loadStockItemDetails(itemId, modalBody) {
+    // Show loading in modal
+    modalBody.innerHTML = '<div class="loading-spinner"></div><p>Loading details...</p>';
+    
+    fetch(`/inventory/api/stock-item-details/${itemId}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const item = data.data;
+                modalBody.innerHTML = `
+                    <div class="detail-section">
+                        <h4>Basic Information</h4>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <label>Name:</label>
+                                <span>${item.name}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Type:</label>
+                                <span>${item.type}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Description:</label>
+                                <span>${item.description || 'No description'}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Unit:</label>
+                                <span>${item.unit}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h4>Stock Information</h4>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <label>Current Stock:</label>
+                                <span class="${getStockStatusClass(item.stock_status)}">${item.current_stock} ${item.unit}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Minimum Stock Level:</label>
+                                <span>${item.min_stock_level} ${item.unit}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Status:</label>
+                                <span class="status-badge ${getStockStatusClass(item.stock_status)}">${getStockStatusText(item.stock_status)}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Last Updated:</label>
+                                <span>${formatDate(item.last_updated)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h4>Usage History</h4>
+                        <div class="usage-history">
+                            ${item.usage_history ? item.usage_history.map(usage => `
+                                <div class="usage-item">
+                                    <div class="usage-date">${formatDate(usage.date)}</div>
+                                    <div class="usage-details">
+                                        <span class="usage-quantity">${usage.quantity} ${item.unit}</span>
+                                        <span class="usage-purpose">${usage.purpose}</span>
+                                    </div>
+                                </div>
+                            `).join('') : '<p>No usage history available</p>'}
+                        </div>
+                    </div>
+                `;
+            } else {
+                modalBody.innerHTML = '<p>Error loading item details.</p>';
+            }
+        })
+        .catch(error => {
+            modalBody.innerHTML = '<p>Error loading item details.</p>';
+        });
+}
+
+function loadProductionItemDetails(itemId, modalBody) {
+    // Show loading in modal
+    modalBody.innerHTML = '<div class="loading-spinner"></div><p>Loading details...</p>';
+    
+    fetch(`/inventory/api/production-item-details/${itemId}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const item = data.data;
+                modalBody.innerHTML = `
+                    <div class="detail-section">
+                        <h4>Production Information</h4>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <label>Item Name:</label>
+                                <span>${item.item_name}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Type:</label>
+                                <span>${item.type}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Production Plan:</label>
+                                <span>#${item.plan_number}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Date:</label>
+                                <span>${formatDate(item.date)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h4>Quantity Details</h4>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <label>Planned Quantity:</label>
+                                <span>${item.planned_quantity} ${item.unit}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Produced Quantity:</label>
+                                <span>${item.produced_quantity} ${item.unit}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Variance:</label>
+                                <span class="${getVarianceClass(item.variance)}">${formatVariance(item.variance)} ${item.unit}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Status:</label>
+                                <span class="status-badge ${item.status}">${item.status}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h4>Additional Information</h4>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <label>Notes:</label>
+                                <span>${item.notes || 'No notes available'}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Responsible Person:</label>
+                                <span>${item.responsible_person || 'Not specified'}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                modalBody.innerHTML = '<p>Error loading item details.</p>';
+            }
+        })
+        .catch(error => {
+            modalBody.innerHTML = '<p>Error loading item details.</p>';
+        });
+}
+
+// Analysis Type Switching
+function switchAnalysisType(type) {
+    const productionFilters = document.getElementById('productionFilters');
+    const stockFilters = document.getElementById('stockFilters');
+    const productionHeader = document.getElementById('productionTableHeader');
+    const stockHeader = document.getElementById('stockTableHeader');
+    const pageTitle = document.querySelector('.page-title');
+    const pageSubtitle = document.querySelector('.page-subtitle');
+    
+    if (type === 'stock') {
+        productionFilters.style.display = 'none';
+        stockFilters.style.display = 'block';
+        productionHeader.style.display = 'none';
+        stockHeader.style.display = 'grid';
+        pageTitle.textContent = 'Stock Analysis Dashboard';
+        pageSubtitle.textContent = 'Real-time stock monitoring and inventory management';
+        loadStockData();
+    } else {
+        productionFilters.style.display = 'block';
+        stockFilters.style.display = 'none';
+        productionHeader.style.display = 'grid';
+        stockHeader.style.display = 'none';
+        pageTitle.textContent = 'Production Analysis Dashboard';
+        pageSubtitle.textContent = 'Real-time variance analysis and performance metrics';
+        loadAnalysisData();
+    }
+}
+
+// Notification Functions
+function loadNotifications() {
+    fetch('/inventory/api/notifications/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateNotificationBadge(data.notifications.length);
+                updateNotificationList(data.notifications);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading notifications:', error);
+        });
+}
+
+function updateNotificationBadge(count) {
+    const badge = document.getElementById('notificationCount');
+    if (badge) {
+        badge.textContent = count;
+        badge.style.display = count > 0 ? 'block' : 'none';
+    }
+}
+
+function updateNotificationList(notifications) {
+    const list = document.getElementById('notificationList');
+    if (list) {
+        list.innerHTML = notifications.length > 0 ? notifications.map(notification => `
+            <div class="notification-item">
+                <div class="notification-icon">
+                    <i class="bx bx-package"></i>
+                </div>
+                <div class="notification-content">
+                    <div class="notification-title">${notification.title}</div>
+                    <div class="notification-message">${notification.message}</div>
+                    <div class="notification-time">${formatDate(notification.timestamp)}</div>
+                </div>
+            </div>
+        `).join('') : '<div class="no-notifications">No new notifications</div>';
+    }
+}
+
+function clearNotifications() {
+    fetch('/inventory/api/clear-notifications/', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateNotificationBadge(0);
+                updateNotificationList([]);
+            }
+        })
+        .catch(error => {
+            console.error('Error clearing notifications:', error);
+        });
+}
+
+// Event Listeners
+document.addEventListener('DOMContentLoaded', function() {
+    setDefaultDates();
+    loadAnalysisData();
+    setupEventListeners();
+    
+    // Setup notification bell
+    const notificationBell = document.getElementById('notificationBell');
+    if (notificationBell) {
+        notificationBell.addEventListener('click', function() {
+            const dropdown = document.getElementById('notificationDropdown');
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+        });
+        
+        // Load notifications
+        loadNotifications();
+        
+        // Refresh notifications every 30 seconds
+        setInterval(loadNotifications, 30000);
+    }
+    
+    // Close modal when clicking outside
+    window.addEventListener('click', function(event) {
+        const modal = document.getElementById('detailModal');
+        if (event.target === modal) {
+            closeModal();
+        }
+    });
+});
+</script>
+
+<!-- Detail Modal -->
+<div id="detailModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modalTitle">Item Details</h3>
+            <span class="close" onclick="closeModal()">&times;</span>
+        </div>
+        <div class="modal-body" id="modalBody">
+            <!-- Content will be loaded dynamically -->
+        </div>
+    </div>
+</div>
+
+{% endblock content %}

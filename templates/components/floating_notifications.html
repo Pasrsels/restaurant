@@ -1,6 +1,6 @@
 {% block content %}
     <div class=''>
-        {% if request.user.role == 'Chef' %}
+        {% if request.user.role == 'Chef' or request.user.role == 'stores_person' %}
                 <ul class='list-unstyled'>
                     {% for notis in chef_notifications  %}
                         <li>
