@@ -40,7 +40,7 @@ class SalesAccessMiddleware:
         - Using a custom user field, e.g., user.department == "Sales"
         - Using permissions
         """
-        if hasattr(user, 'role') and user.role == 'sales':
+        if hasattr(user, 'role') and user.role in ['sales', 'admin', 'owner', 'chef']:
             return True
         
         return False

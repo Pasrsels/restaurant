@@ -86,7 +86,7 @@ class ProductionPlanInlineForm(forms.ModelForm):
 class DishForm(forms.ModelForm):
     class Meta:
         model = Dish
-        exclude = ['cost']
+        exclude = ['cost', 'dish']
 
 class IngredientForm(forms.ModelForm):
     class Meta:

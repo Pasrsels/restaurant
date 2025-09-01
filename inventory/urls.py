@@ -36,7 +36,10 @@ urlpatterns = [
     path('production_raw_materials/', production_raw_materials, name='production_raw_materials'),
     path('production_rm/detail/<int:rm_id>/', production_rm_detail, name='production_rm_detail'),
     path('override/raw-material', overrideBf , name='override'),
-    
+    path('production-plan/delete/<int:id>/', production_plan_delete, name="production_plan_delete"),
+    path('declare-production-plan/<int:pp_id>/', new_declare_production, name="declare_production"),
+    path('latest-declare-production-plan/', latest_declare_production, name="latest_declare_production"),
+
     # supplier
     path('suppliers/list', suppliers, name='suppliers'),
     path('edit/supplier/', edit_supplier, name='edit_supplier'),
@@ -80,7 +83,9 @@ urlpatterns = [
     path('filter/meal/category/', CategoryMeal, name='filter_meal_category'),
     
     # end of day
+    # end_of_day_view_json
     path('end-of-day/', end_of_day_view, name='end_of_day_view'),
+    path('end-of-day-json/', end_of_day_view_json, name='end_of_day_view_json'),
     path('save-end-of-day/', end_of_day_view, name='save_end_of_day'),
     path('confirm_end_of_day/', confirm_end_of_day, name='confirm_end_of_day'),
     path('end_of_day_detail/<int:e_o_d_id>/', end_of_day_detail, name='end_of_day_detail'),
@@ -102,12 +107,18 @@ urlpatterns = [
     
     # check_list
     path('check_list/', check_check_list, name='check_check_list'),
+    path('check_list/all', check_list_all_products, name='check_list_all_products'),
+    path('check_list/finished', check_list_finished_products, name='check_list_finished_products'),
+    path('check_list/raw', check_list_raw_products, name='check_list_raw_products'),
 
     #budgets
     path('budgets/', budget, name='budget'),
     path('create-budget/', createBudgetItem, name='create-budget'),
     path('budget/view-information/<int:id>/', ViewBudget, name='view_budget'),
     path('budget/estimations/', ConversionFormula, name='estimations'),
-    path('budget-approoval/', BudgetApproval, name = 'budget-approval')
-    
+    path('budget-approoval/', BudgetApproval, name = 'budget-approval'),
+
+
+    # Script
+    path('shift-data/', shift_data_to_main, name="shifting")   
 ]

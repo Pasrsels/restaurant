@@ -15,16 +15,9 @@ SECRET_KEY = 'django-insecure-3m$$5om_jd5=rk*1x9(@=-=o8(j!^y(@!)iz^38q6*^w#6v+4n
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1', 
-    'web-production-20d8.up.railway.app',
-    '192.168.10.156',
-    '192.168.10.173',
-    '192.168.10.38',
-    '192.168.10.181',
-    'c845-196-27-126-114.ngrok-free.app',
-    '192.168.1.146',
-    '192.168.1.136'
+    '192.168.1.136',
+    '196.27.126.114',
+    '127.0.0.1'
 ]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -99,7 +92,8 @@ TEMPLATES = [
                 
                 # customm
                 'inventory.context_processors.notification_processor', 
-                'inventory.context_processors.check_list_processor'
+                'inventory.context_processors.check_list_processor',
+                'inventory.context_processors.all_meals_dishes'
             ],
         },
     },
@@ -119,18 +113,11 @@ DATABASES = {
     # )
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'restaurant_test',  
+        'NAME': 'restaurant',  
         'USER': 'postgres',
         'PASSWORD': 'neverfail',
         'PORT': '5432',
     }
-    # 'default': {
-    #     'ENGINE': 'django.db.backends.postgresql',
-    #     'NAME': 'test',  
-    #     'USER': 'postgres',
-    #     'PASSWORD': 'neverfail',
-    #     'PORT': '5432',
-    # }
 }
 
 AUTH_USER_MODEL = 'users.User'
@@ -221,6 +208,7 @@ CELERY_ACCEPT_CONTENT = os.environ.get('CELERY_ACCEPT_CONTENT', 'json').split(',
 CELERY_TASK_SERIALIZER = os.environ.get('CELERY_TASK_SERIALIZER', 'json')
 CELERY_RESULT_SERIALIZER = os.environ.get('CELERY_RESULT_SERIALIZER', 'json')
 CELERY_TIMEZONE = os.environ.get('CELERY_TIMEZONE', 'Africa/Johannesburg')
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 # Email Backend Configuration
 # EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -232,10 +220,11 @@ CELERY_TIMEZONE = os.environ.get('CELERY_TIMEZONE', 'Africa/Johannesburg')
 
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "127.0.0.1"
-EMAIL_PORT = 1025
-EMAIL_HOST_USER = ""
-EMAIL_HOST_PASSWORD = ""
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 465
+EMAIL_USE_SSL = True
+EMAIL_HOST_USER = "chinomonateddym@gmail.com"
+EMAIL_HOST_PASSWORD = "wxsh mufd blej nyvq"
 EMAIL_USE_TLS = False
 
 # channels
@@ -312,3 +301,13 @@ CONNECTION_TIME_EXEMPT_URLS = [
     '/connection-error/',
 ]
 
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "SERIALIZER": "django_redis.serializers.json.JSONSerializer",
+        }
+    }
+}

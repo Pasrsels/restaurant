@@ -1,9 +1,10 @@
 from django.db import models
 from inventory.models import Meal, Product, Dish
 from django.contrib.auth import get_user_model
+from users.models import Company, Branch
 
 User = get_user_model()
-
+ 
 class ExpenseCategory(models.Model):
     name = models.CharField(max_length=255)
     
@@ -16,11 +17,12 @@ class COGS(models.Model):
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=0) 
     
 class Expense(models.Model):
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     category = models.ForeignKey(ExpenseCategory, on_delete=models.CASCADE)
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=0) 
     date = models.DateField(auto_now_add=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    description = models.CharField(max_length=255)
+    description = models.CharField(max_length=255, null=True)
     cancel = models.BooleanField(default=False)
     status = models.BooleanField(default=False)
     
@@ -28,6 +30,7 @@ class Expense(models.Model):
         return f'{self.amount}'
 
 class Sale(models.Model):
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     cashier = models.ForeignKey(User, on_delete=models.CASCADE)
     total_amount= models.DecimalField(max_digits=10, decimal_places=2, default=0) 
     tax = models.DecimalField(max_digits=10, decimal_places=2, default=0) 
@@ -38,6 +41,7 @@ class Sale(models.Model):
     change = models.DecimalField(max_digits=10, decimal_places=2, default=0) 
     amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0) 
     void = models.BooleanField(default=False)
+    cash_type = models.CharField(max_length=12, default='solid-cash', null=True, blank=True)
 
     def __str__(self) -> str:
         return f'{self.cashier} -> ({self.total_amount})'
@@ -63,6 +67,7 @@ class SaleItem(models.Model):
     quantity = models.IntegerField()
     
 class CashBook(models.Model):
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, null=True)
     expense = models.ForeignKey(Expense, on_delete=models.CASCADE, null=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=0) 
@@ -94,12 +99,14 @@ class transactionLog(models.Model):
         ('expense', 'expense'),
         
     ]
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, null=True)
     expense = models.ForeignKey(Expense, on_delete=models.CASCADE, null=True)
     action = models.CharField(max_length=10, choices=action_choice)
     
     
 class CashUp(models.Model):
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     cashier = models.ForeignKey(User, on_delete=models.CASCADE, related_name='cashier')
     cashed_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, null=True, blank=True) 
     sales = models.DecimalField(max_digits=10, decimal_places=2, default=0) 
@@ -116,6 +123,7 @@ class CashUp(models.Model):
         return f'{self.date}'
     
 class CashierAccount(models.Model):
+    # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     cashier = models.ForeignKey(User, on_delete=models.CASCADE)
     cash_up = models.ForeignKey(CashUp, on_delete=models.CASCADE, null=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=0) 
@@ -125,6 +133,7 @@ class CashierAccount(models.Model):
         return f'{self.cashier.first_name} ({self.amount})'
 
 class CashierPayments(models.Model):
+    # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     date = models.DateTimeField(auto_now_add=True, null=True)
     cashier = models.ForeignKey(User, on_delete=models.CASCADE)
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -136,6 +145,7 @@ class EmailNotifications(models.Model):
     expense_notification = models.BooleanField(default=True)
     
 class Change(models.Model):
+    # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name='sale_change')
     name = models.CharField(max_length=100)
     phonenumber = models.CharField(max_length=20)
@@ -151,6 +161,7 @@ class Change(models.Model):
         return f'{self.cashier.username} ({self.amount})'
     
 class CashierExpense(models.Model):
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     name = models.CharField(max_length=255)
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     track_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -163,6 +174,7 @@ class CashierExpense(models.Model):
         return f'{self.name} ({self.amount})'
 
 class CashierHandover(models.Model):
+    
     cashier_checking_out = models.ForeignKey(User, on_delete=models.CASCADE)
     total_sales = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     total_expenses = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)

@@ -1,7 +1,13 @@
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
 {% block content %}
-<div>
+
+<style>
+    label{
+        font-weight: bold;
+    }
+</style>
+<div class="container-fluid">
    <div class='production-plan mt-2 d-flex justify-content-between align-items-center'>
         <div>
             <a href='{% url "inventory:meal_list" %}' class='border btn bx bx-arrow-back fs-5'></a>
@@ -18,12 +24,218 @@
     </div>
     <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
+        <!--
         {{ form | crispy }}
         <div class="d-flex justify-content-end">
             <a href="{% url 'inventory:meal_list' %}" class="btn btn-secondary mx-2">Cancel</a>
             <button type="submit" class="btn btn-primary">Update Meal</button>
         </div>
+        -->
+        <p class="d-none" id="Meal_Detail">{{meal.id}}</p>
+        <div id="div_id_name" class="mb-4">
+            <label for="id_name" class="form-label requiredField">
+                    Name<span class="asteriskField">*</span>
+            </label> 
+            <input type="text" name="name" value="{{meal.name}}" maxlength="255" class="textinput form-control" required id="id_name"> 
+        </div> 
+        
+        <div id="div_id_price" class="mb-4">
+            <label for="id_price" class="form-label requiredField">
+                    Price<span class="asteriskField">*</span> 
+            </label>
+            <input type="text" name="price" value="4" maxlength="255" class="textinput form-control" required="" id="id_price"> 
+        </div>  
+        
+        <div class="row align-items-center mb-4">
+            <div class="col-5">
+                <div id="div_id_dish_select" class="mb-3"> 
+                    <label for="id_dish_select" class="form-label requiredField">
+                        Select Dishes To Make {{ meal.name }}
+                    </label>
+                    <select name="dish" class="form-control selectmultiple form-select" required id="id_dish_select" multiple>
+                        {% for dish in dishes %} 
+                            <option value="{{dish.id}}">{{dish.name}}</option>
+                        {% endfor %}
+                    </select> 
+                </div>
+            </div>
+
+            <div class="col-1 text-center">
+                <div>
+                    <button id="addDish" type="button" class="btn btn-outline-primary mt-4" disabled>
+                        →
+                    </button>
+                </div>
+
+                <div>
+                    <button id="removeDish" type="button" class="btn btn-outline-danger  mt-4" disabled>
+                        ←
+                    </button>
+                </div>
+            </div>
+
+            <div class="col-6 table-responsive">
+                <div id="div_id_dish_selected" class="mb-3"> 
+                    <label for="id_dish_selected" class="form-label requiredField">
+                        Selected Dishes To Make {{ meal.name }}
+                    </label>
+                    <select name="selected_dish" class="form-control selectmultiple form-select" id="id_dish_selected" multiple> 
+                           
+                    </select>
+                </div> 
+            </div>
+        </div>
+        
+        <div id="div_id_category" class="mb-4"> 
+            <label for="id_category" class="form-label requiredField">
+                    {{meal.name}} Found in Category
+            </label> 
+            <select name="category" class="select form-select" required="" id="id_category"> 
+                <option value="{{meal.category.id}}">{{meal.category.name}}</option>  
+                {% for category in meal_categories %}
+                        <option value="{{ category.id }}">{{category.name}}</option>
+                {% endfor %}
+            </select> 
+        </div>
+
+        <div id="div_id_image" class="mb-4"> 
+            <label for="id_image" class="form-label requiredField">
+                    Image<span class="asteriskField">*</span> 
+            </label> 
+            <div class="input-group mb-2"> 
+                <span class="input-group-text">Currently</span> 
+                <div class="form-control d-flex h-auto"> 
+                    <span class="text-break flex-grow-1"> 
+                        <a href="/media/placeholder.png">
+                            placeholder.png
+                        </a> 
+                    </span> 
+                </div>
+            </div>
+        </div>
+        
+        <div class="mb-4"> 
+            <input type="file" name="image" class="form-control" accept="image/*" id="id_image"> 
+        </div> 
+
+        <div class="d-flex justify-content-end">
+            <a href="/inventory/meal/list" class="btn btn-danger mx-2">Cancel</a>
+            <button type="submit" class="btn btn-primary">Update Meal</button>
+        </div>
     </form>
 </div>
+
+
+
+<script>
+    const idText = document.getElementById('Meal_Detail').textContent.trim();
+    const id = parseInt(idText, 10);
+    console.log(id);
+
+    sourceSelectInit = document.getElementById('id_dish_select');
+    targetSelectInit = document.getElementById('id_dish_selected');
+
+    sourceSelectInit.selectedIndex = -1;
+    targetSelectInit.selectedIndex = -1;
+
+    document.getElementById('id_dish_select').addEventListener('change', function(){
+        document.getElementById('addDish').disabled = false;
+        document.getElementById('addDish').classList.remove('btn-outline-primary');
+        document.getElementById('addDish').classList.add('btn-primary');
+
+        document.getElementById('addDish').addEventListener('click', function () {
+            const sourceSelect = document.getElementById('id_dish_select');
+            const targetSelect = document.getElementById('id_dish_selected');
+            const selectedOptions = Array.from(sourceSelect.selectedOptions);
+            
+            if (selectedOptions.length === 0) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Select a Dish to Remove'
+                });
+                return;
+            }
+
+            Array.from(sourceSelect.selectedOptions).forEach(option => {
+                
+                if (!Array.from(targetSelect.options).some(opt => opt.value === option.value)) {
+                    const newOption = document.createElement('option');
+                    newOption.value = option.value;
+                    newOption.text = option.text;
+                    targetSelect.appendChild(newOption);
+                }
+            });
+
+            // sourceSelect.selectedIndex = -1;
+        });
+    });
+
+    document.getElementById('id_dish_selected').addEventListener('change', function(){
+        document.getElementById('removeDish').disabled = false;
+        document.getElementById('removeDish').classList.remove('btn-outline-danger');
+        document.getElementById('removeDish').classList.add('btn-danger');
+
+        document.getElementById('removeDish').addEventListener('click', function () {
+            const sourceSelect = document.getElementById('id_dish_selected');
+            const selectedOptions = Array.from(sourceSelect.selectedOptions);
+            
+            if (selectedOptions.length === 0) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Select a Dish to Remove'
+                });
+                return;
+            }
+            
+            Array.from(sourceSelect.selectedOptions).forEach(option => {
+                sourceSelect.removeChild(option);
+            });
+
+            // sourceSelect.selectedIndex = -1;
+        });
+    });
+
+    document.querySelector('form').addEventListener('submit', function(event) {
+        event.preventDefault(); 
+
+        const form = event.target;
+        const formData = new FormData(form);
+
+        
+        const selectedDishes = document.getElementById('id_dish_selected');
+        Array.from(selectedDishes.options).forEach(option => {
+            formData.append('dish', option.value);  // Key must match what your Django view expects
+        });
+
+        console.log(formData);
+
+        fetch('{% url "inventory:edit_meal" "0" %}'.replace('0', id), {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.success){
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Meal updated successfully!'
+                })
+                .then(
+                    () => window.location.href = '/inventory/meal/list'
+                );
+            }else{
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Meal updated failed!',
+                    text: data.message || 'error occured during update'
+                });
+            }
+        });
+    });
+</script>
+
 {% endblock %}
  

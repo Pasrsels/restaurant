@@ -23,8 +23,8 @@
             </div>
         </div>
         <div class="row">
-            <div class="">
-                <table class="table" id="minor">
+            <div class="table-responsive">
+                <table class="table table-hover" id="minor">
                     <thead class="bg-primary">
                         <tr>
                             <th>Raw Material</th>
@@ -50,10 +50,57 @@
                             </td>
                             <td>
                                 <small>
-                                    <input type="number" class="form-control used-quantity" min="0">
+                                    <input type="number" class="form-control used-quantity" min="0" placeholder="Press 'Enter' when done">
                                 </small>
                             </td>
                             <td><small class="status-text"></small></td> 
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="bg-dark py-2 mt-4">
+                <h5 class="text-center text-light">Dish Details</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover" id="minor">
+                    <thead class="bg-primary">
+                        <tr>
+                            <th>Dish</th>
+                            <th>Ingridents</th>
+                            <th>Unit(s)/Portion</th>
+                            <th>Planned Portions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in dish_raw %}
+                        <tr data-id="{{ item.id }}"  data-raw-material="{{ item.id }}">
+                            <td class="bg-dark text-light"><small>{{ item.Name }}</small></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            {% for items in item.Ingredients %}
+                                <tr>
+                                    <td></td>
+                                    <td>
+                                        <small>
+                                            {{ items.Name}}
+                                        </small>
+                                    </td>
+                                
+                                    <td>
+                                        <small>
+                                            {{items.Quantity}}
+                                        </small>
+                                    </td>
+
+                                    <td>
+                                        <small>
+                                            {{items.Planned}}
+                                        </small>
+                                    </td>
+                                </tr>
+                            {% endfor %}
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -70,14 +117,14 @@
 <script>
     
     document.addEventListener('DOMContentLoaded', function () {
-        const inputs = document.querySelectorAll('.used-quantity');
+        const inputs_state = document.querySelectorAll('.used-quantity');
         const confirmBtn = document.getElementById('id_confirm');
 
         function validateInputs() {
             let allFilled = true;
-            inputs.forEach(input => {
+            inputs_state.forEach(input => {
                 const value = input.value.trim();
-                if (value === '' || isNaN(value) || parseFloat(value) < 0) {
+                if (!input.disabled) {
                     allFilled = false;
                 }
             });
@@ -85,16 +132,12 @@
             confirmBtn.disabled = !allFilled;
         }
 
-        // Add event listeners to all input fields
-        inputs.forEach(input => {
+        inputs_state.forEach(input => {
             input.addEventListener('input', validateInputs);
         });
 
-        // Initial check in case fields are pre-filled
         validateInputs();
-    });
-
-    document.addEventListener('DOMContentLoaded', function () {
+    
         const inputElements = document.querySelectorAll('.used-quantity');
 
         console.log(inputElements)
@@ -118,35 +161,48 @@
                         return;
                     }  {% endcomment %}
 
-                
-                    fetch("{% url 'inventory:declare_production_plan' production_plan.id %}", {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': '{{ csrf_token }}'
-                        },
-                        body: JSON.stringify({
-                            raw_material_id:rmId,
-                            production_plan_item: itemId,
-                            quantity_used: usedQuantity,
+                    const cells = tr.querySelectorAll('td');
+
+                    const actualQuantity = parseFloat(cells[2].innerText.trim());
+                    console.log({Actual:actualQuantity})
+
+                    if(usedQuantity <=  actualQuantity){
+                        fetch("{% url 'inventory:declare_production_plan' production_plan.id %}", {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': '{{ csrf_token }}'
+                            },
+                            body: JSON.stringify({
+                                raw_material_id:rmId,
+                                production_plan_item: itemId,
+                                quantity_used: usedQuantity,
+                            })
                         })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (!data.success) {
-                            Swal.fire({
-                                title: "Error",
-                                text: data.message,
-                                icon: "error"
-                            });
-                        }else{
-                            tr.querySelector('.status-text').innerText = "Declared";
-                            input.disabled = true;
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                    });
+                        .then(response => response.json())
+                        .then(data => {
+                            if (!data.success) {
+                                Swal.fire({
+                                    title: "Error",
+                                    text: data.message,
+                                    icon: "error"
+                                });
+                            }else{
+                                tr.querySelector('.status-text').innerText = "Declared";
+                                input.disabled = true;
+                                validateInputs();
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                        });
+                    }else{
+                        Swal.fire({
+                            title: "Error",
+                            text: 'Quantity used can\'t be greater than Quantity.',
+                            icon: "error"
+                        });
+                    }
                 }
             });
         });

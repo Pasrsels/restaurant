@@ -54,12 +54,12 @@
             </div>
         </div>
         <div class="row">
-            <div class="">
+            <div class="table-responsive">
                 <div class="d-flex align-items-center justify-content-between border rounded p-2 bg-dark text-light">
                     <h5 class="fw-bold">Dishes</h5>
                     <h5 class="fw-bold">Total Cost: ${{ total_cost_items }}</h5>
                 </div>
-                <table class="table" id='plan_item_table' style="width:100%;">
+                <table class="table table-hover" id='plan_item_table' style="width:100%;">
                     <thead class="bg-primary">
                         <th>Dish</th>
                         <th>Portions</th>
@@ -68,7 +68,20 @@
                     <tbody>
                         {% for item in production_plan_items  %}
                           <tr>
-                            <td><small>{{ item.dish.name }}</small></td>
+                            <td>
+                                <small>
+                                    <strong>{{ item.dish.name }}</strong>
+                                        <p>
+                                            (
+                                            {% for items in dish_ing %}
+                                                {% if item.dish.name == items.dish.name %}
+                                                    {{items.minor_raw_material.name}} => {{items.quantity}}{{items.minor_raw_material.unit.unit_name}}
+                                                {% endif %}
+                                            {% endfor %}
+                                            )
+                                        </p>
+                                </small>
+                            </td>
                             <td><small>{{ item.portions }} {{ item.raw_material.unit }}</small></td>
                             <td><small>${{ item.total_cost }}</small></td>
                           </tr>
@@ -81,7 +94,7 @@
                     <h5 class="fw-bold">Raw Materials</h5>
                 </div>
 
-                <table class="table" id="minor">
+                <table class="table table-hover" id="minor">
                     <thead class="bg-primary">
                         <tr>
                             <th>Raw Material</th>
@@ -132,7 +145,7 @@
                             {% if confirm %}
                                 <td class="text-center">
                                     {% csrf_token %}
-                                    <input type="number" class="checklist-input form-control" min="0">
+                                    <input type="number" class="checklist-input form-control" min="0" placeholder="Press enter when done">
                                 </td>
                             {% else %}
                             <td class="text-center">
@@ -206,44 +219,38 @@
 <script>
 
     document.addEventListener('DOMContentLoaded', function () {
-        const inputs = document.querySelectorAll('.checklist-input');
-        const confirmBtn = document.getElementById('confirm-btn');
+        const inputs_state = document.querySelectorAll('.checklist-input');
+        const confirmBtn_state = document.getElementById('confirm-btn');
+        const confirmUrl = confirmBtn_state.getAttribute('href');
 
-        if (confirmBtn && inputs.length > 0) {
-            const confirmUrl = confirmBtn.getAttribute('href'); // store the real link
+        function checkInputs() {
+            let allFilled = true;
 
-            function checkInputs() {
-                let allFilled = true;
-
-                inputs.forEach(input => {
-                    const value = input.value.trim();
-                    if (value === '' || isNaN(value) || parseFloat(value) < 0) {
-                        allFilled = false;
-                    }
-                });
-
-                if (allFilled) {
-                    confirmBtn.classList.remove('disabled');
-                    confirmBtn.onclick = null; // allow navigation
-                    confirmBtn.setAttribute('href', confirmUrl); // restore URL
-                } else {
-                    confirmBtn.classList.add('disabled');
-                    confirmBtn.onclick = function () { return false; }; // block navigation
-                    confirmBtn.setAttribute('href', '#'); // prevent accidental follow
+            inputs_state.forEach(input => {
+                if (!input.disabled) {
+                    allFilled = false;
                 }
-            }
-
-            inputs.forEach(input => {
-                input.addEventListener('input', checkInputs);
             });
 
-            checkInputs(); // initial validation
+            if (allFilled) {
+                confirmBtn_state.classList.remove('disabled');
+                confirmBtn_state.onclick = null; // allow navigation
+                confirmBtn_state.setAttribute('href', confirmUrl); // restore URL
+            } else {
+                confirmBtn_state.classList.add('disabled');
+                confirmBtn_state.onclick = function () { return false; };
+                confirmBtn_state.setAttribute('href', '#'); // prevent accidental follow
+            }
         }
-    });
 
-    document.addEventListener('DOMContentLoaded', function () {
+        inputs_state.forEach(input => {
+            input.addEventListener('input', checkInputs);
+        });
+
+        checkInputs(); // initial validation
+
         new DataTable('#plan_item_table');
-        new DataTable('#minor');
+        // new DataTable('#minor');
     
         document.querySelectorAll('#minor input[type="number"]').forEach(function (input) {
             input.addEventListener('keydown', function (event) {
@@ -266,63 +273,73 @@
 
                     console.log({Quantity: quantityEntered})
                     
-                    if (!isNaN(quantityEntered)) {
-                        Swal.fire({
-                            title: 'Processing Allocation',
-                            text: 'Please wait...',
-                            icon: 'info',
-                            showConfirmButton: false,
-                            timer: 1500
-                        });
+                    if (quantityEntered != null){
+                        if (!isNaN(quantityEntered)) {
+                            Swal.fire({
+                                title: 'Processing Allocation',
+                                text: 'Please wait...',
+                                icon: 'info',
+                                showConfirmButton: false,
+                                timer: 1500
+                            });
 
-                        input.classList.add('loading');
-                        input.disabled = true;
+                            input.classList.add('loading');
+                            input.disabled = true;
+                            checkInputs();
 
-                        const rawMaterialId = row.getAttribute('data-id');
-                    
-                        fetch('{% url "inventory:confirm_minor_raw"%}', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val(),
-                            },
-                            body: JSON.stringify({
-                                production_id: {{ production_plan.id }},
-                                raw_material_id: rawMaterialId,
-                                quantity: quantityEntered,
-                                PlannedQuantity: plannedQuantity,
-                                ExpectedQuantity: expectedQuantity
-                                /*csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),*/
+                            const rawMaterialId = row.getAttribute('data-id');
+                        
+                            fetch('{% url "inventory:confirm_minor_raw"%}', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val(),
+                                },
+                                body: JSON.stringify({
+                                    production_id: {{ production_plan.id }},
+                                    raw_material_id: rawMaterialId,
+                                    quantity: quantityEntered,
+                                    PlannedQuantity: plannedQuantity,
+                                    ExpectedQuantity: expectedQuantity
+                                    /*csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),*/
+                                })
                             })
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                input.classList.remove('loading');
-                                // input.disabled = true;
-                                row.style.backgroundColor = '#d3d3d3';
-                                console.log('Quantity confirmed');
-                                focusNextInput(input);
-                            } else {
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    input.classList.remove('loading');
+                                    // input.disabled = true;
+                                    checkInputs();
+                                    row.style.backgroundColor = '#d3d3d3';
+                                    console.log('Quantity confirmed');
+                                    focusNextInput(input);
+                                } else {
+                                    Swal.fire({
+                                        title: "Error",
+                                        text: data.message,
+                                        icon: "error"
+                                    });
+                                    input.disabled = false; 
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error:', error);
                                 Swal.fire({
                                     title: "Error",
-                                    text: data.message,
+                                    text: "An error occurred during the request.",
                                     icon: "error"
                                 });
-                                input.disabled = false; 
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            Swal.fire({
-                                title: "Error",
-                                text: "An error occurred during the request.",
-                                icon: "error"
+                                input.disabled = false; // Re-enable input in case of a fetch error
+                            })
+                            .finally(() => {
+                                input.classList.remove('loading');
                             });
-                            input.disabled = false; // Re-enable input in case of a fetch error
-                        })
-                        .finally(() => {
-                            input.classList.remove('loading');
+                        }
+                    }else{
+                        Swal.fire({
+                            title: "Error",
+                            text: "Allocated quantity is greater than  expected quantity",
+                            icon: "error"
                         });
                     }
                 }
@@ -335,9 +352,7 @@
                 inputs[currentIndex + 1].focus();
             }
         }
-    });
 
-    document.addEventListener("DOMContentLoaded", function () {
         const overrideButtons = document.querySelectorAll('.override-btn');
 
         overrideButtons.forEach(button => {

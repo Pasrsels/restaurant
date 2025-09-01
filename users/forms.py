@@ -1,6 +1,6 @@
 from django import forms
 from loguru import logger
-from users.models import User, Company
+from users.models import User, Company, Branch
 from django.contrib.auth.forms import UserCreationForm
 class UserRegistrationForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput)
@@ -14,8 +14,9 @@ class UserRegistrationForm(forms.ModelForm):
             'email',
             'phonenumber',
             'company',
+            # 'branch',
             'role',
-            'password'
+            'password',
         ]
 
 
@@ -30,6 +31,8 @@ class UserDetailsForm(forms.ModelForm):
             'email',
             'phonenumber',
             'role',
+            'company',
+            # 'branch'
         ]
 
 
@@ -44,12 +47,18 @@ class UserDetailsForm2(forms.ModelForm):
             'email',
             'phonenumber',
             'role',
+            # 'branch'
         ]
 
 class CompanyForm(forms.ModelForm):
     class Meta:
         model = Company
         fields = ['name', 'address']
+
+class BranchForm(forms.ModelForm):
+    class Meta:
+        model = Branch
+        fields = ['branch_name']
 
 class CustomUserCreationForm(UserCreationForm):
     first_name = forms.CharField(max_length=30)
