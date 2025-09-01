@@ -1,0 +1,330 @@
+{% load static %}
+
+<style>
+    .detail-container {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        margin: 10px;
+    }
+    
+    .detail-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #e9ecef;
+    }
+    
+    .detail-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: #2c3e50;
+        margin: 0;
+    }
+    
+    .back-btn {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        font-size: 14px;
+    }
+    
+    .back-btn:hover {
+        background: #5a6268;
+        color: white;
+        text-decoration: none;
+    }
+    
+    .summary-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 25px;
+    }
+    
+    .summary-card {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        border-left: 4px solid #007bff;
+    }
+    
+    .summary-card h4 {
+        margin: 0 0 8px 0;
+        font-size: 14px;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .summary-card .value {
+        font-size: 24px;
+        font-weight: 700;
+        color: #2c3e50;
+    }
+    
+    .summary-card .variance-positive {
+        color: #007bff;
+    }
+    
+    .summary-card .variance-negative {
+        color: #6c757d;
+    }
+    
+    .section-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #2c3e50;
+        margin: 25px 0 15px 0;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .detail-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 6px;
+        overflow: hidden;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    
+    .detail-table th {
+        background: #6c757d;
+        color: white;
+        padding: 12px 10px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .detail-table td {
+        padding: 10px;
+        border-bottom: 1px solid #e9ecef;
+        font-size: 13px;
+        vertical-align: middle;
+    }
+    
+    .detail-table tbody tr:nth-child(even) {
+        background-color: #f8f9fa;
+    }
+    
+    .detail-table tbody tr:nth-child(odd) {
+        background-color: white;
+    }
+    
+    .detail-table tbody tr:hover {
+        background-color: #e9ecef;
+        transition: background-color 0.2s ease;
+    }
+    
+    .text-center {
+        text-align: center;
+    }
+    
+    .text-right {
+        text-align: right;
+    }
+    
+    .font-weight-bold {
+        font-weight: 600;
+    }
+    
+    .text-primary {
+        color: #007bff;
+    }
+    
+    .text-muted {
+        color: #6c757d;
+    }
+</style>
+
+<div class="detail-container">
+         <!-- <div class="detail-header">
+         <div>
+             <h2 class="detail-title">Production Plan Details</h2>
+             <p class="text-muted">
+                 <strong>Plan Number:</strong> {{ plan.production_plan_number }} | 
+                 <strong>Date Created:</strong> {{ plan.date_created|date:"M d, Y" }} | 
+                 <strong>Time Created:</strong> {{ plan.time_created|time:"H:i" }}
+             </p>
+         </div>
+         <button class="back-btn" onclick="loadPage('{% url 'inventory:production_declaration_table_ajax' %}', this)">
+             <i class="fas fa-arrow-left"></i> Back to List
+         </button>
+     </div> -->
+    
+         <!-- Summary Cards -->
+     <!-- <div class="summary-cards">
+         <div class="summary-card">
+             <h4>Planned Portions</h4>
+             <div class="value">
+                 <div><strong>Total Planned:</strong></div>
+                 <div>{{ total_planned_portions }}</div>
+             </div>
+         </div>
+         <div class="summary-card">
+             <h4>Actual Portions</h4>
+             <div class="value">
+                 <div><strong>Total Actual:</strong></div>
+                 <div>{{ total_actual_portions }}</div>
+             </div>
+         </div>
+         <div class="summary-card">
+             <h4>Production Cost</h4>
+             <div class="value">
+                 <div><strong>Total Cost:</strong></div>
+                 <div>${{ total_production_cost|floatformat:2 }}</div>
+             </div>
+         </div>
+         <div class="summary-card">
+             <h4>Ingredients Cost</h4>
+             <div class="value">
+                 <div><strong>Total Ingredients:</strong></div>
+                 <div>${{ total_ingredients_cost|floatformat:2 }}</div>
+             </div>
+         </div>
+         <div class="summary-card">
+             <h4>Variance</h4>
+             <div class="value {% if variance > 0 %}variance-positive{% elif variance < 0 %}variance-negative{% endif %}">
+                 <div><strong>Total Variance:</strong></div>
+                 <div>{% if variance > 0 %}+{{ variance }}{% elif variance < 0 %}{{ variance }}{% else %}0{% endif %}</div>
+             </div>
+         </div>
+     </div> -->
+    
+    <!-- Production Items -->
+    <h3 class="section-title">Production Items</h3>
+    <div class="table-responsive">
+        <table class="detail-table">
+            <thead>
+                <tr>
+                    <th>Dish Name</th>
+                    <th class="text-center">Planned Portions</th>
+                    <th class="text-center">Actual Portions</th>
+                    <th class="text-center">Variance</th>
+                    <th class="text-right">Cost</th>
+                </tr>
+            </thead>
+            <tbody>
+                                 {% for item in plan_items %}
+                     <tr>
+                         <td class="font-weight-bold">
+                             <div><strong>Dish Name:</strong></div>
+                             <div>{% if item.dish %}{{ item.dish.name }}{% else %}Unknown Dish{% endif %}</div>
+                         </td>
+                         <td class="text-center">
+                             <div><strong>Planned Portions:</strong></div>
+                             <div>{{ item.portions|default:0 }}</div>
+                         </td>
+                         <td class="text-center">
+                             <div><strong>Actual Portions:</strong></div>
+                             <div>{{ item.actual_quantity|default:0 }}</div>
+                         </td>
+                         <td class="text-center">
+                             <div><strong>Variance:</strong></div>
+                             <div>
+                                 {% with variance=item.actual_quantity|default:0|add:0|add:"-"|add:item.portions|default:0|add:0 %}
+                                     {% if variance > 0 %}
+                                         <span class="text-primary">+{{ variance }}</span>
+                                     {% elif variance < 0 %}
+                                         <span class="text-muted">{{ variance }}</span>
+                                     {% else %}
+                                         <span class="text-muted">0</span>
+                                     {% endif %}
+                                 {% endwith %}
+                             </div>
+                         </td>
+                         <td class="text-right">
+                             <div><strong>Cost:</strong></div>
+                             <div>${{ item.total_cost|default:0|floatformat:2 }}</div>
+                         </td>
+                     </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">No production items found</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Ingredients/Raw Materials -->
+    {% if ingredients %}
+        <h3 class="section-title">Ingredients & Raw Materials</h3>
+        <div class="table-responsive">
+            <table class="detail-table">
+                <thead>
+                    <tr>
+                        <th>Ingredient Name</th>
+                        <th class="text-center">Quantity Required</th>
+                        <th class="text-center">Unit</th>
+                        <th class="text-right">Cost per Unit</th>
+                        <th class="text-right">Total Cost</th>
+                    </tr>
+                </thead>
+                <tbody>
+                                         {% for ingredient in ingredients %}
+                         <tr>
+                             <td class="font-weight-bold">
+                                 <div><strong>Ingredient Name:</strong></div>
+                                 <div>{{ ingredient.name }}</div>
+                             </td>
+                             <td class="text-center">
+                                 <div><strong>Quantity Required:</strong></div>
+                                 <div>{{ ingredient.quantity_required|floatformat:2 }}</div>
+                             </td>
+                             <td class="text-center">
+                                 <div><strong>Unit:</strong></div>
+                                 <div>{{ ingredient.unit }}</div>
+                             </td>
+                             <td class="text-right">
+                                 <div><strong>Cost per Unit:</strong></div>
+                                 <div>${{ ingredient.cost_per_unit|floatformat:2 }}</div>
+                             </td>
+                             <td class="text-right">
+                                 <div><strong>Total Cost:</strong></div>
+                                 <div>${{ ingredient.total_cost|floatformat:2 }}</div>
+                             </td>
+                         </tr>
+                     {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+    
+         <!-- Plan Status -->
+     <h3 class="section-title">Plan Status</h3>
+     <div class="summary-cards">
+         <div class="summary-card">
+             <h4>Confirmation Status</h4>
+             <div class="value {% if plan.status %}text-primary{% else %}text-muted{% endif %}">
+                 <div><strong>Status:</strong></div>
+                 <div>{% if plan.status %}Confirmed{% else %}Pending{% endif %}</div>
+             </div>
+         </div>
+         <div class="summary-card">
+             <h4>Declaration Status</h4>
+             <div class="value {% if plan.declared %}text-primary{% else %}text-muted{% endif %}">
+                 <div><strong>Status:</strong></div>
+                 <div>{% if plan.declared %}Declared{% else %}Not Declared{% endif %}</div>
+             </div>
+         </div>
+         <div class="summary-card">
+             <h4>Branch</h4>
+             <div class="value text-muted">
+                 <div><strong>Branch Name:</strong></div>
+                 <div>{{ plan.branch.branch_name }}</div>
+             </div>
+         </div>
+     </div>
+</div>

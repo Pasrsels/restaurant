@@ -1,0 +1,474 @@
+{% load static %}
+
+<!-- Production Plan Detail Dropdown - Full Width -->
+<div class="production-detail-dropdown">
+    <!-- Header Section -->
+    <div class="dropdown-header">
+        <div class="header-left">
+            <h2 class="main-title">Production Plan #{{ plan.production_plan_number }}</h2>
+            <div class="plan-meta">
+                <span class="meta-item"><strong>Date:</strong> {{ plan.date_created|date:"M d, Y" }}</span>
+                <span class="meta-item"><strong>Time:</strong> {{ plan.time_created|time:"H:i" }}</span>
+                <span class="meta-item"><strong>Branch:</strong> {{ plan.branch.branch_name }}</span>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="status-info">
+                <span class="status-badge {% if plan.status %}confirmed{% else %}pending{% endif %}">
+                    {% if plan.status %}✓ Confirmed{% else %}⏳ Pending{% endif %}
+                </span>
+                <span class="status-badge {% if plan.declared %}declared{% else %}not-declared{% endif %}">
+                    {% if plan.declared %}✓ Declared{% else %}✗ Not Declared{% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="summary-stats">
+        <div class="stat-item">
+            <div class="stat-number">{{ plan_items.count }}</div>
+            <div class="stat-label">Total Dishes</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">{{ total_planned_portions }}</div>
+            <div class="stat-label">Planned Portions</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">{{ total_actual_portions }}</div>
+            <div class="stat-label">Declared Portions</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">${{ total_production_cost|floatformat:2 }}</div>
+            <div class="stat-label">Total Cost</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number {% if variance > 0 %}positive{% elif variance < 0 %}negative{% else %}neutral{% endif %}">
+                {% if variance > 0 %}+{{ variance }}{% elif variance < 0 %}{{ variance }}{% else %}0{% endif %}
+            </div>
+            <div class="stat-label">Variance</div>
+        </div>
+    </div>
+
+                <!-- Production Tracking Table -->
+    <div class="main-content">
+            <div class="content-section">
+                    <h3 class="section-title">Production Tracking & Variance Analysis</h3>
+                <div class="data-table">
+                    <div class="table-header">
+                            <div class="header-cell">Ingredient</div>
+                            <div class="header-cell">Planned Production</div>
+                            <div class="header-cell">Expected Production</div>
+                            <div class="header-cell">Declared</div>
+                            <div class="header-cell">Actual Production</div>
+                            <div class="header-cell">Variance</div>
+                        </div>
+                        {% for material in raw_materials %}
+                    <div class="table-row">
+                            <div class="table-cell dish-name">
+                                <strong>{{ material.name }}</strong>
+                    </div>
+                            <div class="table-cell">
+                                <strong>${{ material.planned_amount|floatformat:2 }} ({{ material.quantity|floatformat:1 }})</strong>
+                </div>
+                            <div class="table-cell">
+                                <strong>${{ material.expected_amount|floatformat:2 }} ({{ material.quantity|floatformat:1 }})</strong>
+            </div>
+                            <div class="table-cell">
+                                {% if plan.declared %}
+                                    <strong>${{ material.declared_amount|floatformat:2 }} ({{ material.expected_quantity|floatformat:1 }})</strong>
+                                {% else %}
+                                    <strong>$0.00 (0)</strong>
+                                {% endif %}
+                        </div>
+                            <div class="table-cell">
+                                {% if plan.declared %}
+                                    <strong>${{ material.actual_amount|floatformat:2 }} ({{ material.expected_quantity|floatformat:1 }})</strong>
+                                {% else %}
+                                    <strong>$0.00 (0)</strong>
+            {% endif %}
+        </div>
+                            <div class="table-cell">
+                                {% if plan.declared %}
+                                    {% with production_variance=material.expected_quantity|add:0|add:"-"|add:material.quantity %}
+                                        {% if production_variance > 0 %}
+                                            <span class="variance-positive"><strong>+${{ material.variance_amount|floatformat:2 }}</strong></span> <strong>({{ production_variance|floatformat:1 }})</strong>
+                                        {% elif production_variance < 0 %}
+                                            <span class="variance-negative"><strong>${{ material.variance_amount|floatformat:2 }}</strong></span> <strong>({{ production_variance|floatformat:1 }})</strong>
+                                        {% else %}
+                                            <span class="variance-neutral"><strong>$0.00</strong></span> <strong>(0)</strong>
+                                        {% endif %}
+                                    {% endwith %}
+                                {% else %}
+                                    <span class="variance-neutral"><strong>-</strong></span>
+                                {% endif %}
+                </div>
+                    </div>
+                    {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .production-detail-dropdown {
+        width: 100%;
+        background: white;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: #000000 !important;
+        font-weight: bold !important;
+        line-height: 1.4;
+        padding: 0;
+        margin: 0;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+    
+    .production-detail-dropdown * {
+        color: #000000 !important;
+        font-weight: bold !important;
+        opacity: 1 !important;
+        text-shadow: none !important;
+        -webkit-text-fill-color: #000000 !important;
+        -webkit-text-stroke: 0 !important;
+    }
+    
+    /* Ensure maximum contrast for printing */
+    .production-detail-dropdown,
+    .production-detail-dropdown *,
+    .production-detail-dropdown h1,
+    .production-detail-dropdown h2,
+    .production-detail-dropdown h3,
+    .production-detail-dropdown h4,
+    .production-detail-dropdown h5,
+    .production-detail-dropdown h6,
+    .production-detail-dropdown p,
+    .production-detail-dropdown span,
+    .production-detail-dropdown div,
+    .production-detail-dropdown strong,
+    .production-detail-dropdown b,
+    .production-detail-dropdown em,
+    .production-detail-dropdown i,
+    .production-detail-dropdown small,
+    .production-detail-dropdown .table-cell,
+    .production-detail-dropdown .header-cell,
+    .production-detail-dropdown .section-title,
+    .production-detail-dropdown .main-title,
+    .production-detail-dropdown .stat-number,
+    .production-detail-dropdown .stat-label,
+    .production-detail-dropdown .status-badge,
+    .production-detail-dropdown .variance-positive,
+    .production-detail-dropdown .variance-negative,
+    .production-detail-dropdown .variance-neutral {
+        color: #000000 !important;
+        font-weight: bold !important;
+        opacity: 1 !important;
+        text-shadow: none !important;
+        -webkit-text-fill-color: #000000 !important;
+        -webkit-text-stroke: 0 !important;
+        filter: contrast(100%) !important;
+    }
+
+    /* Header Section */
+    .dropdown-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 15px 20px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .main-title {
+        margin: 0 0 8px 0;
+        font-size: 20px;
+        font-weight: bold;
+        color: #000000 !important;
+    }
+
+    .plan-meta {
+        display: flex;
+        gap: 20px;
+        font-size: 12px;
+    }
+
+    .meta-item {
+        color: #000000 !important;
+        font-weight: 500;
+    }
+
+    .status-info {
+        display: flex;
+        gap: 10px;
+    }
+
+    .status-badge {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: bold;
+        background: #e9ecef;
+        color: #000000 !important;
+    }
+
+    .status-badge.confirmed {
+        background: #ffffff;
+        color: #000000 !important;
+    }
+
+    .status-badge.declared {
+        background: #ffffff;
+        color: #000000 !important;
+    }
+
+    .status-badge.not-declared {
+        background: #ffffff;
+        color: #000000 !important;
+    }
+
+    /* Summary Stats */
+    .summary-stats {
+        display: flex;
+        justify-content: space-between;
+        padding: 15px 20px;
+        background: white;
+        border-bottom: 1px solid #e9ecef;
+        gap: 20px;
+    }
+
+    .stat-item {
+        text-align: center;
+        flex: 1;
+    }
+
+    .stat-number {
+        font-size: 18px;
+        font-weight: bold;
+        color: #000000 !important;
+        margin-bottom: 4px;
+    }
+
+    .stat-label {
+        font-size: 11px;
+        color: #000000 !important;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .stat-number.positive {
+        color: #000000 !important;
+    }
+
+    .stat-number.negative {
+        color: #000000 !important;
+    }
+
+    .stat-number.neutral {
+        color: #000000 !important;
+    }
+
+    /* Main Content */
+    .main-content {
+        padding: 20px;
+        background: white;
+    }
+
+    .content-section {
+        margin-bottom: 30px;
+    }
+
+    .section-title {
+        font-size: 16px;
+        font-weight: bold;
+        color: #000000 !important;
+        margin: 0 0 15px 0;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #e9ecef;
+        letter-spacing: 0.3px;
+    }
+
+    /* Data Tables */
+    .data-table {
+        width: 100%;
+        background: white;
+        border: 1px solid #e9ecef;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 20px;
+    }
+
+    .table-header {
+        display: flex;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .header-cell {
+        flex: 1;
+        padding: 12px 8px;
+        font-size: 12px;
+        font-weight: bold;
+        color: #000000 !important;
+        text-align: center;
+        border-right: 1px solid #e9ecef;
+        letter-spacing: 0.2px;
+    }
+
+    .header-cell:last-child {
+        border-right: none;
+    }
+
+    .table-row {
+        display: flex;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .table-row:last-child {
+        border-bottom: none;
+    }
+
+    .table-cell {
+        flex: 1;
+        padding: 10px 8px;
+        font-size: 12px;
+        color: #000000 !important;
+        text-align: center;
+        border-right: 1px solid #e9ecef;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 500;
+        line-height: 1.3;
+    }
+
+    .table-cell:last-child {
+        border-right: none;
+    }
+
+    .table-cell.dish-name {
+        justify-content: flex-start;
+        text-align: left;
+        background: #f8f9fa;
+    }
+
+    .table-cell strong {
+        color: #000000 !important;
+        font-weight: 700;
+    }
+
+    .table-cell small {
+        color: #000000 !important;
+        opacity: 0.8;
+        font-size: 10px;
+    }
+
+    /* Variance Indicators */
+    .variance-positive {
+        color: #000000 !important;
+        font-weight: 700;
+    }
+
+    .variance-negative {
+        color: #000000 !important;
+        font-weight: 700;
+    }
+
+    .variance-neutral {
+        color: #000000 !important;
+        font-weight: 700;
+    }
+
+    /* Summary Grid */
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-top: 20px;
+    }
+
+    .summary-card {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 15px;
+        text-align: center;
+    }
+
+    .summary-card h4 {
+        font-size: 14px;
+        font-weight: 600;
+        color: #000000 !important;
+        margin: 0 0 10px 0;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .summary-value {
+        font-size: 18px;
+        font-weight: 700;
+        color: #000000 !important;
+        margin-bottom: 5px;
+    }
+
+    .summary-value.positive {
+        color: #28a745 !important;
+    }
+
+    .summary-value.negative {
+        color: #dc3545 !important;
+    }
+
+    .summary-value.neutral {
+        color: #6c757d !important;
+    }
+
+    .summary-cost {
+        font-size: 11px;
+        color: #000000 !important;
+        opacity: 0.8;
+        font-weight: 500;
+    }
+
+    .variance-card {
+        background: #e9ecef;
+        border: 2px solid #dee2e6;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .summary-stats {
+            flex-wrap: wrap;
+        }
+        
+        .stat-item {
+            min-width: 120px;
+        }
+        
+        .plan-meta {
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .table-header,
+        .table-row {
+            flex-direction: column;
+        }
+        
+        .header-cell,
+        .table-cell {
+            border-right: none;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .header-cell:last-child,
+        .table-cell:last-child {
+            border-bottom: none;
+        }
+
+        .summary-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+

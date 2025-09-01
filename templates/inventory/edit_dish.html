@@ -51,20 +51,22 @@
                 <h5 class="mt-2 px-1 bg-secondary rounded py-1 text-light">Dish Ingredients</h5>
                 <div class="col">
                     <table class="table">
-                        <thead class="bg-primary">
-                            <th>Raw Material</th>
-                            <th>Quantity (kgs)</th>
-                            <th>Total Cost</th>
-                            <th>Action</th>
+                                                 <thead class="bg-primary">
+                             <th>Raw Material</th>
+                             <th>Quantity (kgs)</th>
+                             <th>Cost per Quantity</th>
+                             <th>Total Cost</th>
+                             <th>Action</th>
                         <tbody id="cart-items"></tbody>
-                        <tfoot>
-                            <tr>
-                                <td class='fw-bold'>Total Cost</td>
-                                <td col-span='2'></td>
-                                <td class='fw-bold' id='dish_total'>0.00</td>
-                                <td></td>
-                            </tr>
-                        </tfoot>
+                                                 <tfoot>
+                             <tr>
+                                 <td class='fw-bold'>Total Cost</td>
+                                 <td></td>
+                                 <td class='fw-bold' id='total_cost_per_portion'>0.00</td>
+                                 <td class='fw-bold' id='dish_total'>0.00</td>
+                                 <td></td>
+                             </tr>
+                         </tfoot>
                     </table>
                     <div class="d-flex justify-content-end">
                     <button class="btn border bx bx-reset mx-2" id="id_reset"></button>
@@ -316,29 +318,41 @@ $(document).ready(function() {
     });
 
     function totalCost(quantity, productCost, portionMultiplier){
-        return (quantity * productCost) / portionMultiplier
+        return (quantity * productCost)
     }
 
     function updateCartTable() {
         let total = 0
+        let totalCostPerPortion = 0
         const cartItems = $('#cart-items');
         cartItems.empty();
+        
+        // Get the selling price and portion multiplier for cost per portion calculation
+        const sellingPrice = parseFloat(document.getElementById('id_price').value) || 0;
+        const portionMultiplier = parseFloat(document.getElementById('id_portion_multiplier').value) || 1;
+        
         cart.forEach((item, index) => {
+            // Calculate cost per quantity: dish price / portion multiplier (target cost per portion)
+            const costPerQuantity = (sellingPrice / portionMultiplier).toFixed(3);
+            
             cartItems.append(
                 `
                     <tr>
                         <td><span class='mx-2'>${item.raw_material}</span></td>
                         <td><input type="number" class="form-control" value="${item.quantity}" onchange="updateQuantity(${index}, this.value)"></td>
-                        <td>${item.cost}</td>
+                        <td>$${costPerQuantity}</td>
+                        <td>$${item.cost}</td>
                         <td><button class="btn border bx bx-trash" onclick="deleteItem(${index})"></button></td>
                     </tr>
                 `
             );
             total += parseFloat(item.cost)
+            totalCostPerPortion += parseFloat(costPerQuantity)
         });
 
         dish_total = total;
         document.getElementById('dish_total').innerText = `${dish_total.toFixed(3)}`;
+        document.getElementById('total_cost_per_portion').innerText = `$${totalCostPerPortion.toFixed(3)}`;
     }
 
     window.deleteItem = function(index) {

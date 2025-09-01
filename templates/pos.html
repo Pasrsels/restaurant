@@ -2522,6 +2522,13 @@ function generateAccountantCashUp(userId) {
         // Dish selection event
         $('#id_dish').on('change', function(e) {
             const selectedProductId = e.target.value;
+            
+            // Don't make the API call if no dish is selected
+            if (!selectedProductId || selectedProductId === '') {
+                ingredientsData = []; // Clear ingredients data
+                portion_multiplier = 1; // Reset portion multiplier
+                return;
+            }
     
             const postData = {
                 csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
@@ -2542,11 +2549,14 @@ function generateAccountantCashUp(userId) {
                     ingredientsData = data.data; // Replaces previous data
                     portion_multiplier = data.portion_multiplier;
                 } else {
-                    Swal.fire({
-                        title: "Error",
-                        text: data.message,
-                        icon: "error"
-                    });
+                    // Only show error if it's not an empty selection
+                    if (selectedProductId && selectedProductId !== '') {
+                        Swal.fire({
+                            title: "Error",
+                            text: data.message,
+                            icon: "error"
+                        });
+                    }
                 }
             })
             .catch(error => {

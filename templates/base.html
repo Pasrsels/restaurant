@@ -106,7 +106,7 @@
                             <h4 class="fw-bold">
                                 {{ request.user.company.name }}
                                 <br>
-                                {% if request.user.role == 'admin' or request.user.role == 'owner' or request.user.role == 'accountant' or request.user.role == 'supervisor' or request.user.role == 'chef' %}
+                                {% if request.user.role == 'admin' or request.user.role == 'owner' or request.user.role == 'accountant' or request.user.role == 'supervisor' or request.user.role == 'chef' or request.user.role == 'stores_person' %}
                                     <span>
                                         <button class="btn btn-seconday" onclick="branchSwitch()">
                                             <i class="bx bx-git-branch"></i>
@@ -151,18 +151,14 @@
                         <div class="col-2 mt-3 d-flex justify-content-center border rounded">
                             {% include 'base/Possidebar.html' %}
                         </div>
-                        {% elif request.resolver_match.url_name == 'confirm_production_plan' or request.resolver_match.url_name == 'declare_production' %}
-                        <div class="col-2" style="background:#f8f9fa;">
-                            {% include 'base/check_list.html' %}
-                        </div>
-                        {% elif request.resolver_match.url_name != 'production_plans' %}
-                        <div class="col-2" style="background:#f8f9fa;">
+                        {% elif request.resolver_match.url_name not in 'declare_production,confirm_production_plan,production_plans,view_production_plan' %}
+                        <div class="col-2 mt-3 d-flex justify-content-center border rounded">
                             {% include 'base/side_bar.html' %}
                         </div>
                         {% endif %}
-                    
-                        <div class="col-10">
-                            <div class="app-area overflow">
+                        
+                        <div class="{% if request.resolver_match.url_name in 'view_production_plan' %}col-12 p-4{% else %}col-10{% endif %}">
+                            <div class="app-area {% if request.resolver_match.url_name not in 'view_production_plan' %}overflow{% endif %}" {% if request.resolver_match.url_name == 'view_production_plan' %}style="max-width: 1800px; margin: 0 auto;"{% endif %}>
                                 {% if messages %}
                                     {% for message in messages %}
                                         <div class="alert alert-dismissible {% if message.tags %}alert-{{ message.tags }}{% endif %}">
@@ -178,15 +174,11 @@
                                 {% block content %}{% endblock %}
                             </div>
                         </div>
-                        {% if request.resolver_match.url_name == 'confirm_production_plan' or request.resolver_match.url_name == 'declare_production' %}
-                            <div class="col-2" style="background:#f8f9fa;">
-                                {% include 'base/check_list.html' %}
-                            </div>
-                        {% endif %}
-                        {% if request.resolver_match.url_name == 'production_plans' %}
-                            <div class="col-2">
-                                {% include 'base/check_list.html' %}
-                            </div>
+                        
+                        {% if request.resolver_match.url_name == 'declare_production' or request.resolver_match.url_name == 'confirm_production_plan' or request.resolver_match.url_name == 'production_plans' %}
+                        <div class="col-2" style="background:#f8f9fa;">
+                            {% include 'base/check_list.html' %}
+                        </div>
                         {% endif %}
                     </div>
             </div>

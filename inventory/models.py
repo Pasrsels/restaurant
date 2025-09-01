@@ -141,7 +141,6 @@ class Declaration(models.Model):
     left_over = models.IntegerField(null=True)
     variance = models.FloatField(null=True)
     
-    
 
 class AllocatedRawMaterials(models.Model):
     production = models.ForeignKey(Production, on_delete=models.CASCADE)
@@ -160,7 +159,6 @@ class OverrideHistory(models.Model):
     down = models.FloatField(null=True)
 
 class ProductionInventory(models.Model):
-    # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     raw_material = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.FloatField()
     
@@ -188,7 +186,6 @@ class Dish(models.Model):
         return self.name
 
 class Ingredient(models.Model):
-    # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     dish = models.ForeignKey(Dish, on_delete=models.CASCADE, null=True)
     note = models.CharField(max_length=100, null=True)
     quantity = models.FloatField()
@@ -218,7 +215,6 @@ class Meal(models.Model):
         return self.name
 
 class LeftOvers(models.Model):
-    # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     cashier = models.ForeignKey(User, on_delete=models.CASCADE)
     dish = models.ForeignKey(Dish, on_delete= models.CASCADE, null=True)
     product = models.ForeignKey(Product, on_delete= models.CASCADE, null= True)
@@ -321,8 +317,7 @@ class Logs(models.Model):
         ('deactivated', 'deactivated'),
         ('removed', 'removed')
     ]
-
-    # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
+    
     sale = models.ForeignKey('finance.sale', on_delete=models.CASCADE, null=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True)
     user = models.ForeignKey('users.User', on_delete=models.SET_NULL, null=True)
@@ -334,7 +329,6 @@ class Logs(models.Model):
     description = models.CharField(max_length=255, null=True)
     
 class MinorRawMaterials(models.Model):
-    # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     raw_material = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.FloatField()
     quantity_left = models.FloatField()
@@ -367,7 +361,6 @@ class EndOfDayItems(models.Model):
         return f'{self.end_of_day.date}: {self.dish_name}'
     
 class Reorder(models.Model):
-    # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     ordered = models.BooleanField(default=False)
     approx_days = models.FloatField()
@@ -417,7 +410,6 @@ class ProductionLogs(models.Model):
         ('to production', 'to production'),
     ]
     
-    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     product = models.ForeignKey(ProductionRawMaterials, on_delete=models.CASCADE)
     user = models.ForeignKey('users.User', on_delete=models.SET_NULL, null=True)
     action = models.CharField(max_length=20, choices=ACTION_CHOICES)
