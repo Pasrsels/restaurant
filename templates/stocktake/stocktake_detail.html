@@ -1,0 +1,768 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block content %}
+
+<style>
+    :root {
+    --primary: #11998e;
+    --primary-no-gradient: #11998e;
+    --primary-dark: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+    --secondary: orange;
+    --accent: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    --success: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    --warning: linear-gradient(135deg, #fce38a 0%, #f38181 100%);
+    --danger: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+    --dark: #1a1a2e;
+    --dark-alt: #16213e;
+    --text-light: rgba(228, 230, 234, 1);
+    --text-dark: black;
+    --text-muted: black;
+    --glass: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 8px 6px rgba(0, 0, 0, 0.12);
+    --border-radius: 16px;
+    --border-radius-sm: 8px;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --m-bottom: 20px;
+}
+
+.header-btn {
+    padding: 8px 16px;
+    border-radius: var(--border-radius-sm);
+    background: var(--primary-no-gradient);
+    border: 1px solid var(--glass-border);
+    color: var(--text-light);
+    text-decoration: none;
+    transition: var(--transition);
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.header-btn:hover {
+    background: var(--primary);
+    transform: translateY(-1px);
+}
+
+.search-container {
+    position: relative;
+    margin-bottom: 10px;
+}
+
+.search-input {
+    width: 100%;
+    padding: 15px 50px 15px 20px;
+    border-radius: var(--border-radius);
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    color: var(--text-dark);
+    font-size: 16px;
+    transition: var(--transition);
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: rgba(102, 126, 234, 0.5);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.search-input::placeholder {
+    color: var(--text-dark);
+}
+
+.search-icon {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-dark);
+    }
+ .background{
+    background: var(--primary);
+  }
+ .modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.header-btn {
+    padding: 8px 16px;
+    border-radius: var(--border-radius-sm);
+    background: var(--primary-no-gradient);
+    border: 1px solid var(--glass-border);
+    color: var(--text-light);
+    text-decoration: none;
+    transition: var(--transition);
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.header-btn:hover {
+    background: var(--primary);
+    transform: translateY(-1px);
+}
+
+.modal-content {
+    position: relative;
+    background: white;
+    margin: 15% auto;
+    padding: 20px;
+    width: 80%;
+    max-width: 100%;
+    border-radius: var(--border-radius);
+}
+
+.close-modal {
+    position: absolute;
+    right: 20px;
+    top: 10px;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.header-btn {
+    padding: 8px 16px;
+    border-radius: var(--border-radius-sm);
+    background: var(--primary-no-gradient);
+    border: 1px solid var(--glass-border);
+    color: var(--text-light);
+    text-decoration: none;
+    transition: var(--transition);
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.header-btn:hover {
+    background: var(--primary);
+    transform: translateY(-1px);
+}
+.modal-xl-custom {
+    max-width: 90vw;
+    width: 100%;
+}
+.col-12 {
+     width: 100%;
+    max-width: 100%;
+}
+</style>
+
+<div class="stocktake">
+    <div class="d-flex align-items-center justify-content-between">
+        <div>
+            <h4 class="px-1">Stocktake #{{ stocktake.id }}</h4>
+            <p>Process and Detail view</p>
+        </div>
+        <div class="d-flex gap-2">
+            <i class="bx bx-filter header-btn" onclick="showFilterModal()" id="filter"></i>
+            <button class="header-btn" onclick="printStockSheet()" title="Print Stocktake">
+                <i class="bx bx-printer"></i> Print Sheet
+            </button>
+            <button class="header-btn" onclick="adjustStocktake()" title="Adjust Stocktake">
+                <i class="bx bx-edit"></i> Adjust Stocktake
+            </button>
+        </div>
+        
+    </div>
+
+    <div class="search-container border mt-2 ">
+        <input type="text" class="search-input" placeholder="Search products..." id="stocktake-search">
+        <i class="fas fa-search search-icon"></i>
+    </div>
+
+    <div id="print-section">
+        <table class="table w-100 table-borderless table-hover" id="stocktake_table" style="width: 100%;">
+            <thead class="background">
+                <th>#</th>
+                <th>Product</th>
+                <th>System Quantity</th>
+                <th>Physical Quantity</th>
+                <th>Quantity Difference</th>
+                <th>Quantity Difference Value</th>
+                <th>Note</th>
+                {% if not stocktake.status %}<th>Actions</th>{% endif %}
+            </thead>
+            <tbody>
+                {% for product in stocktake_items %}
+                    <tr>
+                        <td><small>{{ forloop.counter }}</small></td>
+                        <td>
+                            <small>
+                                {{ product.product.name }}
+                            </small>
+                        </td>
+                        <td>
+                            <small id="id_quantity_{{ product.id }}">
+                                {{ product.actual_quantity }}
+                            </small>
+                        </td>
+                        <td>
+                            {% if not stocktake.status %}
+                                <input
+                                    value="{{ product.recorded_quantity }}"
+                                    id="p_quantity_{{ product.id }}"
+                                    class="form-control form-control-sm"
+                                    type="number"
+                                    onkeydown="if(event.key === 'Enter'){ handleQuantityChange(this.value, {{ product.product.quantity }}, {{ product.product.cost }}, {{ product.id }}) }"
+                                >
+                            {% else %}
+                                <small>{{ product.quantity }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if product.variance < 0 %}
+                                <small class="text-danger" id="id_diff_{{ product.id }}">{{ product.variance }}</small>
+                            {% else %}
+                                <small class="text-success" id="id_diff_{{ product.id }}">{{ product.variance }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small id="id_cost_diff_{{ product.id }}">{{ product.cost }}</small>
+                        </td>
+                        <td>
+                            <small id="id_description_{{ product.id }}">{{product.note }}</small>
+                        </td>
+                        {% if not stocktake.status %}
+                            <td id="action_{{ product.id }}">
+                                <button class="bx bx-info-circle text-primary btn btn-primary-sm bg-primary-subtle border-0" style="cursor: pointer;" onclick="getProductDetail({{ product.product.id }})"></button>
+                                {% if product.success %}
+                                    <span class='bg-success bg-success-subtle rounded p-2'>success</span>
+                                    <button class="header-btn" onclick="undoAccept({{ product.id }})">undo</button>
+                                {% elif product.variance == 0 and product.success %}
+                                    <span class='bg-success bg-success-subtle rounded p-2'>success</span>
+                                    <button class="header-btn" onclick="undoAccept({{ product.id }})">undo</button>
+                                {% elif product.accept_variance == False and product.success == False %}
+                                    <button class="header-btn" onclick="showAccpetModal({{ product.id }})" id="accept-btn">Accept</button>
+                                {% endif %}
+                            </td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="modal fade" id="acceptModal" tabindex="-1" aria-labelledby="acceptModal" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="acceptCashUpModalLabel">Variance Note</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="acceptStock">
+                        <div class="mb-3">
+                            <label class="form-label">Notes</label>
+                            <textarea class="form-control" id="notes" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="acceptStockTake()">Accept</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="floating-button d-flex justify-content-end">
+        {% if not stocktake.status %}
+            <a onclick="confirmStockTake()" class="header-btn text-center w-100" id="confirmStocktake"  disabled>
+                Confirm Stocktake
+            </a>
+        {% endif %}
+    </div>
+
+     <!-- Inventory Detail Modal -->
+    <div class="modal fade" id="inventoryDetailModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl-custom modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Inventory Detail</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="inventory-detail-container">
+                    <div class="text-center">Loading...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="filterModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Filter Options</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body" id="inventory-detail-container">
+                    <button class="border p-3 rounded-4 btn w-100 mb-2" onclick="pdf('all', {{ stocktake.id }})">All</button>
+                    <button class="border p-3 rounded-4 mb-2 btn w-100" onclick="pdf('negative', {{ stocktake.id }})" data-name="negative">Negative</button>
+                    <button class="border p-3 rounded-4 btn mb-2 w-100" onclick="pdf('positive', { stocktake.id }})">Positive</button>
+                    <button class="border p-3 rounded-4 mb-2 btn w-100" onclick="pdf('product', {{ stocktake.id }})">By product</button>
+                    <button class="border p-3 rounded-4 btn w-100"  onclick="pdf('category', {{ stocktake.id }})">By Category</button>
+                </div>
+
+                <div class="d-none">
+                    <select name="by_products" id="products">
+                        {% for product in products %}
+                            <option value="product">{{ product }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    let stocktakeItemId = '';
+    let stockItemId = '';
+    const acceptBtn = document.querySelectorAll('#accept-btn');
+    const acceptModal = new bootstrap.Modal(document.getElementById('acceptModal'));
+    const filterButton = document.getElementById('filter')
+    const filterModal = new bootstrap.Modal(document.getElementById('filterModal'))
+
+    new SlimSelect({
+        select: '#assignToEmployee',
+        placeholder: 'Select Employee'
+    })
+
+    filterButton.addEventListener('click', ()=>{
+        filterModal.show()
+    })
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const diagramContainer = document.querySelector('.col-12');
+        
+        if (diagramContainer) {
+            console.log(diagramContainer)
+            diagramContainer.classList.remove('col-12');
+        }
+    });
+
+    $(document).ready(function() {
+        $('#stocktake_table').DataTable({
+            searching: false,   
+            paging: false,     
+            info: false,        
+            ordering: true  
+        });
+    });
+
+    document.getElementById("stocktake-search").addEventListener("keyup", function () {
+        const input = this.value.toLowerCase();
+        const rows = document.querySelectorAll("#stocktake_table tbody tr");
+
+        rows.forEach(function (row) {
+            const text = row.textContent.toLowerCase();
+            if (text.includes(input)) {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
+        });
+    });
+
+    function showAccpetModal(id){
+        console.log(id)
+        stockItemId = id;
+        stocktakeItemId = id;
+        acceptModal.show()
+    }
+
+
+function adjustStocktake() {
+    Swal.fire({
+        title: 'Adjust Stock Quantity',
+        text: 'This will adjust the stock quantity for all products in this stocktake.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Adjust',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch('/inventory/adjust_stocktake_quantity/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ stocktake_id: "{{ stocktake.id }}" })  
+            })
+            .then(response => {
+                if (!response.ok) throw new Error("Network response was not ok");
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Stock Quantity Adjusted',
+                        text: 'The stock quantity has been adjusted successfully.',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    location.reload();
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message || 'Failed to adjust stock quantity.'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'An error occurred while processing your request.'
+                });
+            });
+        }
+    });
+}
+
+
+    function pdf(type) {
+        console.log('type', type)
+        fetch('/inventory/stocktake_pdf/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ type: type, stocktake_id: {{ stocktake.id }} })
+        })
+        .then(response => {
+            if (!response.ok) throw new Error("Network response was not ok");
+            return response.blob();
+        })
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "stocktake_report.pdf";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        })
+        .catch(error => {
+            console.error('PDF download error:', error);
+        });
+    }
+
+    function undoAccept(product_id) {
+        fetch('/inventory/stocktake/undo/recording/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ stocktake_id: product_id })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Toastify({
+                    text: "Undo successful",
+                    duration: 3000,
+                    gravity: "top", 
+                    position: "right", 
+                    backgroundColor: "#4CAF50", 
+                    close: true
+                }).showToast();
+
+                document.getElementById(`action_${data.product_id}`).style.display="none";
+            } else {
+                Toastify({
+                    text: "Undo failed: " + (data.message || "Unknown error"),
+                    duration: 3000,
+                    gravity: "top",
+                    position: "right",
+                    backgroundColor: "#f44336", 
+                    close: true
+                }).showToast();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Toastify({
+                text: "An error occurred. Please try again.",
+                duration: 3000,
+                gravity: "top",
+                position: "right",
+                backgroundColor: "#ff9800", 
+                close: true
+            }).showToast();
+        });
+    }
+
+
+
+    function getProductDetail(id) {
+        const modalBody = document.getElementById('inventory-detail-container');
+        modalBody.innerHTML = '<div class="text-center">Loading...</div>';
+
+        fetch(`/inventory/stocktake/detail/${id}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ inventory_id: id })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log(data)
+                modalBody.innerHTML = data.html;
+            } else {
+                modalBody.innerHTML = `<div class="text-danger">${data.message}</div>`;
+            }
+            const modal = new bootstrap.Modal(document.getElementById('inventoryDetailModal'));
+            modal.show();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            modalBody.innerHTML = `<div class="text-danger">Something went wrong.</div>`;
+            const modal = new bootstrap.Modal(document.getElementById('inventoryDetailModal'));
+            modal.show();
+        });
+    }
+
+
+    async function confirmStockTake(){
+        try {
+            Swal.fire({
+                title: 'Processing',
+                text: 'Please wait while Stocktake is being confirmed...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            const response = await fetch(`/inventory/confirm_stocktake/{{ stocktake.id }}`, {
+                method: 'GET',
+            });
+           
+            const data = await response.json();
+            if (response.ok && data.success) {    
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Stocktake Confirmation',
+                    text: 'Stocktake Successfully Confirmed.',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: data.message || 'Failed to confirm Stocktake.'
+                });
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'An error occurred while processing your request.'
+            });
+            console.error('Error:', error);
+        }
+    }
+
+    async function acceptStockTake(){
+        try {
+            Swal.fire({
+                title: 'Processing',
+                text: 'Please wait while the quantity is being updated...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            const response = await fetch(`{% url "inventory:accept_variance" %}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')  
+                },
+                body: JSON.stringify({
+                    item_id:stocktakeItemId,
+                    note: document.getElementById('notes').value,
+                })
+            });
+           
+            const data = await response.json();
+            if (response.ok && data.success) {
+                const action = document.querySelector(`#action_${stocktakeItemId}`);
+                const quantityEl = document.querySelector(`#id_quantity_${stocktakeItemId}`);
+                const descriptionEl = document.getElementById(`id_description_${stocktakeItemId}`);
+        
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Quantity Updated',
+                    text: 'The quantity saved successfully.',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                
+                quantityEl.textContent = data.quantity;
+                descriptionEl.textContent =  document.getElementById('notes').value;
+                action.innerHTML = `
+                    <span class='bg-success bg-success-subtle rounded p-2'>success</span>
+                `;
+                acceptModal.hide()
+
+                document.getElementById(`action_${stocktakeItemId}`).style.display="block";
+                console.log(document.getElementById(`action_${stocktakeItemId}`))
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: data.message || 'Failed to update the quantity.'
+                });
+            }
+
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'An error occurred while processing your request.'
+            });
+            console.error('Error:', error);
+        }
+    }
+
+    function updateDifference(systemQty, cost, productId) {
+        const physicalQtyInput = document.getElementById(`p_quantity_${productId}`);
+        const diffCell = document.getElementById(`id_diff_${productId}`);
+        const costDiffCell = document.getElementById(`id_cost_diff_${productId}`);
+
+        const physicalQty = physicalQtyInput.value ? parseFloat(physicalQtyInput.value) : 0;
+        const difference = physicalQty - systemQty;
+        const costDifference = difference * cost;
+
+        diffCell.textContent = difference.toFixed(2);
+        costDiffCell.textContent = costDifference.toFixed(2);
+
+        const action = document.querySelector(`#action_${productId}`);
+        if( difference !== 0 ){
+            action.innerHTML = `
+                <button class="header-btn" onclick="showAccpetModal(${productId})" id="accept-btn">Accept</button>
+            `
+        }else{
+            action.innerHTML = `
+                <span class='bg-success bg-success-subtle rounded p-2'>success</span>
+            `
+        }
+    }
+
+    function printStockSheet() {
+        const originalContent = document.body.innerHTML;
+
+        const printSection = document.getElementById('print-section').innerHTML;
+        const heading = document.createElement('h5')
+
+        heading.classList.add('text-center')
+        heading.classList.add('m-3')
+
+        document.body.appendChild(heading)
+        document.body.innerHTML = printSection;
+
+        window.print();
+
+        document.body.innerHTML = originalContent;
+        location.reload();
+    }
+
+    function handleQuantityChange(newQuantity, systemQty, cost, productId, stocktakeId) {
+   
+        updateDifference(systemQty, cost, productId);
+
+        postQuantity(newQuantity, productId, stocktakeId);
+    }
+
+    async function postQuantity(newQuantity, productId, stocktakeId) {
+        console.log(newQuantity)
+        try {
+            Swal.fire({
+                title: 'Processing',
+                text: 'Please wait while the quantity is being updated...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            const response = await fetch(`{% url "inventory:record_stock_take" %}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')  
+                },
+                body: JSON.stringify({
+                    quantity: newQuantity,
+                    product_id: productId,
+                    stocktake_id: {{ stocktake.id }}
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                let result = data
+                console.log(result)
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Quantity Updated',
+                    text: 'The quantity saved successfully.',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                const differenceCell = document.getElementById(`id_diff_${result.item_id}`);
+                console.log(`id_diff_${result.item_id}`)
+                differenceCell.textContent = result.difference;
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: data.message || 'Failed to update the quantity.'
+                });
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'An error occurred while processing your request.'
+            });
+            console.error('Error:', error);
+        }
+    }
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== "") {
+        const cookies = document.cookie.split(";");
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === name + "=") {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+            }
+        }
+        }
+        return cookieValue;
+    }  
+</script>
+{% endblock content %}

@@ -57,7 +57,8 @@ from . forms import (
     DishForm, 
     IngredientForm,
     TransferForm,
-    CreateBudgetItemForm
+    CreateBudgetItemForm,
+    CreateStockTakeForm
 )
 
 from utils.supplier_best_price import best_price
@@ -1030,14 +1031,14 @@ def create_production_plan(request):
         production_plan = None
 
         if auto_confirm:
-                if data.get('id'):
-                    production_plan = Production.objects.get(id = data.get('id'), branch=request.user.branch)
+            if data.get('id'):
+                production_plan = Production.objects.get(id = data.get('id'), branch=request.user.branch)
+            else:
+                production_latest = Production.objects.filter(date_created = datetime.date.today(), branch=request.user.branch).order_by('-time_created').first()
+                if production_latest:
+                    production_plan = production_latest
                 else:
-                    production_latest = Production.objects.filter(date_created = datetime.date.today(), branch=request.user.branch).order_by('-time_created').first()
-                    if production_latest:
-                        production_plan = production_latest
-                    else:
-                        return JsonResponse({'success': False, 'message': 'No production Plan for Today.'}, status=400)
+                    return JsonResponse({'success': False, 'message': 'No production Plan for Today.'}, status=400)
         else:
             # Create a new production plan
             production_plan = Production.objects.create(status=False, declared=False, branch=request.user.branch)
@@ -1112,9 +1113,6 @@ def create_production_plan(request):
         if production_items_update:
             ProductionItems.objects.bulk_update(production_items_update, ['portions', 'total_cost', 'allocated'])
 
-
-
-
         today = datetime.datetime.today()
         existing_checklists = set(CheckList.objects.filter(date=today, product__in=raw_materials_to_checklist, product__branch=request.user.branch)
                                   .values_list('product_id', flat=True))
@@ -1128,10 +1126,42 @@ def create_production_plan(request):
 
         send_production_creation_notification(production_plan.id)
         logger.info(data)
+        
         auto_confirm = data.get('auto', '')
         if auto_confirm:
-            # call task to declare production plan
             autoConfirmProdPlan(production_plan.id)
+            
+        #create e_o_d
+        e_o_d, created = EndOfDay.objects.get_or_create(date=today, branch=request.user.branch, done=False)
+        
+        if created:
+            
+            logger.info(f'End of day created: {e_o_d}')
+            
+            for dish in production_items:
+                EndOfDayItems.objects.create(
+                    end_of_day=e_o_d,
+                    dish_name=dish.dish.name,
+                    total_portions=dish.portions,
+                    total_sold=0,
+                    staff_portions=0
+                )
+        else:
+            existing_items = EndOfDayItems.objects.filter(end_of_day=e_o_d).values_list('dish_name', flat=True)
+            
+            logger.info(f'Existing End of day')
+            
+            for dish in production_items:
+                if dish.dish.name not in existing_items:
+                    EndOfDayItems.objects.create(
+                    end_of_day=e_o_d,
+                    dish_name=dish.dish.name,
+                    total_portions=dish.portions,
+                    total_sold=0,
+                    staff_portions=0
+                )
+                    
+                logger.success(f'Added new dish to End of Day: {dish.dish.name}')
 
         return JsonResponse(
             {
@@ -1846,6 +1876,7 @@ def new_declare_production(request, pp_id):
             
             allocated_raw_material_total_cost = 0
             allocated_raw_material_total_qnty = 0
+            
             for items in allocated_raw_materials:
                 allocated_raw_material_total_cost += items['cost']
                 allocated_raw_material_total_qnty += items['quantity']
@@ -1873,6 +1904,7 @@ def new_declare_production(request, pp_id):
             'all_r_m_cost':allocated_raw_material_total_cost,
             'all_r_m_qnty':allocated_raw_material_total_qnty,
         })
+        
     elif request.method == 'POST':
         data = json.loads(request.body)
 
@@ -1897,12 +1929,27 @@ def new_declare_production(request, pp_id):
                     'ingridient_name': ingridient.minor_raw_material.name,
                     'ingridient_qnty': round(declared_total_qnty, 3)
                 })
+                
+            productiont = Production.objects.get(id=pp_id, branch=request.user.branch)
+            production_item = ProductionItems.objects.get(production=productiont, dish__name=dish_name)
+            
+            logger.info(f'production {production_item.planned_portions}')
 
-
+            # update eod_item
+            eod, created = EndOfDay.objects.get_or_create(date=datetime.datetime.now(), branch=request.user.branch, done=False)
+            eod_item = EndOfDayItems.objects.filter(end_of_day=eod, dish_name=dish_name).first()
+            eod_item.declared = float(portions)
+            eod_item.expected = production_item.portions
+            logger.info(f'Planned portitions: {production_item.portions}')
+            eod_item.save()
+            
+            logger.success(f'Successfully updated EOD item for dish: {dish_name} with declared portions: {portions}')
+            
             return JsonResponse({'success':True, 'ingridient': ingridient_list}, status = 200)
         except Exception as e:
-            logger.info(f'Error: {e}')
+            logger.error(f'Error: {e}')
             return JsonResponse({'success': False}, status= 400)
+        
     elif request.method == 'PUT':
         try:
             data = json.loads(request.body)
@@ -1959,7 +2006,6 @@ def new_declare_production(request, pp_id):
                         product=p_rm,
                         quantity=p_rm.quantity,
                         total_quantity=p_rm.quantity,
-                        branch=request.user.branch
                     )
                     p_rm.save()
             
@@ -1969,9 +2015,7 @@ def new_declare_production(request, pp_id):
                 total_cost = production_plan_items.aggregate(total_cost=Sum('total_cost'))['total_cost'] or 0
             except Production.DoesNotExist:
                 return JsonResponse({'success':False, 'message':f'Production with ID: {pp_id}, doesn\'t exists'})
-            logger.info({
-                'Total_cost': total_cost
-            })
+      
             declaration_flag = True
             with transaction.atomic():
                 COGS.objects.create(
@@ -2019,7 +2063,7 @@ def new_declare_production(request, pp_id):
 
             return JsonResponse({'success': True})
         except Exception as e:
-            logger.info(f'Error: {e}')
+            logger.error(f'Error: {e}')
             return JsonResponse({'success':False})
 
 
@@ -2867,7 +2911,9 @@ def end_of_day_view_json(request):
             total_sold=Sum('portions_sold'),
             total_staff_portions=Sum('staff_portions')
         )
+        
         logger.info(productions_today)
+        
         production_data = []
         for items in productions_today:
             production_data.append(
@@ -2887,184 +2933,171 @@ def end_of_day_view_json(request):
 @login_required
 def end_of_day_view(request):
     if request.method == 'GET':
-        today = localdate()
-        
-        try:
-            e_o_d = EndOfDay.objects.get(date=today, branch = request.user.branch)
-        except EndOfDay.DoesNotExist:
-            e_o_d = None
+        today = datetime.date.today()
+        branch = request.user.branch
 
-        productions_today = Production.objects.filter(date_created=today, declared=True, branch = request.user.branch)
-        production_items_today = ProductionItems.objects.filter(production__in=productions_today, end_of_day_status = False)
-
-        productions_today = production_items_today.values('dish__name').annotate(
-            total_portions=Sum('portions'),
-            total_sold=Sum('portions_sold'),
-            total_staff_portions=Sum('staff_portions')
+        sales_qs = SaleItem.objects.filter(
+            sale__void=False,
+            sale__date=today,
+            sale__branch=branch
         )
-        logger.info(productions_today)
-        # sales_data = SaleItem.objects.filter(sale__date = datetime.datetime.today())
+        staff_sales_qs = sales_qs.filter(sale__staff=True)
 
+        dish_sales_map = {}
+        staff_portions_map = {}
 
-        sales_items = SaleItem.objects.filter(sale__void=False, sale__date=datetime.datetime.today(), sale__branch = request.user.branch)
-        sales_portions_list = []
-        staff_meals_portions_list = []
+        for item in sales_qs:
+            if item.meal:
+                for dish in item.meal.dish.all():
+                    dish_sales_map[dish.name] = dish_sales_map.get(dish.name, 0) + (item.quantity or 0)
+            else:
+                name = item.dish.name if item.dish else item.product.name
+                dish_sales_map[name] = dish_sales_map.get(name, 0) + (item.quantity or 0)
 
-        for items in sales_items:
-            name = items.dish.name if items.dish else items.product.name if items.product else items.meal.dish.all() if items.meal else None
-            if name:
-                if items.meal:
-                    for dish in name:
-                        found = False
-                        for entry in sales_portions_list:
-                            if entry['Name'] == dish.name:
-                                if entry['Name'] == name:
-                                    entry['Quantity'] += items.quantity if not items.sale.staff else entry['Quantity']
-                                    entry['Price'] = items.price
-                                    entry['Staff_quantity'] += items.quantity if items.sale.staff else entry['Staff_quantity'],
-                                    entry['Total'] = (Decimal(entry['Quantity']) * Decimal(entry['Price']))
-                                    found = True
-                                    break
+        for item in staff_sales_qs:
+            if item.meal:
+                for dish in item.meal.dish.all():
+                    staff_portions_map[dish.name] = staff_portions_map.get(dish.name, 0) + (item.quantity or 0)
+            else:
+                name = item.dish.name if item.dish else item.product.name
+                staff_portions_map[name] = staff_portions_map.get(name, 0) + (item.quantity or 0)
 
-                        if not found:
-                            sales_portions_list.append({
-                                'Name': dish.name, 
-                                'Quantity': items.quantity if not items.sale.staff else 0,
-                                'Staff_quantity': items.quantity if items.sale.staff else 0,
-                                'Price': items.price, 
-                                'Total': (Decimal(items.quantity) * Decimal(items.price))
-                            })     
-                else:
-                    found = False
-                    for entry in sales_portions_list:
-                        if entry['Name'] == name:
-                            if entry['Name'] == name:
-                                entry['Quantity'] += items.quantity
-                                entry['Staff_quantity'] += items.quantity if items.sale.staff else entry['Staff_quantity']
-                                entry['Price'] = items.price
-                                entry['Total'] = (Decimal(entry['Quantity']) * Decimal(entry['Price']))
-                                found = True
-                                break
-                        
-                    if not found:
-                        sales_portions_list.append({
-                            'Name': name, 
-                            'Quantity': items.quantity if not items.sale.staff else 0,
-                            'Staff_quantity': items.quantity if items.sale.staff else 0,
-                            'Price': items.price, 
-                            'Total': (Decimal(items.quantity) * Decimal(items.price))
-                        })  
+        all_names = set(dish_sales_map.keys()) | set(staff_portions_map.keys())
 
-        production_data = sales_portions_list
+        production_today = []
+        for name in all_names:
+            production_today.append({
+                'sold': name,
+                'total_portions': dish_sales_map.get(name, 0),
+                'total_sold': dish_sales_map.get(name, 0),
+                'total_staff_portions': staff_portions_map.get(name, 0),
+            })
 
-        logger.info(productions_today)
-        logger.info(production_data)
-       
+        e_o_d, created = EndOfDay.objects.get_or_create(
+            date=today,
+            branch=branch,
+            done=False
+        )
+
+        existing_items = EndOfDayItems.objects.filter(end_of_day=e_o_d).values_list('dish_name', flat=True)
+
+        for dish in production_today:
+            if dish['sold'] not in existing_items:
+                logger.info(f'staff portions: {dish['total_staff_portions']}')
+                EndOfDayItems.objects.create(
+                    end_of_day=e_o_d,
+                    dish_name=dish['sold'],
+                    total_portions=dish['total_portions'] or 0,
+                    total_sold=dish['total_sold'],
+                    staff_portions=dish['total_staff_portions'],
+                )
+            else:
+                logger.info(f'staff portions: {dish['total_staff_portions']}')
+                logger.info(f'sold portions: {dish['total_sold']}')
+                EndOfDayItems.objects.filter(end_of_day=e_o_d, dish_name=dish['sold']).update(
+                    total_portions=dish['total_portions'] or 0,
+                    total_sold=dish['total_sold'],
+                    staff_portions=dish['total_staff_portions'],
+                )
+
+        eod_list = EndOfDayItems.objects.filter(end_of_day=e_o_d)
+        
+        
+        for a in eod_list:
+            print(a.dish_name, 'portions ->', a.total_portions, 'sold_', a.total_sold, 'staff_p', a.staff_portions, 'staff_wastage', a.wastage, 'leftovers', a.leftovers, a.expected, a.declared, a.servers_variance)
+
         return render(request, 'end_of_day.html', {
             'date': today,
-            'production_today': productions_today
+            'production_today': eod_list,
         })
-
     
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            dish_name = data.get('dish_name')
-            total_portions = data.get('total_portions')
-            staff_portions = data.get('total_staff_portions')
-            wastage = data.get('wastage')
-            leftovers = data.get('leftovers')
-            total_portions_sold = data.get('sold_portions')
+            sold_name = data.get('sold')
+            wastage = float(data.get('wastage', 0))
+            leftovers = float(data.get('leftovers', 0))
             
-            
-            # production_item = ProductionItems.objects.get(dish__name=dish_name, date=request.POST.get('date'))
-            logger.info(f'{total_portions_sold} {staff_portions}')
-            expected = total_portions - (total_portions_sold + staff_portions + wastage + leftovers)
-            
-            with transaction.atomic():
-                e_o_d, _ = EndOfDay.objects.get_or_create(
-                    date=datetime.datetime.today(),
-                    done = False,
-                    branch = request.user.branch
-                )
-                
-                e_o_d_obj = EndOfDayItems.objects.create(
-                    end_of_day = e_o_d,
-                    dish_name = data.get('dish_name'),
-                    total_portions = data.get('total_portions'),
-                    staff_portions = data.get('total_staff_portions'),
-                    wastage = data.get('wastage'),
-                    leftovers = data.get('leftovers'),
-                    total_sold = total_portions_sold,
-                    expected = expected
-                )
+            logger.info(data)
 
-                production_plan = Production.objects.filter(date_created=datetime.date.today(), branch = request.user.branch)
-                dish_info = Dish.objects.get(name=dish_name)
+            today = datetime.date.today()
+            branch = request.user.branch
+            e_o_d, _ = EndOfDay.objects.get_or_create(date=today, branch=branch, done=False)
 
-                for production in production_plan:
-                    production_items = ProductionItems.objects.filter(production=production, dish=dish_info)
-                    production_items.update(end_of_day_status=True)
-                dish = Dish.objects.get(name=dish_name)
-                
-                ingredient_with_max_quantity = Ingredient.objects.filter(minor_raw_material__branch = request.user.branch).order_by('-quantity').first()
-                
-                if ingredient_with_max_quantity:
-                    logger.info(f"The ingredient with the greatest quantity is: {ingredient_with_max_quantity.minor_raw_material}")
-                    kgs_left = e_o_d_obj.leftovers / dish.portion_multiplier 
-                    
-                    prod_rm = ProductionRawMaterials.objects.get(product=ingredient_with_max_quantity.minor_raw_material, product__branch = request.user.branch)
-                    prod_rm.quantity += kgs_left
-                    prod_rm.save()
-                else:
-                    return JsonResponse({'success': False, 'message': "No ingredients found."})
-        
+            eod_item = EndOfDayItems.objects.filter(end_of_day=e_o_d, dish_name=sold_name).first()
+            
+            if not eod_item:
+                eod_item = EndOfDayItems.objects.create(
+                    end_of_day=e_o_d,
+                    dish_name=sold_name,
+                    wastage=wastage,
+                    leftovers=leftovers,
+                    recorded=True
+                )
+            else:
+                eod_item.wastage = wastage
+                eod_item.leftovers = leftovers
+
+            total_portions = eod_item.total_portions or 0
+            staff_portions = eod_item.staff_portions or 0
+            total_sold = eod_item.total_sold or 0
+            declared = eod_item.declared or 0
+            eod_item.recorded = True
+            
+            if declared:
+                eod_item.servers_variance = declared - (total_sold + staff_portions + wastage + leftovers)
+                logger.info(f'Variance: {eod_item.servers_variance}')
+          
+            eod_item.save()
+            logger.success(f'End of Day item updated: {eod_item}')
+
             return JsonResponse({'success': True})
         except Exception as e:
             return JsonResponse({'success': False, 'message': str(e)})
     return JsonResponse({'success': False, 'message': 'Invalid request method'}, status=405)
 
-
 @login_required
 @transaction.atomic
 def confirm_end_of_day(request):
     try:
-        # data = json.loads(request.body)
-        # logger.info(data)
-        # amount = data.get('cashed_amount', 0)
-        sales = Sale.objects.filter(date=localdate(), staff=False).aggregate(total_amount=Sum('total_amount'))['total_amount'] or 0
-        total_amount_staff_sold_today = Sale.objects.filter(date=localdate(), staff=True).aggregate(total_amount=Sum('total_amount'))['total_amount'] or 0
+        today = localdate()
+        branch = request.user.branch
+        sales = Sale.objects.filter(date=today, staff=False, branch=branch).aggregate(total_amount=Sum('total_amount'))['total_amount'] or 0
+        cashed_amount = request.POST.get('cashed_amount') or request.GET.get('cashed_amount')
+
+        e_o_d = EndOfDay.objects.filter(date=today, branch=branch).first()
+        e_o_d.total_sales = sales
         
-        e_o_d = EndOfDay.objects.get(date=localdate())
-        
-        # if amount:
-        #     # e_o_d = EndOfDay.objects.get(date=localdate())
-        #     e_o_d.total_sales = sales
-        #     e_o_d.cashed_amount = Decimal(amount)
-        #     e_o_d.done = True
-        #     e_o_d.save()
-        # else:
+        if cashed_amount:
+            e_o_d.cashed_amount = cashed_amount
+            
         e_o_d.done = True
         e_o_d.save()
 
-        end_of_day_items = EndOfDayItems.objects.filter(end_of_day=e_o_d)
-        
-        # create cash in object
+        items = EndOfDayItems.objects.filter(end_of_day=e_o_d)
+        break_flag = False
+   
+            # if item.declared is not None:
 
-        # CashUp.objects.create(
-        #     cashier = request.user,
-        #     cashed_amount = amount,
-        #     sales = sales,
-        #     user = request.user, 
-        #     status = True if amount == sales else False
-        # )
-
-        # buffer = generate_end_of_day_report(e_o_d, end_of_day_items, total_amount_staff_sold_today)
-        # send_end_of_day_report(request, buffer)
+            #     total_sold = item.total_sold or 0
+            #     staff_portions = item.staff_portions or 0
+            #     wastage = item.wastage or 0
+            #     leftovers = item.leftovers or 0
+            #     declared = item.declared or 0
+            #     item.servers_variance = declared - (total_sold + staff_portions + wastage + leftovers)
+            #     item.save()
+            # else:
+            #     break_flag = True
+            #     break
+            
+        if break_flag:
+            return JsonResponse({'success':False, 'message':'Wait for the production to be declared.'})
         
+        logger.success(f'End of day successfully save!')
+
+        return JsonResponse({'success': True})
     except Exception as e:
         return JsonResponse({'success': False, 'message': f'invalid:{e}'})
-    return JsonResponse({'success': True})
 
 
 @login_required
@@ -3090,74 +3123,36 @@ def end_of_day_detail(request, e_o_d_id):
     try:
         end_of_day = EndOfDay.objects.get(id=e_o_d_id, branch = request.user.branch)
         end_of_day_items = EndOfDayItems.objects.filter(end_of_day=end_of_day)
-        
-        total_amount_sold_today = Sale.objects.filter(date=localdate(), staff=False, branch = request.user.branch).aggregate(total_amount=Sum('total_amount'))['total_amount'] or 0
-        total_amount_staff_sold_today = Sale.objects.filter(date=localdate(), staff=True, branch = request.user.branch).aggregate(total_amount=Sum('total_amount'))['total_amount'] or 0
-        total_quantity_sold_today = SaleItem.objects.filter(sale__date=localdate(),).aggregate(total_quantity=Sum('quantity'))['total_quantity'] or 0
-        total_staff_portions = SaleItem.objects.filter(sale__date=localdate(), sale__staff=True).aggregate(total_staff_portions=Sum('quantity'))['total_staff_portions'] or 0
-        difference =  end_of_day.cashed_amount - (total_amount_sold_today - total_amount_staff_sold_today) 
-        
-        taken_stock_value = Decimal(0)
-        staff_portions_value = Decimal(0)
-        portion_cost_value = Decimal(0)
-        wastage_cost_value = Decimal(0)
-        
-        production_items = ProductionItems.objects.filter(production__date_created=end_of_day.date, production__branch = request.user.branch)
-        
-        ingredients = Ingredient.objects.select_related('raw_material').filter(minor_raw_materials__branch = request.user.branch)
-
-        for item in production_items:
-            
-            logger.info(f'{item}:{item.wastage}')
-            
-            for ing in ingredients.filter(dish=item.dish, minor_raw_material__branch = request.user.branch):
-                kgs_taken = Decimal(item.portions) / Decimal(item.dish.portion_multiplier)
-                taken_stock_value += Decimal(ing.quantity) * kgs_taken * ing.raw_material.cost
-        
-                if item.staff_portions > 0:
-                    kgs_staff = Decimal(item.staff_portions) / Decimal(item.dish.portion_multiplier)
-                    staff_portions_value += Decimal(ing.quantity) * kgs_staff * ing.raw_material.cost   
-        
-        
-        cogs_total = COGS.objects.filter(date=datetime.datetime.today(), production__branch = request.user.branch).aggregate(total_cogs=Sum('amount'))['total_cogs'] or 0
-        gross_profit = total_amount_sold_today - cogs_total - wastage_cost_value
-              
-        for end in end_of_day_items:
-            dish = Dish.objects.get(name=end.dish_name)
-            portion_cost_value += Decimal(end.expected) * dish.price
-            wastage_cost_value += Decimal(end.wastage) * dish.price
-            
-            logger.info(f'{wastage_cost_value} = {end.wastage} * {dish.price}')
-            logger.info(f'{portion_cost_value} = {end.expected} * {ing.dish.price}')
-        
-        # total_staff_portions= end_of_day_items.objects.aggregate(total_staff_portions=Sum('staff_portions'))['total_staff_portions'] or 0
-        
-        buffer = generate_end_of_day_report(end_of_day, end_of_day_items, total_amount_staff_sold_today)
-        send_end_of_day_report(request, buffer)
-        
-        logger.info('email sent')
+        dishes = Dish.objects.all()
+      
+        # buffer = generate_end_of_day_report(end_of_day, end_of_day_items, total_amount_staff_sold_today)
+        # send_end_of_day_report(request, buffer)
+    
+        return render(request, 'end_of_day_detail.html', 
+            {
+                'dishes': dishes, 
+                'end_of_day':end_of_day,
+                'end_of_day_items':end_of_day_items,
+            }
+        )
     except Exception as e:
-        logger.info(e)
-        messages.warning(request, f'{e}')
+        logger.error(e)
 
-    return render(request, 'end_of_day_detail.html', 
-        {
-            'end_of_day':end_of_day,
-            'end_of_day_items':end_of_day_items,
-            'total_staff_portions':total_staff_portions,
-            'total_amount_sold_today': total_amount_sold_today,
-            'total_quantity_sold_today':total_quantity_sold_today,
-            'total_amount_staff_sold_today':total_amount_staff_sold_today,
-            'non_staff_quantity': total_quantity_sold_today - total_staff_portions,
-            'non_staff_total_amount': total_amount_sold_today - total_amount_staff_sold_today,
-            'difference': difference,
-            'taken_stock_value':taken_stock_value,
-            'staff_value':staff_portions_value,
-            'portion_cost_value':portion_cost_value,
-            'gross_profit':gross_profit,
-            'wastage_cost_value':wastage_cost_value
-        }
-    )
+@login_required
+def undo_eod_record(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            eod_id = data.get('eod_id')
+            EndOfDayItems.objects.filter(id=eod_id).update(declared=0, wastage=0, leftovers=0, expected=0, servers_variance=0, recorded=False)
+            
+            logger.success(f'End of Day record undone for ID: {eod_id}')
+            
+            return JsonResponse({'success': True, 'message': 'End of Day record undone successfully.'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)}, status=500)
+        
+    return JsonResponse({'success': False, 'message': 'Invalid request method.'}, status=405)
     
 def generate_end_of_day_report(end_of_day, items, staff_sold_amount):
     buffer = io.BytesIO()
@@ -4249,50 +4244,39 @@ def production_plans_ajax(request):
 @chef_or_stores_view_required
 def production_declaration_table_ajax(request):
     """AJAX view for production plan declaration table - simplified version"""
-    from datetime import datetime, timedelta
-    from decimal import Decimal
-    
     # Debug logging
     logger.info(f"User: {request.user.username}, Role: {request.user.role}, Branch: {request.user.branch}")
     logger.info(f"Request method: {request.method}")
     logger.info(f"Request path: {request.path}")
     logger.info(f"User authenticated: {request.user.is_authenticated}")
     
-    # Get all production plans for the branch, ordered by most recent first
     plans = Production.objects.filter(
         branch=request.user.branch
     ).order_by('-date_created', '-time_created')
     
     logger.info(f"Found {plans.count()} production plans for branch {request.user.branch}")
-    
-    # Calculate additional data for each plan
+   
     for plan in plans:
-        # Get production items for this plan
         plan_items = ProductionItems.objects.filter(production=plan)
-        
-        # Calculate planned amount (total portions requested) - handle None values
+
         planned_amount = sum(item.portions or 0 for item in plan_items)
         plan.planned_amount = planned_amount
-        
-        # Calculate actual production amount (total actual quantities) - handle None values
+
         actual_production_amount = sum(item.actual_quantity or 0 for item in plan_items)
         plan.actual_production_amount = actual_production_amount
         
-        # Calculate production cost (total cost of all items) - handle None values
         production_cost = sum(item.total_cost or 0 for item in plan_items)
         plan.production_cost = production_cost
-        
-        # Calculate variance
+
         variance = actual_production_amount - planned_amount
         plan.variance = variance
-        
-        # Calculate positive and negative variance
+
         if variance > 0:
             plan.positive_variance = variance
             plan.negative_variance = 0
         elif variance < 0:
             plan.positive_variance = 0
-            plan.negative_variance = abs(variance)  # Make it positive for display
+            plan.negative_variance = abs(variance)  
         else:
             plan.positive_variance = 0
             plan.negative_variance = 0
@@ -5210,8 +5194,6 @@ def clear_notifications_api(request):
     """API endpoint to clear notifications"""
     if request.method == 'POST':
         try:
-            # In a real implementation, you'd mark notifications as read
-            # For now, we'll just return success
             return JsonResponse({
                 'success': True,
                 'message': 'Notifications cleared successfully'
@@ -5236,3 +5218,193 @@ def get_stock_status(current_stock, min_stock):
     else:
         return 'in_stock'
 
+
+@login_required
+def stocktake(request):
+    """View for stocktaking interface"""
+    
+    products = Product.objects.filter(branch=request.user.branch).order_by('name')
+    stocktakes = StockTake.objects.filter(branch=request.user.branch).order_by('-date')
+    context = {
+        'products': products,
+        'stocktakes':stocktakes,
+        'form':CreateStockTakeForm()
+    }
+
+    if request.method == "POST":
+        """
+            {
+                'conductor':str,
+                'users':list
+            }
+        """
+        try:
+            conductor = request.POST.get('conductor')
+            users = request.POST.getlist('users')
+            
+            # validation
+            if not conductor:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Conductor is required'
+                }, status=400)
+            
+            if not users:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'At least one'  
+                })
+
+            # Create a new stock take entry
+            stock_take = StockTake.objects.create(
+                conductor_id=conductor,
+                branch=request.user.branch
+            )
+            
+            for user in users:
+                stock_take.users.add(user)
+            stock_take.save()
+
+            # create initial stocktake item
+            for product in Product.objects.filter(branch=request.user.branch):
+                item = StockTakeItem.objects.create(
+                    stock_take=stock_take,
+                    product=product,
+                    recorded_quantity=0,
+                    actual_quantity=product.quantity
+                )
+                
+                print(product.quantity, item.actual_quantity)
+            
+            logger.success(f'Stock take created successfully')
+
+            return render(request, 'stocktake/stocktake.html', context)
+
+        except Exception as e:
+            logger.error(f'Failed to process stocktake: {e}')
+            return JsonResponse({
+                'success': False,
+                'message': 'Failed to create stock take'
+            })
+            
+   
+    return render(request, 'stocktake/stocktake.html', context) 
+
+
+@login_required
+def stocktake_detail(request, stocktake_id):
+    stocktake = StockTake.objects.get(id=stocktake_id)
+    stock_take = StockTakeItem.objects.filter(stock_take__id=stocktake_id, stock_take__branch=request.user.branch).order_by('-actual_quantity')
+
+    context = {
+        'stocktake':stocktake,
+        'stocktake_items': stock_take
+    }
+    return render(request, 'stocktake/stocktake_detail.html', context)
+            
+@login_required
+def record_stock_take(request):
+    if request.method == "POST":
+        """
+            stock_take_id: int,
+            quantity: int
+        """
+        try:
+            data = json.loads(request.body)
+            stock_take_id = data.get('stocktake_id')
+            stock_take_item = int(data.get('product_id'))
+            quantity = data.get('quantity')
+            
+            stock_take = StockTake.objects.get(id=stock_take_id, branch=request.user.branch)
+            stock_take_item = StockTakeItem.objects.get(id=stock_take_item, stock_take=stock_take)
+
+            variance = float(quantity) - stock_take_item.actual_quantity 
+            
+            stock_take_item.recorded_quantity = quantity
+            stock_take_item.variance = variance
+            stock_take_item.success = True if variance == 0 else False
+
+            stock_take_item.save()
+
+            logger.success(f'Stock take recorded successfully')
+
+            return JsonResponse({
+                'success': True,
+                'item_id': stock_take_item.id,
+                'difference':variance,
+                'message': 'Stock take recorded successfully'
+            })
+            
+        except Exception as e:
+            logger.error(f'Failed to record stock take: {e}')
+            return JsonResponse({
+                'success': False,
+                'message': 'Failed to record stock take'
+            })
+            
+@login_required
+def accept_variance(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            stock_take_item_id = data.get('item_id')
+            note = data.get('note', '')
+            
+            print(stock_take_item_id, note)
+            stock_take_item = StockTakeItem.objects.get(id=stock_take_item_id)
+
+            stock_take_item.accept_variance = True
+            stock_take_item.success = True
+            stock_take_item.note = note
+            
+            stock_take_item.save()
+
+            logger.success(f'Variance accepted successfully')
+
+            return JsonResponse({
+                'success': True,
+                'message': 'Variance accepted successfully'
+            })
+
+        except Exception as e:
+            logger.error(f'Failed to accept variance: {e}')
+            return JsonResponse({
+                'success': False,
+                'message': 'Failed to accept variance'
+            })
+
+@login_required
+def undo_record_stock_take(request):
+    if request.method == "POST":
+        """
+            stocktake_id: int,
+        """
+        try:
+            data = json.loads(request.body)
+            stock_take_id = data.get('stocktake_id')
+            print(data)
+
+            stock_take_item = StockTakeItem.objects.get(id=stock_take_id)
+            
+            stock_take_item.recorded_quantity = 0
+            stock_take_item.variance = 0
+            stock_take_item.success = False
+            stock_take_item.accept_variance = False
+            stock_take_item.note = ''
+
+            stock_take_item.save()
+
+            logger.success(f'Stock take undone successfully')
+
+            return JsonResponse({
+                'success': True,
+                'item_id': stock_take_item.id,
+                'message': 'Stock take undone successfully'
+            })
+            
+        except Exception as e:
+            logger.error(f'Failed to undo stock take: {e}')
+            return JsonResponse({
+                'success': False,
+                'message': 'Failed to undo stock take'
+            })

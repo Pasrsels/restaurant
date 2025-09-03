@@ -120,9 +120,9 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.getenv('DB_NAME', 'restaurant'),
         'USER': os.getenv('DB_USER', 'postgres'),
-        'PASSWORD': os.getenv('DB_PASSWORD', 'ms123456789'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'neverfail'),
         'HOST': os.getenv('DB_HOST', 'localhost'),
-        'PORT': os.getenv('DB_PORT', '5000'),
+        'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
 

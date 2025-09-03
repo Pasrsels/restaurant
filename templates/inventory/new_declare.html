@@ -23,18 +23,7 @@
         position: sticky;
         top: 0;
         z-index: 2;
-        /* background-color: #84f498; */
     }
-
-    /* .you{
-        background-color: rgb(224, 214, 200);
-        background-color: rgb(224, 182, 127);
-    }
-
-    tr th{
-        background-color: rgb(149, 216, 48);
-    } */
-
     .bg-suc{
         background: #8ef2a0 !important;
     }
@@ -763,19 +752,16 @@
     }
 
     function declared(element, event) {
-        // Check if it's an Enter key press or a button click
         if(event && event.key && event.key !== 'Enter'){
-            return; // Only proceed for Enter key or button clicks
+            return; 
         }
         
         let totalVarianceCost = 0;
 
-        // Get the parent <tr> of the clicked element
         const row = element.closest('tr');
         
         const pp = document.getElementById('prod_id').textContent.trim();
         console.log({prod_id: pp});
-        // Get dish name and input value from that row
         const dishName = row.querySelector('.dish-name').textContent.trim();
         const declaredInput = row.querySelector('.declared-portions');
         const declaredPortions = row.querySelector('.declared-portions').value;

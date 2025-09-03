@@ -114,6 +114,7 @@ class ProductionItems(models.Model):
     portions_sold = models.FloatField(default=0, null=True)
     allocated = models.BooleanField(default=False)
     end_of_day_status = models.BooleanField(default=False)
+    declared_quantity = models.FloatField(default=0, null=True, blank=True)
 
 class MinorProductionItems(models.Model):
     production = models.ForeignKey(Production, on_delete=models.CASCADE)
@@ -164,7 +165,6 @@ class ProductionInventory(models.Model):
     
     def __str__(self) -> str:
         return f'{self.raw_material}: ({self.quantity})'
-
 
 class Dish(models.Model):
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
@@ -317,7 +317,7 @@ class Logs(models.Model):
         ('deactivated', 'deactivated'),
         ('removed', 'removed')
     ]
-    
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     sale = models.ForeignKey('finance.sale', on_delete=models.CASCADE, null=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True)
     user = models.ForeignKey('users.User', on_delete=models.SET_NULL, null=True)
@@ -336,7 +336,6 @@ class MinorRawMaterials(models.Model):
     def __str__(self) -> str:
         return self.raw_material.name
     
-
 class EndOfDay(models.Model):
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     date = models.DateField(auto_now_add=True)
@@ -350,13 +349,16 @@ class EndOfDay(models.Model):
 class EndOfDayItems(models.Model):
     end_of_day = models.ForeignKey(EndOfDay, on_delete=models.CASCADE)
     dish_name = models.CharField(max_length=50)
-    total_portions = models.IntegerField()
-    total_sold = models.IntegerField()
-    staff_portions = models.IntegerField()
-    wastage = models.FloatField()
-    leftovers = models.FloatField()
-    expected = models.FloatField()
-    
+    total_portions = models.IntegerField(null=True)
+    total_sold = models.IntegerField(null=True)
+    staff_portions = models.IntegerField(null=True)
+    wastage = models.FloatField(null=True)
+    leftovers = models.FloatField(null=True)
+    servers_variance = models.FloatField(null=True)
+    declared = models.FloatField(null=True)
+    expected = models.FloatField(null=True)
+    recorded = models.BooleanField(default=False)
+
     def __str__(self) -> str:
         return f'{self.end_of_day.date}: {self.dish_name}'
     
@@ -408,7 +410,7 @@ class ProductionLogs(models.Model):
         ('stock in', 'stock in'),
         ('declared', 'declared'),
         ('to production', 'to production'),
-    ]
+    ]   
     
     product = models.ForeignKey(ProductionRawMaterials, on_delete=models.CASCADE)
     user = models.ForeignKey('users.User', on_delete=models.SET_NULL, null=True)
@@ -464,3 +466,29 @@ class EndOfDayStock(models.Model):
     date = models.DateField(auto_now_add=True)
     product =  models.ForeignKey(Product, on_delete= models.CASCADE, null=False)
     quantity = models.IntegerField(default=0)
+    
+    
+class StockTake(models.Model):
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
+    date = models.DateField(auto_now_add=True)
+    actual_quantity = models.IntegerField(default=0)
+    variance = models.IntegerField(default=0)
+    notes = models.TextField(null=True, blank=True)
+    conductor = models.ForeignKey('users.User', on_delete=models.SET_NULL, null=True)
+    users = models.ManyToManyField('users.User', related_name='stock_users', null=True)
+    
+    def __str__(self):
+        return self.branch
+    
+class StockTakeItem(models.Model):
+    stock_take = models.ForeignKey(StockTake, on_delete=models.CASCADE, related_name='items')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    recorded_quantity = models.IntegerField(default=0)
+    actual_quantity = models.IntegerField(default=0)
+    variance = models.IntegerField(default=0)
+    success = models.BooleanField(null=True)
+    accept_variance = models.BooleanField(default=False)
+    note = models.TextField(null=True, blank=True)
+    
+    def __str__(self):
+        return f'{self.product.name} - Recorded: {self.recorded_quantity}, Actual: {self.actual_quantity}, Variance: {self.variance}'

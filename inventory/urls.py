@@ -118,7 +118,8 @@ urlpatterns = [
     path('end_of_day_detail/<int:e_o_d_id>/', end_of_day_detail, name='end_of_day_detail'),
     path('end_of_day_list/', end_of_day_list, name='end_of_day_list'),
     path('end_of_day_pdf_report', end_of_day_pdf, name='end_of_day_pdf'),
-    
+    path('end_of_day/undo_eod_record/', undo_eod_record, name='undo_eod_record'),
+
     # reorder_lis
     path('order_list', order_list, name='order_list'),
     
@@ -146,7 +147,13 @@ urlpatterns = [
     path('budget/estimations/', ConversionFormula, name='estimations'),
     path('budget-approoval/', BudgetApproval, name = 'budget-approval'),
 
-
     # Script
-    path('shift-data/', shift_data_to_main, name="shifting")   
+    path('shift-data/', shift_data_to_main, name="shifting"),   
+    
+    # stocktake
+    path('stocktake/', stocktake, name='stocktake'),
+    path('stocktake/detail/<int:stocktake_id>/', stocktake_detail, name='stock_take_detail'),
+    path('recorder/stocktake/', record_stock_take, name='record_stock_take'),
+    path('stocktake/accept-variance/', accept_variance, name='accept_variance'),
+    path('stocktake/undo/recording/', undo_record_stock_take, name='undo_record_stock_take')
 ]
