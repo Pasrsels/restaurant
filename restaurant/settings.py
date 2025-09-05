@@ -111,19 +111,10 @@ DATABASES = {
     # 'default': dj_database_url.config(
     #     default='postgresql://postgres:bsgtOvAIFbBQgIcHLvlUFlvIiAiapbHm@autorack.proxy.rlwy.net:44818/railway'
     # )
-<<<<<<< HEAD
-    # 'default': {
-    #     'ENGINE': 'django.db.backends.postgresql',
-    #     'NAME': 'restaurant_test',  
-    #     'USER': 'postgres',
-    #     'PASSWORD': 'neverfail',
-    #     'PORT': '5432',
-    # }
-=======
->>>>>>> refs/remotes/origin/temp
+
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'restaurant',  
+        'NAME': 'restaurant_test',  
         'USER': 'postgres',
         'PASSWORD': 'neverfail',
         'PORT': '5432',
