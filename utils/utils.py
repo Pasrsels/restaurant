@@ -15,7 +15,7 @@ def render_to_pdf(template_src, context_data={}):
             subject='End of Day Report',
             body='Please find attached the end of day production report.',
             from_email='admin@techcity.co.zw',
-            to=['cassymoyo@gmail.com', 'teddychinomona@gmail.com'],
+            to=['cassymoyo@gmail.com'],
         )
 
         # Attach PDF

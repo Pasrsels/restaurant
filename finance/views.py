@@ -69,7 +69,8 @@ def get_expense(request, expense_id):
         'amount': expense.amount,
         'description': expense.description,
         'category': expense.category.id,
-        'branch': expense.branch
+        'branch_name': expense.branch.name,
+        'branch_id':expense.branch.id
     }
     return JsonResponse({'success': True, 'data': data})
 
@@ -956,7 +957,7 @@ def cashier_expenses(request, cashier_id):
     if request.method == 'GET':
         expense_category = ExpenseCategory.objects.all()
 
-        if request.user.role in ['manager', 'superviser', 'admin', 'accountant']:
+        if request.user.role in ['manager', 'supervisor', 'admin', 'accountant']:
             expenses = CashierExpense.objects.select_related('cashier').filter(branch=request.user.branch)
         else:
             expenses = CashierExpense.objects.select_related('cashier').filter(cashier__id=cashier_id, branch=request.user.branch)

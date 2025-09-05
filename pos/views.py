@@ -1004,9 +1004,10 @@ def void_authenticate(request):
             if not username or not password:
                 return JsonResponse({"success": False, "message": "Username and password are required."}, status=400)
             logger.info(username)
-            user = User.objects.get(username=username)
-            logger.info(user.role)
-            if user.role in ['admin', 'accountant', 'supervisor', 'manager', 'owner']:
+            
+            # FIX: Add proper password verification
+            user = authenticate(username=username, password=password)
+            if user and user.role in ['admin', 'accountant', 'supervisor', 'manager', 'owner']:
                 logger.info(user.role)
                 logger.info(user)
                 if save_data == "save":
@@ -1016,11 +1017,7 @@ def void_authenticate(request):
                     )
                 return JsonResponse({"success": True, 'role': user.role, "message": "Authentication successful.", "user_id":user.id}, status=200)
             else:
-                if not user.role:
-                    logger.info(user.role)
-                    return JsonResponse({"success": False, "message": "Invalid username and password ."}, status=401)
-                else:
-                    return JsonResponse({"success": False, 'role': user.role, "message": "Invalid role."}, status=208)
+                return JsonResponse({"success": False, "message": "Invalid credentials or insufficient permissions."}, status=401)
 
         except Exception as e:
             return JsonResponse({"success": False, "message": f"An error occurred: {str(e)}"}, status=500)

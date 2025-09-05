@@ -45,6 +45,40 @@
             display: none; /
         }
     }
+
+    /* Make all table headers bold, black, and clear */
+    table thead th {
+        font-weight: bold !important;
+        color: #000000 !important;
+        opacity: 1 !important;
+        text-shadow: none !important;
+    }
+
+    /* Declaration table styling - remove vertical borders */
+    .declaration-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+    }
+
+    .declaration-table thead th {
+        border: none;
+        border-bottom: 1px solid #e9ecef;
+        /* Keep your existing styles */
+    }
+
+    .declaration-table td {
+        border: none;
+        border-bottom: 1px solid #e9ecef;
+        padding: 8px;
+    }
+
+    /* Remove any existing border styles that might be adding vertical lines */
+    .declaration-table th, 
+    .declaration-table td {
+        border-left: none;
+        border-right: none;
+    }
 </style>
     <div class="Production" style="margin-left: 15px;">
         <div class="inventory-navbar">
@@ -63,9 +97,11 @@
                     <!-- Hamburger menu content -->
                     <div class="collapse" id="hamburgerMenuContent">
                         <ul class="list-unstyled mt-2">
+                            {% if request.user.role == 'chef' or request.user.role == 'admin' %}
                             <li>
                                 <a href="{% url 'inventory:create_production_plan' %}" class='btn btn-outline-dark w-100 mb-2'>Create Production Plan</a>
                             </li>
+                            {% endif %}
                             <li>
                                 <a href="{% url 'inventory:production_transfers' %}" class='btn btn-outline-dark w-100 mb-2'>Receive Transfers <span class='badge text-dark'>{{ transfer_count }}</span></a>
                             </li>
@@ -91,9 +127,11 @@
                         </ul>
                     </div>
                     <ul class="list-unstyled mt-2 d-flex">
+                        {% if request.user.role == 'chef' or request.user.role == 'admin' %}
                         <li class="">
                             <a href="{% url 'inventory:create_production_plan' %}" class='btn btn-outline-dark'>Create Production Plan</a>
                         </li>
+                        {% endif %}
                         <li class="">
                             <a href="{% url 'inventory:production_transfers' %}" class='btn btn-outline-dark mx-2'>
                                 Receive Transfers
@@ -130,13 +168,17 @@
                                             <small>
                                                 {{ plan.date_created }} {{ plan.time_created }}
                                             </small>
-                                            {% if request.user.role != 'admin' or request.user.role != 'accountant' %}
+                                            {% if request.user.role != 'accountant' %}
                                             <p>
                                                 <small>
                                                     {% if plan.status %}
                                                         <small class="but text-success p-2 rounded text-center w-100">Confirmed</small>
                                                     {%else %}
-                                                        <a href="{% url 'inventory:confirm_production_plan' plan.id %}" class="but1 text-danger p-2 rounded text-center w-100">Please Confirm</a>
+                                                        {% if request.user.role == 'chef' or request.user.role == 'admin' %}
+                                                            <a href="{% url 'inventory:confirm_production_plan' plan.id %}" class="but1 text-danger p-2 rounded text-center w-100">Please Confirm</a>
+                                                        {% else %}
+                                                            <small class="but1 text-danger p-2 rounded text-center w-100">Awaiting Confirmation</small>
+                                                        {% endif %}
                                                     {% endif %}
                                                 </small>
                                             </p>
@@ -146,7 +188,7 @@
                                             <small>
                                                 {{ plan.date_created }} {{ plan.time_created }}
                                             </small>
-                                            {% if request.user.role != 'chef'%}
+                                            {% if request.user.role == 'stores_person' or request.user.role == 'admin'%}
                                             <p>
                                                 <small>
                                                     {% if plan.declared %}
@@ -155,7 +197,7 @@
                                                         {% if plan.status %}
                                                             <a href="{% url 'inventory:declare_production' plan.id %}" class="but1 text-danger p-2 rounded text-center w-100">Waiting declaration</a>
                                                         {% else %}
-                                                            <small class="but1 text-danger p-2 rounded text-center w-100" disabled>Awaiting production plan confirmation</small>
+                                                            <small class="but1 text-danger p-2 rounded text-center w-100">Awaiting production plan confirmation</small>
                                                         {% endif %}
                                                     {% endif %}
                                                 </small>
@@ -165,10 +207,15 @@
                                         <td class="text-center py-4">
                                             <small>
                                                 <a href="{% url 'inventory:production_plan_detail' plan.id %}" class="bx bx-show mx-2"></a>
+                                                {% if plan.declared %}
+                                                    <a href="{% url 'inventory:view_production_plan' plan.id %}" class="bx bx-bar-chart-alt-2 mx-2" title="View Analysis" style="color: #6f42c1; font-size: 1.2em;"></a>
+                                                {% endif %}
                                                 <a href="" class="bx bx-printer"></a>
                                                 {% if plan.status %}
                                                 {% else %}
-                                                    <a href="{% url 'inventory:production_plan_delete' plan.id %}" class="bx bx-trash mx-2"></a>
+                                                    {% if request.user.role == 'chef' or request.user.role == 'admin' %}
+                                                        <a href="{% url 'inventory:production_plan_delete' plan.id %}" class="bx bx-trash mx-2"></a>
+                                                    {% endif %}
                                                 {% endif %}
                                             </small>
                                         </td>

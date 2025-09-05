@@ -1,0 +1,107 @@
+{% load static%}
+{% load crispy_forms_tags %}
+
+<h3 style="color: #333; margin-bottom: 15px;">Production declaration</h3>
+
+<!-- Date Selection (Inside production declaration container) -->
+<div class="date-filter">
+    <div style="display: flex; gap: 10px; align-items: center;">
+        <span style="font-weight: bold; color: #333;">Date:</span>
+        <a href="#" onclick="loadPageWithDate('{% url 'inventory:production_plans_ajax' %}', 'today')" style="padding: 5px 10px; border-radius: 3px; text-decoration: none; {% if selected_date == today %}background-color: #007bff; color: white;{% else %}background-color: #f8f9fa; color: #333; border: 1px solid #ddd;{% endif %}">Today</a>
+        <a href="#" onclick="loadPageWithDate('{% url 'inventory:production_plans_ajax' %}', 'yesterday')" style="padding: 5px 10px; border-radius: 3px; text-decoration: none; {% if selected_date == yesterday %}background-color: #007bff; color: white;{% else %}background-color: #f8f9fa; color: #333; border: 1px solid #ddd;{% endif %}">Yesterday</a>
+        <a href="#" onclick="loadPageWithDate('{% url 'inventory:production_plans_ajax' %}', 'week')" style="padding: 5px 10px; border-radius: 3px; text-decoration: none; {% if date_filter == 'week' %}background-color: #007bff; color: white;{% else %}background-color: #f8f9fa; color: #333; border: 1px solid #ddd;{% endif %}">Week</a>
+        <input type="date" id="customDate" style="padding: 5px 10px; border: 1px solid #ddd; border-radius: 3px;" onchange="loadPageWithDate('{% url 'inventory:production_plans_ajax' %}', this.value)">
+        <span style="color: #666; font-size: 14px;">
+            {% if selected_date == today %}
+                Showing today's production ({{ selected_date|date:"M d, Y" }})
+            {% elif selected_date == yesterday %}
+                Showing yesterday's production ({{ selected_date|date:"M d, Y" }})
+            {% elif date_filter == 'week' %}
+                Showing this week's production ({{ week_start|date:"M d" }} - {{ week_end|date:"M d, Y" }})
+            {% else %}
+                Showing production for {{ selected_date|date:"M d, Y" }}
+            {% endif %}
+        </span>
+    </div>
+</div>
+
+<table class="production-table">
+    <thead>
+        <tr>
+            <th>Dish</th>
+            <th>Planned Qnty</th>
+            <th>Declared Portions</th>
+            <th>Note</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for plan in plans %}
+            {% for item in plan.productionitems_set.all %}
+                <tr>
+                    <td>{{ item.dish.name }} @ ${{ item.dish.price }}</td>
+                    <td>
+                        <div class="quantity-box">{{ item.portions }}</div>
+                    </td>
+                    <td>
+                        <div class="quantity-box">
+                            {% if item.portions_sold %}
+                                {{ item.portions_sold }}
+                            {% else %}
+                                0
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="quantity-box">
+                            {% if item.note %}
+                                {{ item.note }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        <button class="edit-btn" onclick="loadPage('{% url 'inventory:production_plan_detail' plan.id %}')">
+                            edit
+                        </button>
+                                   {% if plan.declared %}
+           <a href="{% url 'inventory:view_production_plan' plan.id %}" class="edit-btn" style="background-color: #6f42c1; margin-left: 5px; color: white; text-decoration: none; display: inline-block;">
+               <i class="bx bx-bar-chart-alt-2"></i> Analysis
+           </a>
+           {% endif %}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align: center; color: #666; padding: 20px;">
+                        No production items found for this plan
+                    </td>
+                </tr>
+            {% endfor %}
+        {% empty %}
+            <tr>
+                <td colspan="5" style="text-align: center; color: #666; padding: 20px;">
+                    {% if selected_date == today %}
+                        No production requests available for today
+                    {% elif selected_date == yesterday %}
+                        No production requests available for yesterday
+                    {% elif date_filter == 'week' %}
+                        No production requests available for this week
+                    {% else %}
+                        No production requests available for {{ selected_date|date:"M d, Y" }}
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<script>
+    // Set the custom date input to the current selected date
+    document.addEventListener('DOMContentLoaded', function() {
+        const customDateInput = document.getElementById('customDate');
+        const selectedDate = '{{ selected_date|date:"Y-m-d" }}';
+        customDateInput.value = selectedDate;
+    });
+</script>

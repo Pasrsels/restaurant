@@ -1,0 +1,77 @@
+{% load static %}
+
+<h3 style="color: #333; margin-bottom: 20px;">Dishes Management</h3>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">All Dishes</h5>
+        <button class="btn btn-primary btn-sm" onclick="loadPage('{% url 'inventory:dish_create' %}')">
+            <i class="fas fa-plus"></i> Add New Dish
+        </button>
+    </div>
+    <div class="card-body">
+        {% if dishes %}
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Price</th>
+                            <th>Category</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for dish in dishes %}
+                            <tr>
+                                <td>{{ dish.name }}</td>
+                                <td>${{ dish.price }}</td>
+                                <td>{{ dish.category.name|default:"No Category" }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="loadPage('{% url 'inventory:edit_dish' dish.id %}')">
+                                        Edit
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteDish({{ dish.id }})">
+                                        Delete
+                                    </button>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-4">
+                <p class="text-muted">No dishes found.</p>
+                <button class="btn btn-primary" onclick="loadPage('{% url 'inventory:dish_create' %}')">
+                    Create Your First Dish
+                </button>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    function deleteDish(dishId) {
+        if (confirm('Are you sure you want to delete this dish?')) {
+            fetch(`/inventory/dishes/${dishId}/delete/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    loadPage('{% url "inventory:dish_list_ajax" %}');
+                } else {
+                    alert('Error deleting dish');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error deleting dish');
+            });
+        }
+    }
+</script>

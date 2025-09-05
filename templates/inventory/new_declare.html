@@ -23,18 +23,7 @@
         position: sticky;
         top: 0;
         z-index: 2;
-        /* background-color: #84f498; */
     }
-
-    /* .you{
-        background-color: rgb(224, 214, 200);
-        background-color: rgb(224, 182, 127);
-    }
-
-    tr th{
-        background-color: rgb(149, 216, 48);
-    } */
-
     .bg-suc{
         background: #8ef2a0 !important;
     }
@@ -290,7 +279,7 @@
                                 <small>
                                     <div class="d-flex justify-content-center align-items-center ing-center-content">
                                         <!--First show text box then-->
-                                        <input type="number" class="rounded border border-2 w-100 text-center ing-sys-input" placeholder="Enter Quantity and press enter" disabled>
+                                        <input type="number" class="rounded border border-2 w-100 text-center ing-sys-input" placeholder="Enter Quantity and press enter">
                                         <!--Show span with entered value green bold text-->
                                         <span class="text-success fw-bold ing-sys-input-new d-none"></span>
 
@@ -763,100 +752,101 @@
     }
 
     function declared(element, event) {
-        if(event.key == 'Enter'){
-            let totalVarianceCost = 0;
+        if(event && event.key && event.key !== 'Enter'){
+            return; 
+        }
+        
+        let totalVarianceCost = 0;
 
-            // Get the parent <tr> of the clicked element
-            const row = element.closest('tr');
-            
-            const pp = document.getElementById('prod_id').textContent.trim();
-            console.log({prod_id: pp});
-            // Get dish name and input value from that row
-            const dishName = row.querySelector('.dish-name').textContent.trim();
-            const declaredInput = row.querySelector('.declared-portions');
-            const declaredPortions = row.querySelector('.declared-portions').value;
-            const plannedPortions = row.querySelector('.dish-portions').innerText;
-            const btnDisable = row.querySelector('.disable-btn');
-            const btnEnable = row.querySelector('.disabled-btn-edit');
-            const btnAddPortions = row.querySelector('.disabled-btn-add-portions');
+        const row = element.closest('tr');
+        
+        const pp = document.getElementById('prod_id').textContent.trim();
+        console.log({prod_id: pp});
+        const dishName = row.querySelector('.dish-name').textContent.trim();
+        const declaredInput = row.querySelector('.declared-portions');
+        const declaredPortions = row.querySelector('.declared-portions').value;
+        const plannedPortions = row.querySelector('.dish-portions').innerText;
+        const btnDisable = row.querySelector('.disable-btn');
+        const btnEnable = row.querySelector('.disabled-btn-edit');
+        const btnAddPortions = row.querySelector('.disabled-btn-add-portions');
 
-            console.log('Dish:', dishName);
-            console.log('Declared Portions:', declaredPortions);
-            console.log('Planned Portions:', plannedPortions);
+        console.log('Dish:', dishName);
+        console.log('Declared Portions:', declaredPortions);
+        console.log('Planned Portions:', plannedPortions);
 
-            if(declaredPortions > parseInt(plannedPortions) || declaredPortions === '' || declaredPortions < 1){
-                Swal.fire({
-                    icon: 'error'
-                });
-                console.log('here')
-            }else{
-                data = {
-                    dish_name: dishName,
-                    portions: declaredPortions,
-                }
-                fetch("{% url 'inventory:declare_production' 0 %}".replace('0', parseInt(pp)),{
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken':  getCSRFToken()
-                    },
-                    body: JSON.stringify(data)
-                }).then(response => response.json())
-                .then(info => {
-                    if(info.success){
-                        declaredInput.disabled = true;
-                        btnDisable.classList.add('d-none');
-                        btnEnable.classList.remove('d-none');
-                        btnAddPortions.classList.remove('d-none');
+        if(declaredPortions > parseInt(plannedPortions) || declaredPortions === '' || declaredPortions < 1){
+            Swal.fire({
+                icon: 'error'
+            });
+            console.log('here')
+        }else{
+            data = {
+                dish_name: dishName,
+                portions: declaredPortions,
+            }
+            fetch("{% url 'inventory:declare_production' 0 %}".replace('0', parseInt(pp)),{
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken':  getCSRFToken()
+                },
+                body: JSON.stringify(data)
+            }).then(response => response.json())
+            .then(info => {
+                if(info.success){
+                    declaredInput.disabled = true;
+                    btnDisable.classList.add('d-none');
+                    btnEnable.classList.remove('d-none');
+                    btnAddPortions.classList.remove('d-none');
 
-                        updateDishCount();
-                        info.ingridient.forEach(item => {
-                            const name = item.ingridient_name;
-                            const qnty = item.ingridient_qnty;
-                            actual_temp = 0;
-                            finalQntyFormatted = 0;
-                            variance = 0;
+                    updateDishCount();
+                    info.ingridient.forEach(item => {
+                        const name = item.ingridient_name;
+                        const qnty = item.ingridient_qnty;
+                        actual_temp = 0;
+                        finalQntyFormatted = 0;
+                        variance = 0;
 
-                            const rows = document.querySelectorAll('#table_ing tr');
+                        const rows = document.querySelectorAll('#table_ing tr');
 
-                            rows.forEach(row => {
-                                const ingName = row.querySelector('.ing-name');
-                                const ingPop = row.querySelector('.ing-pop');
-                                const ingQnty = row.querySelector('.ing-qnty');
-                                const ingVar = row.querySelector('.ing-variance');
-                                const ingCost = row.querySelector('.ing-cost');
-                                const ingVarCost = row.querySelector('.ing-v-costs');
-                                const ingActCost = row.querySelector('.ing-a-costs');
-                                
-                                if (ingName && ingName.textContent.trim() === name) {
-                                    if (ingPop) {
-                                        console.log();
-                                        qntyFormatted = parseFloat(qnty);
-                                        const plannedText = ingQnty.textContent.trim();
-                                        
-                                        if(ingPop.textContent.trim() === ''){
-                                            console.log('Actual Quantity is not populate');
-                                            ingPop.innerHTML = `${qntyFormatted}`;
-                                            variance = (parseFloat(plannedText) - parseFloat(qnty));
-                                            console.log({Variance: variance});
+                        rows.forEach(row => {
+                            const ingName = row.querySelector('.ing-name');
+                            const ingPop = row.querySelector('.ing-pop');
+                            const ingQnty = row.querySelector('.ing-qnty');
+                            const ingVar = row.querySelector('.ing-variance');
+                            const ingCost = row.querySelector('.ing-cost');
+                            const ingVarCost = row.querySelector('.ing-v-costs');
+                            const ingActCost = row.querySelector('.ing-a-costs');
+                            
+                            if (ingName && ingName.textContent.trim() === name) {
+                                if (ingPop) {
+                                    console.log();
+                                    qntyFormatted = parseFloat(qnty);
+                                    const plannedText = ingQnty.textContent.trim();
+                                    
+                                    if(ingPop.textContent.trim() === ''){
+                                        console.log('Actual Quantity is not populate');
+                                        ingPop.innerHTML = `${qntyFormatted}`;
+                                        variance = (parseFloat(plannedText) - parseFloat(qnty));
+                                        console.log({Variance: variance});
 
-                                        }else{
-                                            console.log('Actual Quantity is populate');
-                                            actual_temp = parseFloat(ingPop.textContent.trim());
+                                    }else{
+                                        console.log('Actual Quantity is populate');
+                                        actual_temp = parseFloat(ingPop.textContent.trim());
 
-                                            actual_temp_formatted = parseFloat(actual_temp);
-                                            finalQntyFormatted = parseFloat(actual_temp_formatted + qntyFormatted);
+                                        actual_temp_formatted = parseFloat(actual_temp);
+                                        finalQntyFormatted = parseFloat(actual_temp_formatted + qntyFormatted);
 
-                                            ingPop.innerHTML = `${parseFloat(finalQntyFormatted).toFixed(3)}`;
-                                            variance = (parseFloat(plannedText) - parseFloat(finalQntyFormatted));
-                                            console.log({Variance: variance});
-                                        }
+                                        ingPop.innerHTML = `${parseFloat(finalQntyFormatted).toFixed(3)}`;
+                                        variance = (parseFloat(plannedText) - parseFloat(finalQntyFormatted));
+                                        console.log({Variance: variance});
+                                    }
 
-                                        ingVar.value = ``;
+                                    ingVar.value = ``;
 
-                                        console.log({IngVar: ingVar.textContent,
-                                            IngPop: ingPop.textContent,
-                                            IngCost: ingCost.textContent.trim()
+                                    console.log({IngVar: ingVar.textContent,
+                                        IngPop: ingPop.textContent,
+                                        IngCost: ingCost.textContent.trim()
                                         });
 
                                         //varcost_cal = parseFloat(parseFloat(ingVar.textContent.trim())/parseFloat(ingQnty.textContent.trim())) * parseFloat(ingCost.textContent.replace('$', '').trim());
@@ -932,8 +922,6 @@
                 })
             }
         }
-
-    }
 
     function updateTotalVarianceAndActualCosts() {
         let totalVarianceCost = 0;
@@ -1404,6 +1392,13 @@
         // Dish selection event
         $('#id_dish').on('change', function(e) {
             const selectedProductId = e.target.value;
+            
+            // Don't make the API call if no dish is selected
+            if (!selectedProductId || selectedProductId === '') {
+                ingredientsData = []; // Clear ingredients data
+                portion_multiplier = 1; // Reset portion multiplier
+                return;
+            }
     
             const postData = {
                 csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
@@ -1424,11 +1419,14 @@
                     ingredientsData = data.data; // Replaces previous data
                     portion_multiplier = data.portion_multiplier;
                 } else {
-                    Swal.fire({
-                        title: "Error",
-                        text: data.message,
-                        icon: "error"
-                    });
+                    // Only show error if it's not an empty selection
+                    if (selectedProductId && selectedProductId !== '') {
+                        Swal.fire({
+                            title: "Error",
+                            text: data.message,
+                            icon: "error"
+                        });
+                    }
                 }
             })
             .catch(error => {

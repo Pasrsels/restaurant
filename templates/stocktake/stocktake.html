@@ -1,0 +1,608 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block content %}
+<style>
+    :root {
+    --primary: #11998e;
+    --primary-no-gradient: #11998e;
+    --primary-dark: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+    --secondary: orange;
+    --accent: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    --success: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    --warning: linear-gradient(135deg, #fce38a 0%, #f38181 100%);
+    --danger: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+    --dark: #1a1a2e;
+    --dark-alt: #16213e;
+    --text-light: rgba(228, 230, 234, 1);
+    --text-dark: black;
+    --text-muted: black;
+    --glass: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 8px 6px rgba(0, 0, 0, 0.12);
+    --border-radius: 16px;
+    --border-radius-sm: 8px;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --m-bottom: 20px;
+}
+
+.header-btn {
+    padding: 8px 16px;
+    border-radius: var(--border-radius-sm);
+    background: var(--primary-no-gradient);
+    border: 1px solid var(--glass-border);
+    color: var(--text-light);
+    text-decoration: none;
+    transition: var(--transition);
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.header-btn:hover {
+    background: var(--primary);
+    transform: translateY(-1px);
+}
+
+.search-container {
+    position: relative;
+    margin-bottom: 10px;
+}
+
+.search-input {
+    width: 100%;
+    padding: 15px 50px 15px 20px;
+    border-radius: var(--border-radius);
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    color: var(--text-dark);
+    font-size: 16px;
+    transition: var(--transition);
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: rgba(102, 126, 234, 0.5);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.search-input::placeholder {
+    color: var(--text-dark);
+}
+
+.search-icon {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-dark);
+}
+ .background{
+    background: var(--primary);
+  }
+ .modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.modal-content {
+    position: relative;
+    background: white;
+    margin: 15% auto;
+    padding: 20px;
+    width: 100%;
+    max-width: 100%x;
+    border-radius: var(--border-radius);
+}
+
+.close-modal {
+    position: absolute;
+    right: 20px;
+    top: 10px;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.floating-button {
+    position: fixed;
+    bottom: 20px; 
+    right: 20px;
+    z-index: 1000; 
+}
+
+</style>
+<div class="stocktake">
+    <div class="d-flex justify-content-between align-items-center p-2">
+        <div>
+            <h4>Stocktake</h4>
+            <p>Create and manage stock</p>
+        </div>
+        <div>
+            <button class="header-btn" id="createStockTakeButton">
+                <i class="bx bx-plus"></i>
+                stocktake
+            </button>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+<div class="p-3 rounded bg-white d-flex justify-content-around text-center text-light rounded">
+    <div>
+        <div class="text-dark">Total Loss Count</div>
+        <div class="text-danger">{{ negative.total_qty_diff|default:0 }}</div>
+    </div>
+
+    <div>
+        <div class="text-dark">Total Loss Value (Cost)</div>
+        <div class="text-danger">-${{ negative.total_cost|default:0|floatformat:2 }}</div>
+    </div>
+
+    <div>
+        <div class="text-dark">Total Loss Value (Price)</div>
+        <div class="text-danger">-${{ negative.total_price|default:0|floatformat:2 }}</div>
+    </div>
+
+    <div>
+        <div class="text-dark">Total Positive Count</div>
+        <div class="text-success">{{ positive.total_qty_diff|default:0 }}</div>
+    </div>
+
+    <div>
+        <div class="text-dark">Total Positive Value (Cost)</div>
+        <div class="text-success">${{ positive.total_cost|default:0|floatformat:2 }}</div>
+    </div>
+
+    <div>
+        <div class="text-dark">Total Positive Value (Price)</div>
+        <div class="text-success">${{ positive.total_price|default:0|floatformat:2 }}</div>
+    </div>
+</div>
+
+<!-- Stocktake Table -->
+<div class="table-responsive mt-3" style="height:80vh;">
+    <div class="search-container">
+        <input type="text" class="search-input border bg-white" placeholder="Search Stocktake..." id="product-search">
+        <i class="fas fa-search search-icon"></i>
+    </div>
+
+    <table class="table table-borderless table-hover" id="stock" style="width: 100%;">
+        <thead style="background:var(--primary);">
+            <tr>
+                <th>Details</th>
+                <th>Loss Cost Value</th>
+                <th>Loss Selling Value</th>
+                <th>Positive Cost Value</th>
+                <th>Positive Selling Value</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in stocktakes %}
+                <tr>
+                    <td>
+                    <small>
+                        {{ item.date }} #{{ item.s_t_number }} <br>
+                        <span class="text-muted">
+                            <i class='bx bx-user'></i> {{ item.conductor.get_full_name|default:item.conductor.username }}
+                        </span>
+                    </small>
+                    </td>
+                    <td class="bg-danger bg-danger-subtle">
+                        <small>
+                            ${{ item.negative_cost_total|default:0|floatformat:2 }}
+                        </small>
+                    </td>
+                    <td class="bg-danger bg-danger-subtle">
+                        <small>
+                            ${{ item.negative_price_total|default:0|floatformat:2 }}
+                        </small>
+                    </td>
+                    <td class="bg-success bg-success-subtle">
+                        <small>
+                            ${{ item.positive_cost_total|default:0|floatformat:2 }}
+                        </small>
+                    </td>
+                    <td class="bg-success bg-success-subtle">
+                        <small>
+                            ${{ item.positive_price_total|default:0|floatformat:2 }}
+                        </small>
+                    </td>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="dropdown">
+                                <button class="btn dropdown-toggle" type="button" id="reportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bx bx-file me-2"></i>
+                                </button>
+                                <ul class="dropdown-menu" aria-labelledby="reportDropdown">
+                                    <li><a class="dropdown-item" href="#" onclick="openReportModal('all', {{ item.id }})">
+                                        <i class="fas fa-file-alt me-2"></i>All Items
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="openReportModal('negative', {{ item.id }})">
+                                        <i class="fas fa-arrow-down text-danger me-2"></i>Negative Items
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="openReportModal('positive', {{ item.id }})">
+                                        <i class="fas fa-arrow-up text-success me-2"></i>Positive Items
+                                    </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="#" onclick="openReportModal('product', {{ item.id }})">
+                                        <i class="fas fa-box me-2"></i>By Product
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="openReportModal('category', {{ item.id }})">
+                                        <i class="fas fa-tags me-2"></i>By Category
+                                    </a></li>
+                                </ul>
+                            </div>
+                            {% if not item.status %}
+                                <button class="btn  bx bx-trash"></button>
+                                <a href="{% url 'inventory:stock_take_detail' item.id %}" class="btn btn-sm btn-outline-success rounded-pill">Process</a>
+                            {% else %}
+                                <span class="badge bg-success text-light rounded-pill py-2 text-center">Completed</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div> 
+
+<div class="modal fade" id="createStockTake" tabindex="-1" aria-labelledby="createStockTakeLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body">
+                <h5>Create Stock Take</h5>
+                <form action="" method="post">
+                    {% csrf_token %}
+                    {{ form | crispy }}
+                    <div class="mb-4">
+                        <button class="header-btn w-100" type="submit">Create Stock</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+ <div class="modal fade" id="reportModal" tabindex="-1" aria-labelledby="reportModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="reportModalLabel">
+                        <i class="fas fa-chart-bar me-2"></i>Report Preview
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="loadingState" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-3">Generating report...</p>
+                    </div>
+                    
+                    <div id="reportContent" class="d-none">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <h6 class="text-muted">Report Type:</h6>
+                                <span id="reportType" class="badge bg-primary"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="text-muted">Generated:</h6>
+                                <span id="reportDate"></span>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <h6 class="text-muted">Summary:</h6>
+                                <div id="reportSummary" class="p-3 bg-light rounded">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-borderless table-hover">
+                                <thead class="background">
+                                    <tr id="reportTableHeader">
+                                    </tr>
+                                </thead>
+                                <tbody id="reportTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div id="errorState" class="d-none text-center py-5">
+                        <i class="fas fa-exclamation-triangle text-warning fa-3x mb-3"></i>
+                        <h5>Error Loading Report</h5>
+                        <p class="text-muted">Unable to generate the report. Please try again.</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="header-btn" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>Close
+                    </button>
+                    <button type="button" class="header-btn" id="downloadBtn" onclick="downloadReport()" disabled>
+                        <i class="fas fa-download me-2"></i>Download PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    const createStockTakeModal = new bootstrap.Modal(document.getElementById('createStockTake'));
+    const createBtn = document.getElementById('createStockTakeButton');
+    let currentReportData = null;
+        let currentReportType = null;
+        let currentStocktakeId = null;
+
+        function openReportModal(reportType, stocktakeId) {
+            currentReportType = reportType;
+            currentStocktakeId = stocktakeId;
+            console.log('stocktake', stocktakeId)
+            const modal = new bootstrap.Modal(document.getElementById('reportModal'));
+            modal.show();
+            
+            resetModalState();
+            
+            fetchReportData(reportType, stocktakeId);
+        }
+
+        function resetModalState() {
+            document.getElementById('loadingState').classList.remove('d-none');
+            document.getElementById('reportContent').classList.add('d-none');
+            document.getElementById('errorState').classList.add('d-none');
+            document.getElementById('downloadBtn').disabled = true;
+            currentReportData = null;
+        }
+
+        async function fetchReportData(reportType, stocktakeId) {
+            try {
+                
+                const response = await fetch(`/inventory/stocktake/${stocktakeId}/report/${reportType}/`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken') 
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                currentReportData = data;
+                
+        
+                document.getElementById('loadingState').classList.add('d-none');
+                document.getElementById('reportContent').classList.remove('d-none');
+                document.getElementById('downloadBtn').disabled = false;
+            
+                populateReportModal(data, reportType);
+                
+            } catch (error) {
+                console.error('Error fetching report data:', error);
+                document.getElementById('loadingState').classList.add('d-none');
+                document.getElementById('errorState').classList.remove('d-none');
+            }
+        }
+
+        function populateReportModal(data, reportType) {
+            const reportTypeElement = document.getElementById('reportType');
+            reportTypeElement.textContent = formatReportType(reportType);
+            reportTypeElement.className = `badge bg-${getReportTypeColor(reportType)}`;
+     
+            document.getElementById('reportDate').textContent = new Date().toLocaleString();
+            
+
+            const summaryElement = document.getElementById('reportSummary');
+            summaryElement.innerHTML = generateSummaryHTML(data, reportType);
+            
+            populateTable(data, reportType);
+        }
+
+        function formatReportType(type) {
+            const types = {
+                'all': 'All Items',
+                'negative': 'Negative Items',
+                'positive': 'Positive Items',
+                'product': 'By Product',
+                'category': 'By Category'
+            };
+            return types[type] || type;
+        }
+
+        function getReportTypeColor(type) {
+            const colors = {
+                'all': 'primary',
+                'negative': 'danger',
+                'positive': 'success',
+                'product': 'info',
+                'category': 'warning'
+            };
+            return colors[type] || 'primary';
+        }
+
+        function generateSummaryHTML(data, reportType) {
+            console.log(data)
+            return `
+                <div class="row">
+                    <div class="col-md-3">
+                        <strong>Total Items:</strong><br>
+                        <span class="h5">${data.total_items || 0}</span>
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Total Value:</strong><br>
+                        <span class="h5">$${(data.cost_difference || 0).toFixed(2)}</span>
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Quantity Diff:</strong><br>
+                        <span class="h5 ${data.quantity_difference >= 0 ? 'text-success' : 'text-danger'}">
+                            ${data.quantity_difference || 0}
+                        </span>
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Value Diff:</strong><br>
+                        <span class="h5 ${data.value_difference >= 0 ? 'text-success' : 'text-danger'}">
+                            $${(data.value_difference || 0).toFixed(2)}
+                        </span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function populateTable(data, reportType) {
+            const headerElement = document.getElementById('reportTableHeader');
+            const bodyElement = document.getElementById('reportTableBody');
+            
+            headerElement.innerHTML = '';
+            bodyElement.innerHTML = '';
+           
+            const headers = getTableHeaders(reportType);
+            headers.forEach(header => {
+                const th = document.createElement('th');
+                th.textContent = header;
+                headerElement.appendChild(th);
+            });
+            
+            if (data.items && data.items.length > 0) {
+                data.items.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = generateTableRow(item, reportType);
+                    bodyElement.appendChild(row);
+                });
+            } else {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td colspan="${headers.length}" class="text-center text-muted">No data available</td>`;
+                bodyElement.appendChild(row);
+            }
+        }
+
+        function getTableHeaders(reportType) {
+            const headerMap = {
+                'all': ['Product', 'Category', 'Expected', 'Actual', 'Difference', 'Value'],
+                'negative': ['Product', 'Category', 'Expected', 'Actual', 'Loss', 'Loss Value'],
+                'positive': ['Product', 'Category', 'Expected', 'Actual', 'Gain', 'Gain Value'],
+                'product': ['Product', 'Total Difference', 'Total Value'],
+                'category': ['Category', 'Total Difference', 'Total Value']
+            };
+            return headerMap[reportType] || ['Item', 'Value'];
+        }
+
+        function generateTableRow(item, reportType) {
+            switch (reportType) {
+                case 'all':
+                case 'negative':
+                case 'positive':
+                    return `
+                        <td>${item.product_name || 'N/A'}</td>
+                        <td>${item.category_name || 'N/A'}</td>
+                        <td>${item.expected_quantity || 0}</td>
+                        <td>${item.actual_quantity || 0}</td>
+                        <td class="${item.quantity_difference >= 0 ? 'text-success' : 'text-danger'}">
+                            ${item.quantity_difference || 0}
+                        </td>
+                        <td class="${item.value_difference >= 0 ? 'text-success' : 'text-danger'}">
+                            $${(item.value_difference || 0).toFixed(2)}
+                        </td>
+                    `;
+                case 'product':
+                    return `
+                        <td>${item.product_name || 'N/A'}</td>
+                        <td class="${item.total_difference >= 0 ? 'text-success' : 'text-danger'}">
+                            ${item.total_difference || 0}
+                        </td>
+                        <td class="${item.total_value >= 0 ? 'text-success' : 'text-danger'}">
+                            $${(item.total_value || 0).toFixed(2)}
+                        </td>
+                    `;
+                case 'category':
+                    return `
+                        <td>${item.category_name || 'N/A'}</td>
+                        <td class="${item.total_difference >= 0 ? 'text-success' : 'text-danger'}">
+                            ${item.total_difference || 0}
+                        </td>
+                        <td class="${item.total_value >= 0 ? 'text-success' : 'text-danger'}">
+                            $${(item.total_value || 0).toFixed(2)}
+                        </td>
+                    `;
+                default:
+                    return `<td colspan="2">No data</td>`;
+            }
+        }
+
+        async function downloadReport() {
+            if (!currentReportData || !currentReportType || !currentStocktakeId) {
+                alert('No report data available for download');
+                return;
+            }
+
+            try {
+                const downloadBtn = document.getElementById('downloadBtn');
+                downloadBtn.disabled = true;
+                downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Downloading...';
+
+                const response = await fetch(`/inventory/stocktake/${currentStocktakeId}/download/${currentReportType}/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify(currentReportData)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `stocktake_${currentReportType}_${currentStocktakeId}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+            } catch (error) {
+                console.error('Error downloading report:', error);
+                alert('Error downloading report. Please try again.');
+            } finally {
+                const downloadBtn = document.getElementById('downloadBtn');
+                downloadBtn.disabled = false;
+                downloadBtn.innerHTML = '<i class="fas fa-download me-2"></i>Download PDF';
+            }
+        }
+
+        function pdf(type, stocktakeId) {
+            openReportModal(type, stocktakeId);
+        }
+
+    createBtn.addEventListener('click', ()=>{
+        createStockTakeModal.show()
+    })
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+</script>
+{% endblock content %} 
