@@ -1,0 +1,12 @@
+.dashboard-card {
+    border: none;
+}
+
+.dashboard-card:hover {
+    background: #333;
+    color: white;
+}
+
+.dashboard-container {
+    height: 80vh;
+}
