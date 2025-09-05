@@ -2241,8 +2241,8 @@ def add_dish(request): # didn't change the name of the template, it caters for b
             logger.info(cart)
             
             
-            if not dish_name or not portion_multiplier or not cost or not selling_price:
-                return JsonResponse({'success': False, 'message': f'Please fill all the missing data'}, status=400)
+            # if not dish_name or not portion_multiplier or not cost or not selling_price:
+            #     return JsonResponse({'success': False, 'message': f'Please fill all the missing data'}, status=400)
             
             with transaction.atomic():
  
