@@ -572,7 +572,7 @@ def edit_supplier(request, supplier_id):
 def purchase_orders(request):
     form = CreateOrderForm()
     status_form = PurchaseOrderStatus()
-    orders = PurchaseOrder.objects.filter(user__branch=request.user.branch).order_by('-order_date')
+    orders = PurchaseOrder.objects.filter(branch=request.user.branch).order_by('-order_date')
     return render(request, 'inventory/purchase_orders.html', 
         {
             'form':form,
@@ -2944,6 +2944,7 @@ def end_of_day_view(request):
         staff_sales_qs = sales_qs.filter(sale__staff=True)
 
         dish_sales_map = {}
+        finished_products_map = {}
         staff_portions_map = {}
 
         for item in sales_qs:
@@ -2951,26 +2952,47 @@ def end_of_day_view(request):
                 for dish in item.meal.dish.all():
                     dish_sales_map[dish.name] = dish_sales_map.get(dish.name, 0) + (item.quantity or 0)
             else:
-                name = item.dish.name if item.dish else item.product.name
-                dish_sales_map[name] = dish_sales_map.get(name, 0) + (item.quantity or 0)
+                if item.dish:
+                    name = item.dish.name
+                    dish_sales_map[name] = dish_sales_map.get(name, 0) + (item.quantity or 0)
+                else:
+                    name = item.product.name
+                    finished_products_map[name] = finished_products_map.get(name, 0) + (item.quantity or 0)
 
         for item in staff_sales_qs:
             if item.meal:
                 for dish in item.meal.dish.all():
                     staff_portions_map[dish.name] = staff_portions_map.get(dish.name, 0) + (item.quantity or 0)
             else:
-                name = item.dish.name if item.dish else item.product.name
-                staff_portions_map[name] = staff_portions_map.get(name, 0) + (item.quantity or 0)
+                
+                if item.dish:
+                    name = item.dish.name
+                    staff_portions_map[name] = staff_portions_map.get(name, 0) + (item.quantity or 0)
+                else:
+                    name = item.product.name
+                    finished_products_map[name] = finished_products_map.get(name, 0) + (item.quantity or 0)
 
         all_names = set(dish_sales_map.keys()) | set(staff_portions_map.keys())
+        all_products = set(finished_products_map.keys())
+
+        all_names = list(set(all_products) | set(all_names))
 
         production_today = []
+        finished_goods_list = []
         for name in all_names:
             production_today.append({
                 'sold': name,
                 'total_portions': dish_sales_map.get(name, 0),
                 'total_sold': dish_sales_map.get(name, 0),
                 'total_staff_portions': staff_portions_map.get(name, 0),
+            })
+        
+        for name in all_products:
+            finished_goods_list.append({
+                'sold': name,
+                'total_portions': finished_products_map.get(name, 0),
+                'total_sold': finished_products_map.get(name, 0),
+                'total_staff_portions': 0,
             })
 
         e_o_d, created = EndOfDay.objects.get_or_create(
@@ -2981,27 +3003,52 @@ def end_of_day_view(request):
 
         existing_items = EndOfDayItems.objects.filter(end_of_day=e_o_d).values_list('dish_name', flat=True)
 
-        for dish in production_today:
-            if dish['sold'] not in existing_items:
-                logger.info(f'staff portions: {dish['total_staff_portions']}')
+        items_to_process = [
+            {
+                'sold': dish['sold'],
+                'is_product': False,
+                'total_portions': dish['total_portions'] or 0,
+                'total_sold': dish['total_sold'],
+                'staff_portions': dish['total_staff_portions'],
+            }
+            for dish in production_today
+        ] + [
+            {
+                'sold': product['sold'],
+                'is_product': True,
+                'total_portions': product['total_portions'] or 0,
+                'total_sold': product['total_sold'],
+                'staff_portions': 0,
+            }
+            for product in finished_goods_list
+        ]
+
+        for item in items_to_process:
+            update_kwargs = {
+                'total_portions': item['total_portions'],
+                'total_sold': item['total_sold'],
+                'staff_portions': item['staff_portions'],
+            }
+           
+            if item['is_product']:
+                update_kwargs['finished_product'] = item['sold']
+                print('finished product ->', item['sold'])
+            if item['sold'] not in existing_items:
+                logger.info(f"Creating EndOfDayItem for: {item['sold']}")
                 EndOfDayItems.objects.create(
                     end_of_day=e_o_d,
-                    dish_name=dish['sold'],
-                    total_portions=dish['total_portions'] or 0,
-                    total_sold=dish['total_sold'],
-                    staff_portions=dish['total_staff_portions'],
+                    dish_name=None if item['is_product'] else item['sold'],
+                    finished_product=item['sold'] if item['is_product'] else None,
+                    **update_kwargs
                 )
             else:
-                logger.info(f'staff portions: {dish['total_staff_portions']}')
-                logger.info(f'sold portions: {dish['total_sold']}')
-                EndOfDayItems.objects.filter(end_of_day=e_o_d, dish_name=dish['sold']).update(
-                    total_portions=dish['total_portions'] or 0,
-                    total_sold=dish['total_sold'],
-                    staff_portions=dish['total_staff_portions'],
+                logger.info(f"Updating EndOfDayItem for: {item['sold']}")
+                EndOfDayItems.objects.filter(end_of_day=e_o_d, dish_name=item['sold']).update(
+                    **update_kwargs
                 )
+                
 
         eod_list = EndOfDayItems.objects.filter(end_of_day=e_o_d)
-        
         
         for a in eod_list:
             print(a.dish_name, 'portions ->', a.total_portions, 'sold_', a.total_sold, 'staff_p', a.staff_portions, 'staff_wastage', a.wastage, 'leftovers', a.leftovers, a.expected, a.declared, a.servers_variance)
@@ -3120,6 +3167,7 @@ def supplier_prices(request, raw_material_name):
 
 @login_required
 def end_of_day_detail(request, e_o_d_id):
+    download = request.GET.get('download', None)
     try:
         end_of_day = EndOfDay.objects.get(id=e_o_d_id, branch = request.user.branch)
         end_of_day_items = EndOfDayItems.objects.filter(end_of_day=end_of_day)
@@ -3127,7 +3175,58 @@ def end_of_day_detail(request, e_o_d_id):
       
         # buffer = generate_end_of_day_report(end_of_day, end_of_day_items, total_amount_staff_sold_today)
         # send_end_of_day_report(request, buffer)
-    
+
+        products = Product.objects.filter(finished_product=True, branch=request.user.branch)
+        purchase_order = PurchaseOrder.objects.filter(branch=request.user.branch, order_date__date=end_of_day.date, received=True).first()
+        purchase_order_items = PurchaseOrderItem.objects.filter(purchase_order=purchase_order) 
+
+        print(purchase_order_items, request.user.branch)
+                  
+        purchase_order_map = {}
+        for item in purchase_order_items:  # average cost to be revised 
+            if item.product.name in purchase_order_map:
+                purchase_order_map[item.product.name] += item.quantity
+            else:
+                purchase_order_map[item.product.name] = item.quantity
+
+        products_map = {product.name: product for product in products}
+
+        for eod_item in end_of_day_items:
+            if eod_item.finished_product:
+                product = products_map.get(eod_item.finished_product)
+                print(product, product.quantity if product else 'N/A')
+
+                purchase = purchase_order_map.get(eod_item.finished_product, 0)
+                print('purchase ->', purchase,  eod_item.total_sold, eod_item.staff_portions)
+
+                if product:
+                    eod_item.product_cost = product.cost * (eod_item.total_portions or 0)
+                    eod_item.product_price = product.price * (eod_item.total_sold or 0)
+                    eod_item.close_stock = product.quantity
+
+                    if purchase:
+                        eod_item.purchase_units = purchase
+
+                    eod_item.open_stock = product.quantity + (eod_item.total_sold or 0) + (eod_item.staff_portions or 0)  
+                    print('open stock ->', eod_item.open_stock)
+                    print('product quantity ->', product.quantity)
+                else:
+                    eod_item.product_cost = 0
+                    eod_item.product_price = 0
+            else:
+                eod_item.product_cost = 0
+                eod_item.product_price = 0
+            
+            eod_item.save()
+        
+        if download:
+            context = {
+                'end_of_day': end_of_day,
+                'items': end_of_day_items,
+                'dishes': dishes,
+                'branch': request.user.branch,
+            }
+
         return render(request, 'end_of_day_detail.html', 
             {
                 'dishes': dishes, 

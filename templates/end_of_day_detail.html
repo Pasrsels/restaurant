@@ -115,15 +115,22 @@
     <div class="d-flex align-items-center justify-content-between mt-2">
         <div>
             <h4 class="px-1">End Of Day #{{ end_of_day.id }}</h4>
-            <p>Process and Detail view</p>
+            <p>
+                <i class="bx bx-user"></i>
+                {{ end_of_day.user.username|default_if_none:'User' }} | {{ end_of_day.date }}
+                <br>
+                <i class="bx bx-money"></i>
+                Sales: {{ end_of_day.total_sales }}.00 | Cashed: {{ end_of_day.cashed_amount }} | Difference: 
+                {% if difference < 0 %}
+                    <span class="text-danger fw-bold">{{ difference }}</span>
+                {% else %}
+                    {{ difference }}
+                {% endif %}
+            </p>
         </div>
         <div class="d-flex gap-2">
-            <i class="bx bx-filter header-btn" onclick="showFilterModal()" id="filter"></i>
-            <button class="header-btn" onclick="printEndOfDaySheet()" title="Print End Of Day">
-                <i class="bx bx-printer"></i> Print Sheet
-            </button>
-            <button class="header-btn" onclick="adjustEndOfDay()" title="Adjust End Of Day">
-                <i class="bx bx-edit"></i> Adjust End Of Day
+            <button class="header-btn" onclick="window.location.href='{% url 'inventory:end_of_day_pdf' %}'" title="Download PDF">
+                <i class="bx bx-download"></i> Download PDF
             </button>
         </div>
     </div>
@@ -204,12 +211,13 @@
                         <th>#</th>
                         <th>Dish</th>
                         <th class="amount-right color-back-2">Planned</th>
-                        <th class="amount-right color-back"><i class="bx bx-minus fw-bold text-danger"></i>Declared</th>
-                        <th class="amount-right color-back"><i class="bx bx-plus fw-bold text-success"></i>Sold</th>
-                        <th class="amount-right color-back"><i class="bx bx-plus fw-bold text-success"></i>Staff</th>
-                        <th class="amount-right color-back"><i class="bx bx-plus fw-bold text-success"></i>Wastage</th>
-                        <th class="amount-right color-back"><i class="bx bx-plus fw-bold text-success"></i>Leftovers</th>
-                        <th class="amount-right color-back"><i class="bx bx-equal fw-bold text-primary"></i>Variance</th>
+                        <!-- <th class="amount-right">Previous Left Overs</th> -->
+                        <th class="amount-right color-back"><i class="bx bx-plus fw-bold text-success"></i><span class="text-success">Declared</span></th>
+                        <th class="amount-right color-back"><i class="bx bx-minus fw-bold text-danger"></i><span class="text-danger">Sold</span></th>
+                        <th class="amount-right color-back"><i class="bx bx-minus fw-bold text-danger"></i><span class="text-danger">Staff</span></th>
+                        <th class="amount-right color-back"><i class="bx bx-minus fw-bold text-danger"></i><span class="text-danger">Wastage</span></th>
+                        <th class="amount-right color-back"><i class="bx bx-minus fw-bold text-danger"></i><span class="text-danger">Leftovers</span></th>
+                        <th class="amount-right color-back"><i class="bx bx-equal fw-bold text-primary"></i><span class="text-primary">Variance</span></th>
                     </tr>
                     <!-- Totals Row -->
                     <tr class="background totals-row">
@@ -227,101 +235,104 @@
                 <tbody>
                     {% with total_expected=0 %}
                         {% for item in end_of_day_items %}
-                            <tr>
-                                <td><small>{{ forloop.counter }} </small></td>
-                                <td><small>{{ item.dish_name|default_if_none:"0" }}</small></td>
-                                <td class="amount-right color-back-2">
-                                    <small>{{ item.expected|default_if_none:"0" }} &nbsp;|&nbsp; </small>
-                                    {% with dish=dishes|get_by_name:item.dish_name %}
-                                        {% if dish and item.expected %}
-                                            {% with expected_value=dish.price|default:0|mul:item.expected|floatformat:2 %}
-                                                <small class="amount-right">${{ expected_value }}</small>
-                                                {% widthratio total_expected|add:expected_value 1 1 as total_expected %}
-                                            {% endwith %}
-                                        {% else %}
-                                            <small class="amount-right">$0.00</small>
-                                        {% endif %}
-                                    {% endwith %}
-                                </td>
-                                <td class="amount-right color-back">
-                                    <small>{{ item.declared|default_if_none:"0" }} &nbsp;|&nbsp; </small>
-                                    {% with dish=dishes|get_by_name:item.dish_name %}
-                                        {% if dish and item.declared %}
-                                            {% with expected_value=dish.price|default:0|mul:item.declared|floatformat:2 %}
-                                                <small class="amount-right">${{ expected_value }}</small>
-                                                {% widthratio total_expected|add:expected_value 1 1 as total_expected %}
-                                            {% endwith %}
-                                        {% else %}
-                                            <small class="amount-right">$0.00</small>
-                                        {% endif %}
-                                    {% endwith %}
-                                </td>
-                                <td class="amount-right color-back">
-                                    <small>{{ item.total_sold|default_if_none:"0" }} &nbsp;|&nbsp; </small>
-                                    {% with dish=dishes|get_by_name:item.dish_name %}
-                                        {% if dish and item.total_sold%}
-                                            {% with expected_value=dish.price|default:0|mul:item.total_sold|floatformat:2 %}
-                                                <small class="amount-right">${{ expected_value }}</small>
-                                                {% widthratio total_expected|add:expected_value 1 1 as total_expected %}
-                                            {% endwith %}
-                                        {% else %}
-                                            <small class="amount-right">$0.00</small>
-                                        {% endif %}
-                                    {% endwith %}
-                                </td>
-                                <td class="amount-right color-back">
-                                    <small>{{ item.staff_portions}} &nbsp;|&nbsp; </small>
-                                    {% with dish=dishes|get_by_name:item.dish_name %}
-                                        {% if dish and item.staff_portions %}
-                                            {% with expected_value=dish.price|default:0|mul:item.staff_portions|floatformat:2 %}
-                                                <small class="amount-right">${{ expected_value }}</small>
-                                                {% widthratio total_expected|add:expected_value 1 1 as total_expected %}
-                                            {% endwith %}
-                                        {% else %}
-                                            <small class="amount-right">$0.00</small>
-                                        {% endif %}
-                                    {% endwith %}
-                                </td>
-                                <td class="amount-right color-back">
-                                    <small>{{ item.wastage }} &nbsp;|&nbsp; </small>
-                                    {% with dish=dishes|get_by_name:item.dish_name %}
-                                        {% if dish and item.wastage %}
-                                            {% with expected_value=dish.price|default:0|mul:item.wastage|floatformat:2 %}
-                                                <small class="amount-right">${{ expected_value }}</small>
-                                                {% widthratio total_expected|add:expected_value 1 1 as total_expected %}
-                                            {% endwith %}
-                                        {% else %}
-                                            <small class="amount-right">$0.00</small>
-                                        {% endif %}
-                                    {% endwith %}
-                                </td>
-                                <td class="amount-right color-back">
-                                    <small>{{ item.leftovers|default_if_none:"0" }} &nbsp;|&nbsp; </small>
-                                    {% with dish=dishes|get_by_name:item.dish_name %}
-                                        {% if dish and item.leftovers %}
-                                            {% with expected_value=dish.price|default:0|mul:item.leftovers|floatformat:2 %}
-                                                <small class="amount-right">${{ expected_value }}</small>
-                                                {% widthratio total_expected|add:expected_value 1 1 as total_expected %}
-                                            {% endwith %}
-                                        {% else %}
-                                            <small class="amount-right">$0.00</small>
-                                        {% endif %}
-                                    {% endwith %}
-                                </td>
-                                <td class="amount-right color-back">
-                                    <small>{{ item.servers_variance|default_if_none:"0" }} | </small>
-                                    {% with dish=dishes|get_by_name:item.dish_name %}
-                                        {% if dish and item.servers_variance %}
-                                            {% with expected_value=dish.price|default:0|mul:item.servers_variance|floatformat:2 %}
-                                                <small class="amount-right">${{ expected_value }}</small>
-                                                {% widthratio total_expected|add:expected_value 1 1 as total_expected %}
-                                            {% endwith %}
-                                        {% else %}
-                                            <small class="amount-right">$0.00</small>
-                                        {% endif %}
-                                    {% endwith %}
-                                </td>
-                            </tr>
+                        {% if item.dish_name and not item.finished_product %}
+                                <tr>
+                                    <td><small>{{ forloop.counter }} </small></td>
+                                    <td><small>{{ item.dish_name|default_if_none:"0" }}</small></td>
+                                    <td class="amount-right color-back-2">
+                                        <small>{{ item.expected|default_if_none:"0" }} &nbsp;|&nbsp; </small>
+                                        {% with dish=dishes|get_by_name:item.dish_name %}
+                                            {% if dish and item.expected %}
+                                                {% with expected_value=dish.price|default:0|mul:item.expected|floatformat:2 %}
+                                                    <small class="amount-right">${{ expected_value }}</small>
+                                                    {% widthratio total_expected|add:expected_value 1 1 as total_expected %}
+                                                {% endwith %}
+                                            {% else %}
+                                                <small class="amount-right">$0.00</small>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    <td class="amount-right color-back">
+                                        <small>{{ item.declared|default_if_none:"0" }} &nbsp;|&nbsp; </small>
+                                        {% with dish=dishes|get_by_name:item.dish_name %}
+                                            {% if dish and item.declared %}
+                                                {% with expected_value=dish.price|default:0|mul:item.declared|floatformat:2 %}
+                                                    <small class="amount-right">${{ expected_value }}</small>
+                                                    {% widthratio total_expected|add:expected_value 1 1 as total_expected %}
+                                                {% endwith %}
+                                            {% else %}
+                                                <small class="amount-right">$0.00</small>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    <td class="amount-right color-back">
+                                        <small>{{ item.total_sold|default_if_none:"0" }} &nbsp;|&nbsp; </small>
+                                        {% with dish=dishes|get_by_name:item.dish_name %}
+                                            {% if dish and item.total_sold%}
+                                                {% with expected_value=dish.price|default:0|mul:item.total_sold|floatformat:2 %}
+                                                    <small class="amount-right">${{ expected_value }}</small>
+                                                    {% widthratio total_expected|add:expected_value 1 1 as total_expected %}
+                                                {% endwith %}
+                                            {% else %}
+                                                <small class="amount-right">$0.00</small>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    <td class="amount-right color-back">
+                                        <small>{{ item.staff_portions}} &nbsp;|&nbsp; </small>
+                                        {% with dish=dishes|get_by_name:item.dish_name %}
+                                            {% if dish and item.staff_portions %}
+                                                {% with expected_value=dish.price|default:0|mul:item.staff_portions|floatformat:2 %}
+                                                    <small class="amount-right">${{ expected_value }}</small>
+                                                    {% widthratio total_expected|add:expected_value 1 1 as total_expected %}
+                                                {% endwith %}
+                                            {% else %}
+                                                <small class="amount-right">$0.00</small>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    <td class="amount-right color-back">
+                                        <small>{{ item.wastage }} &nbsp;|&nbsp; </small>
+                                        {% with dish=dishes|get_by_name:item.dish_name %}
+                                            {% if dish and item.wastage %}
+                                                {% with expected_value=dish.price|default:0|mul:item.wastage|floatformat:2 %}
+                                                    <small class="amount-right">${{ expected_value }}</small>
+                                                    {% widthratio total_expected|add:expected_value 1 1 as total_expected %}
+                                                {% endwith %}
+                                            {% else %}
+                                                <small class="amount-right">$0.00</small>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    <td class="amount-right color-back">
+                                        <small>{{ item.leftovers|default_if_none:"0" }} &nbsp;|&nbsp; </small>
+                                        {% with dish=dishes|get_by_name:item.dish_name %}
+                                            {% if dish and item.leftovers %}
+                                                {% with expected_value=dish.price|default:0|mul:item.leftovers|floatformat:2 %}
+                                                    <small class="amount-right">${{ expected_value }}</small>
+                                                    {% widthratio total_expected|add:expected_value 1 1 as total_expected %}
+                                                {% endwith %}
+                                            {% else %}
+                                                <small class="amount-right">$0.00</small>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    <td class="amount-right color-back">
+                                        <small>{{ item.servers_variance|default_if_none:"0" }} | </small>
+                                        {% with dish=dishes|get_by_name:item.dish_name %}
+                                            {% if dish and item.servers_variance %}
+                                                {% with expected_value=dish.price|default:0|mul:item.servers_variance|floatformat:2 %}
+                                                    <small class="amount-right">${{ expected_value }}</small>
+                                                    {% widthratio total_expected|add:expected_value 1 1 as total_expected %}
+                                                {% endwith %}
+                                            {% else %}
+                                                <small class="amount-right">$0.00</small>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                </tr>
+                            {% else %}
+                            {% endif %}
                         {% endfor %}
                     {% endwith %}
                 </tbody>
@@ -332,6 +343,41 @@
                     </tr>
                 </tfoot>
             </table>
+        </div>
+                <div class="main mt-4 p-1">
+            <h3 class="mt-2 mb-2">Finished Products</h3>
+            <div class="table-container">
+                <table class="table w-100 table-borderless table-hover" id="finished_products_table">
+                    <thead class="color-back-2">
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th class="amount-right color-back-2">Opening Stock</th>
+                            <th class="amount-right color-back">Additions</th>
+                            <th class="amount-right color-back">Sold</th>
+                            <th class="amount-right color-back">Closing Stock</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in end_of_day_items %}
+                            {% if item.finished_product %}
+                                <tr>
+                                    <td><small>{{ forloop.counter }}</small></td>
+                                    <td><small>{{ item.finished_product }}</small></td>
+                                    <td class="amount-right color-back-2"><small>{{ item.open_stock }}</small></td>
+                                    <td class="amount-right color-back"><small>{{ item.purchase_units|default_if_none:"0" }}</small></td>
+                                    <td class="amount-right color-back"><small>{{ item.total_sold|default_if_none:"0" }}</small></td>
+                                    <td class="amount-right color-back">
+                                        <small>
+                                            {{ item.close_stock }}
+                                        </small>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>

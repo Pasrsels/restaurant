@@ -358,7 +358,12 @@ class EndOfDayItems(models.Model):
     declared = models.FloatField(null=True)
     expected = models.FloatField(null=True)
     recorded = models.BooleanField(default=False)
-
+    finished_product = models.CharField(null=True)
+    product_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True)
+    product_price = models.DecimalField(max_digits=10, decimal_places=2, null=True)
+    purchase_units = models.FloatField(null=True)
+    open_stock = models.FloatField(null=True)
+    close_stock = models.FloatField(null=True)
     def __str__(self) -> str:
         return f'{self.end_of_day.date}: {self.dish_name}'
     

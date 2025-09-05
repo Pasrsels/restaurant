@@ -183,6 +183,9 @@
                         <li class='m-1'>
                             <a class="btn btn-outline-dark" id="cashup">Cash Up</a>
                         </li>
+                        <li class='m-1'>
+                            <a class="btn btn-outline-dark" href="{% url 'inventory:create_purchase_order' %}">Purchases</a>
+                        </li>
                         <!-- <li class='m-1'> pamwe tichazokuda
                             <a href='{% url "pos:cash_up_accountant_report" %}' class="btn btn-outline-dark">Accountant Report</a>
                         </li> -->
@@ -1924,7 +1927,6 @@ function generateAccountantCashUp(userId) {
     function doNoAction() {
         console.log("User clicked No");
     }
-
 
     const processsCashUp = () => {
         fetch(`/pos/cash_up/{{ request.user.id }}/`, {
