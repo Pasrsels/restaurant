@@ -123,6 +123,7 @@ class CashUp(models.Model):
         return f'{self.date}'
     
 class CashierAccount(models.Model):
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     cashier = models.ForeignKey(User, on_delete=models.CASCADE)
     cash_up = models.ForeignKey(CashUp, on_delete=models.CASCADE, null=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=0) 

@@ -69,7 +69,8 @@ def get_expense(request, expense_id):
         'amount': expense.amount,
         'description': expense.description,
         'category': expense.category.id,
-        'branch': expense.branch
+        'branch_name': expense.branch.name,
+        'branch_id':expense.branch.id
     }
     return JsonResponse({'success': True, 'data': data})
 
