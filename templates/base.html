@@ -35,57 +35,6 @@
     <title>
         {% block title %}{{ request.user.company.name }}{% endblock title %}
     </title>
-
-    <style>
-        #notification-icon {
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        #notification-badge {
-            display: none;
-            position: absolute;
-            top: -5px; 
-            right: -10px;  
-        }
-        
-        .notifications {
-            position: absolute;
-            top: 100%; 
-            left: 50%; 
-            transform: translateX(-50%);
-            width: 300px;
-            background-color: white;
-            border: 1px solid #ddd;
-            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
-            display: none; 
-            z-index: 1000; 
-        }  
-        
-        #notification-dropdown.show {
-            display: block; 
-        }
-        
-        .notifications ul {
-            padding: 0;
-            margin: 0;
-            list-style: none;
-        }
-        
-        .notifications li {
-            padding: 10px;
-            border-bottom: 1px solid #ddd;
-            cursor: pointer;
-        }
-        
-        .notifications li:hover {
-            background-color: #f8f9fa; 
-        }
-
-    </style>
-    
 </head>
 <body>
     <div class="Urban-Eat">
@@ -103,6 +52,9 @@
                     {% else %}
                     <div class="d-flex justify-content-between align-items-center w-100">
                         <div class="text-center py-0 my-0">
+                            <button class="btn btn-secondary d-md-none" id="sidebar-toggle-button">
+                                <i class="bx bx-menu"></i>
+                            </button>
                             <h4 class="fw-bold">
                                 {{ request.user.company.name }}
                                 <br>
@@ -126,7 +78,7 @@
                                     <span id="notification-badge" class="badge rounded-pill bg-danger text-dark position-absolute top-0 start-100 translate-middle">
                                         2
                                     </span>
-                                    <div class="notifications dropdown-menu dropdown-menu-end p-2" id="notification-dropdown" style="max-height: 200px; overflow-y: auto;">
+                                    <div class="notifications dropdown-menu dropdown-menu-end p-2 notification-dropdown-style" id="notification-dropdown">
                                         <ul id="notification-box" class="list-unstyled">
                                             {% for notification in notifications %}
                                                 <li>
@@ -148,17 +100,17 @@
                 </nav>
                     <div class="row container-fluid">
                         {% if request.resolver_match.url_name == 'pos' %}
-                        <div class="col-2 mt-3 d-flex justify-content-center border rounded">
+                        <div id="pos-sidebar" class="col-2 mt-3 d-flex justify-content-center border rounded">
                             {% include 'base/Possidebar.html' %}
                         </div>
                         {% elif request.resolver_match.url_name not in 'declare_production,confirm_production_plan,production_plans,view_production_plan' %}
-                        <div class="col-2 mt-3 d-flex justify-content-center">
+                        <div id="main-sidebar" class="col-2 mt-3 d-flex justify-content-center">
                             {% include 'base/side_bar.html' %}
                         </div>
                         {% endif %}
                         
                         <div class="{% if request.resolver_match.url_name in 'view_production_plan' %}col-12 p-4{% else %}col-10{% endif %}">
-                            <div class="app-area {% if request.resolver_match.url_name not in 'view_production_plan' %}overflow{% endif %}" {% if request.resolver_match.url_name == 'view_production_plan' %}style="max-width: 1800px; margin: 0 auto;"{% endif %}>
+                            <div class="app-area {% if request.resolver_match.url_name not in 'view_production_plan' %}overflow{% endif %}" {% if request.resolver_match.url_name == 'view_production_plan' %}class="app-area-style"{% endif %}>
                                 {% if messages %}
                                     {% for message in messages %}
                                         <div class="alert alert-dismissible {% if message.tags %}alert-{{ message.tags }}{% endif %}">
@@ -176,7 +128,7 @@
                         </div>
                         
                         {% if request.resolver_match.url_name == 'declare_production' or request.resolver_match.url_name == 'confirm_production_plan' or request.resolver_match.url_name == 'production_plans' %}
-                        <div class="col-2" style="background:#f8f9fa;">
+                        <div class="col-2 checklist-style">
                             {% include 'base/check_list.html' %}
                         </div>
                         {% endif %}
@@ -213,6 +165,19 @@
         document.getElementById('notification-icon').addEventListener('click', function() {
             const dropdown = document.getElementById('notification-dropdown');
             dropdown.classList.toggle('show');
+        });
+
+        document.getElementById('sidebar-toggle-button').addEventListener('click', function() {
+            const posSidebar = document.getElementById('pos-sidebar');
+            const mainSidebar = document.getElementById('main-sidebar');
+
+            if (posSidebar) {
+                posSidebar.classList.toggle('d-none');
+            }
+
+            if (mainSidebar) {
+                mainSidebar.classList.toggle('d-none');
+            }
         });
         
         const BranchModal = new bootstrap.Modal(document.getElementById('switchBranchModal'));

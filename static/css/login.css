@@ -1,0 +1,14 @@
+.login {
+    background: #dde5f4;
+    height: 100vh;
+    background: url('../../static/assets/back.jpg');
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+.login-form {
+    height: 40vh;
+    width: 40vh;
+    border: 1px solid #333;
+    background: #333;
+    color: #fff;
+}
