@@ -133,7 +133,6 @@ class CashierAccount(models.Model):
         return f'{self.cashier.first_name} ({self.amount})'
 
 class CashierPayments(models.Model):
-    # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     date = models.DateTimeField(auto_now_add=True, null=True)
     cashier = models.ForeignKey(User, on_delete=models.CASCADE)
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -174,7 +173,6 @@ class CashierExpense(models.Model):
         return f'{self.name} ({self.amount})'
 
 class CashierHandover(models.Model):
-    
     cashier_checking_out = models.ForeignKey(User, on_delete=models.CASCADE)
     total_sales = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     total_expenses = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
