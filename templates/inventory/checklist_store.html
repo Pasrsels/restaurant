@@ -1,0 +1,175 @@
+{% extends "base_store.html" %}
+{% load static %}
+{% block title %}Checklist - Store Interface{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h4><i class="fas fa-clipboard-check me-2"></i>Inventory Checklist</h4>
+    </div>
+    <div class="card-body">
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <input type="text" class="form-control" id="search-bar" placeholder="Search products...">
+            </div>
+            <div class="col-md-6">
+                <div class="btn-group">
+                    <button class="btn btn-outline-primary" onclick="checkAllInStock()">All Products</button>
+                    <button class="btn btn-outline-secondary" onclick="checkProductInStock()">Finished Products</button>
+                    <button class="btn btn-outline-info" onclick="checkRawMaterials()">Raw Materials</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <h5>In Stock Items</h5>
+                <div class="table-responsive" style="max-height: 400px;">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Quantity</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="in-stock-table">
+                            {% for product in products %}
+                                {% if product.product.quantity > 0 %}
+                                    <tr data-product-id="{{ product.id }}">
+                                        <td>{{ product.product.name }}</td>
+                                        <td>{{ product.product.quantity|floatformat:2 }}</td>
+                                        <td>
+                                            <input type="checkbox" class="checklist-checkbox" 
+                                                   {% if product.status %} checked {% endif %}
+                                                   data-product-id="{{ product.id }}">
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <h5>Out of Stock Items</h5>
+                <div class="table-responsive" style="max-height: 400px;">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="out-stock-table">
+                            {% for product in products %}
+                                {% if product.product.quantity < 1 %}
+                                    <tr data-product-id="{{ product.id }}">
+                                        <td>{{ product.product.name }}</td>
+                                        <td>
+                                            <input type="checkbox" class="checklist-checkbox" 
+                                                   {% if product.status %} checked {% endif %}
+                                                   data-product-id="{{ product.id }}">
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Search functionality
+    document.getElementById('search-bar').addEventListener('keyup', function() {
+        let searchValue = this.value.toLowerCase();
+        let rows = document.querySelectorAll('#in-stock-table tr, #out-stock-table tr');
+        
+        rows.forEach(function(row) {
+            let productName = row.querySelector('td').textContent.toLowerCase();
+            if (productName.includes(searchValue)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+
+    // Checkbox functionality
+    document.querySelectorAll('.checklist-checkbox').forEach(function(checkbox) {
+        checkbox.addEventListener('change', function() {
+            let productId = this.dataset.productId;
+
+            fetch("{% url 'inventory:store_check_check_list' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    'check_list_id': productId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('An error occurred!');
+            });
+        });
+    });
+
+    function checkAllInStock() {
+        fetch("{% url 'inventory:store_check_list_all_products' %}", {
+            method: 'GET',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        });
+    }
+
+    function checkProductInStock() {
+        fetch("{% url 'inventory:store_check_list_finished_products' %}", {
+            method: 'GET',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        });
+    }
+
+    function checkRawMaterials() {
+        fetch("{% url 'inventory:store_check_list_raw_products' %}", {
+            method: 'GET',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        });
+    }
+</script>
+
+{% endblock %}

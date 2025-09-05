@@ -73,9 +73,13 @@ def users(request):
     if request.method == 'POST':
         form = UserRegistrationForm(request.POST)
         if form.is_valid():
-            form.save()
             user = form.save(commit=False)
             user.password = make_password(form.cleaned_data['password'])
+            
+            # Auto-assign to current user's branch if no branch is specified
+            if not user.branch:
+                user.branch = request.user.branch
+
             user.save()
             messages.success(request, 'User successfully added')
         else:
@@ -112,7 +116,8 @@ def login_view(request):
                 if user.role in ['accountant', 'admin', 'owner']:
                     logger.info(f'User: {user.first_name + " " + user.email} is an {user.role}')
                     return redirect('dashborad')
-                elif user.role == 'chef':
+                elif user.role in ['chef', 'stores_person']:
+                    logger.info(f'User: {user.first_name + " " + user.email} is a {user.role}')
                     return redirect('inventory:production_plans')
                 return redirect('pos:pos')
             else:
@@ -184,6 +189,7 @@ def get_user_data(request, user_id):
         'username': user.username,
         'phonenumber': user.phonenumber,
         'role': user.role,
+        'company': user.company.id if user.company else None,
     }
     logger.info(f'User data: {user_data}')
     return JsonResponse(user_data)
@@ -306,3 +312,15 @@ def createBranch(request):
             return redirect('users:users')
         messages.warning(request, f'Failed to save new branch')
         return redirect('users:users')
+
+@admin_required
+def load_branches(request):
+    """AJAX view to load branches based on selected company"""
+    company_id = request.GET.get('company')
+    if company_id:
+        branches = Branch.objects.filter(company_id=company_id).order_by('branch_name')
+        return JsonResponse({
+            'success': True,
+            'branches': [{'id': branch.id, 'name': branch.branch_name} for branch in branches]
+        })
+    return JsonResponse({'success': False, 'branches': []})

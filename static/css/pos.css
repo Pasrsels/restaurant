@@ -1,0 +1,140 @@
+.color-bg {
+    background-color: #FFDD57;
+}
+.container-color {
+    background-color: #fbfbfb;
+}
+.dish-writing {
+    color: #1F2937;
+}
+.color-button {
+    background-color: #EF4444;
+}
+#dishCategories {
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    scroll-behavior: smooth;
+}
+.bt-end {
+    margin-right: 5px;
+}
+.bt-left {
+    margin-left: 25px;
+}
+#autoConfirmProdPlan {
+    overflow-y: auto;
+}
+/* Floating Button */
+.floating-button {
+    margin-top: 300px;
+    position: relative;
+    bottom: 20px;
+    left: 20px;
+    width: 100%;
+    height: 50px;
+    color: #fff;
+    border-radius: 2%;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    z-index: 1000;
+}
+/* Hidden Content Box */
+.floating-content {
+    display: none;
+    position: fixed;
+    bottom: 80px;
+    left: 20px;
+    width: 300px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+}
+.content-header {
+    background-color: #333;
+    color: #fff;
+    padding: 10px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+.content-body {
+    padding: 15px;
+}
+.content-body ul {
+    list-style: none;
+    padding-left: 0;
+}
+.content-body ul li {
+    margin-bottom: 10px;
+}
+.content-body ul li a {
+    text-decoration: none;
+    color: #333;
+}
+.menu {
+    background: url('../../static/assets/back.jpg');
+    background-repeat: no-repeat;
+    background-size: cover;
+    height: 60vh;
+}
+.pos {
+    height: 100vh;
+}
+.hover:hover {
+    background: #2b292a;
+    color: #fff;
+}
+.loader-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+}
+.loader {
+    border: 16px solid #f3f3f3;
+    border-top: 16px solid #333;
+    border-radius: 50%;
+    width: 120px;
+    height: 120px;
+    animation: spin 2s linear infinite;
+}
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+.card {
+    width: 250px;
+    height: 300px;
+    overflow: hidden;
+}
+.card-img-top {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+}
+.bg-secondary-em {
+    background-color: #e4e4e4;
+}
+.items-container {
+    height: 70vh;
+    overflow-y: auto;
+}
+.order-details {
+    max-height: 500px;
+}
+.left-column {
+    height: 80vh;
+}

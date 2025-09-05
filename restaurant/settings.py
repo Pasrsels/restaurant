@@ -1,6 +1,10 @@
 import os
 from pathlib import Path
 import dj_database_url
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -15,6 +19,8 @@ SECRET_KEY = 'django-insecure-3m$$5om_jd5=rk*1x9(@=-=o8(j!^y(@!)iz^38q6*^w#6v+4n
 DEBUG = True
 
 ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
     '192.168.1.136',
     '196.27.126.114',
     '127.0.0.1'
@@ -74,6 +80,8 @@ MIDDLEWARE = [
     # custom
     'users.middleware.CompanySetupMiddleware',
     'middleware.sales_middleware.SalesAccessMiddleware',
+    'middleware.chef_middleware.ChefAccessMiddleware',
+'middleware.stores_person_middleware.StoresPersonAccessMiddleware',
 ]
 
 ROOT_URLCONF = 'restaurant.urls'
@@ -108,15 +116,13 @@ LOGIN_URL = "users:login"
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
 DATABASES = {
-    # 'default': dj_database_url.config(
-    #     default='postgresql://postgres:bsgtOvAIFbBQgIcHLvlUFlvIiAiapbHm@autorack.proxy.rlwy.net:44818/railway'
-    # )
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'restaurant',  
-        'USER': 'postgres',
-        'PASSWORD': 'neverfail',
-        'PORT': '5432',
+        'NAME': os.getenv('DB_NAME', 'restaurant'),
+        'USER': os.getenv('DB_USER', 'postgres'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'neverfail'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
 

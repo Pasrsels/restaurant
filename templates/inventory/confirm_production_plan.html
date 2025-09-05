@@ -18,6 +18,19 @@
     table {
         font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
     }
+    
+    /* Ensure disabled button styling works properly */
+    .btn.disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+    
+    .btn:not(.disabled) {
+        opacity: 1;
+        cursor: pointer;
+        pointer-events: auto;
+    }
 </style>
 <div class="inventory container-fluid">
     <div class='add-production-plan'>
@@ -225,21 +238,31 @@
 
         function checkInputs() {
             let allFilled = true;
+            console.log('Checking inputs...');
 
-            inputs_state.forEach(input => {
-                if (!input.disabled) {
+            inputs_state.forEach((input, index) => {
+                // Check if input is either disabled (processed) or has a value
+                const isEmpty = input.value.trim() === '';
+                const isDisabled = input.disabled;
+                console.log(`Input ${index}: disabled=${isDisabled}, value="${input.value}", isEmpty=${isEmpty}`);
+                
+                if (!isDisabled && isEmpty) {
                     allFilled = false;
                 }
             });
+
+            console.log('All filled:', allFilled);
 
             if (allFilled) {
                 confirmBtn_state.classList.remove('disabled');
                 confirmBtn_state.onclick = null; // allow navigation
                 confirmBtn_state.setAttribute('href', confirmUrl); // restore URL
+                console.log('Confirm button enabled');
             } else {
                 confirmBtn_state.classList.add('disabled');
                 confirmBtn_state.onclick = function () { return false; };
                 confirmBtn_state.setAttribute('href', '#'); // prevent accidental follow
+                console.log('Confirm button disabled');
             }
         }
 
@@ -308,7 +331,7 @@
                             .then(data => {
                                 if (data.success) {
                                     input.classList.remove('loading');
-                                    // input.disabled = true;
+                                    input.disabled = true;
                                     checkInputs();
                                     row.style.backgroundColor = '#d3d3d3';
                                     console.log('Quantity confirmed');

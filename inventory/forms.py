@@ -10,7 +10,8 @@ from . models import (
     UnitOfMeasurement,
     ProductionItems,
     TransferItems,
-    BudgetItem
+    BudgetItem,
+    StockTake
 )
 from django import forms
 from datetime import date
@@ -116,5 +117,11 @@ class CreateBudgetItemForm(forms.ModelForm):
     class Meta:
         model = BudgetItem
         fields = ['product', 'allocated_amount', 'quantity', 'approove_by',  'reoccuring']
+        
+
+class CreateStockTakeForm(forms.ModelForm):
+    class Meta:
+        model = StockTake
+        fields = ['conductor', 'users']
 
         
