@@ -101,11 +101,10 @@
         
         .table-container thead tr:nth-child(2) th {
             position: sticky;
-            top: 42px; /* Adjust based on first header row height */
+            top: 42px; 
             z-index: 10;
         }
         
-        /* Ensure the totals row sticks properly */
         .totals-row {
             position: sticky;
             top: 42px;
@@ -129,7 +128,7 @@
             </p>
         </div>
         <div class="d-flex gap-2">
-            <button class="header-btn" onclick="window.location.href='{% url 'inventory:end_of_day_pdf' %}'" title="Download PDF">
+            <button class="header-btn" onclick="window.location.href='{% url 'inventory:end_of_day_detail' end_of_day.id %}?download=download'" title="Download PDF">
                 <i class="bx bx-download"></i> Download PDF
             </button>
         </div>
@@ -344,7 +343,7 @@
                 </tfoot>
             </table>
         </div>
-                <div class="main mt-4 p-1">
+        <div class="main mt-4 p-1">
             <h3 class="mt-2 mb-2">Finished Products</h3>
             <div class="table-container">
                 <table class="table w-100 table-borderless table-hover" id="finished_products_table">
@@ -581,8 +580,7 @@
         const grandTotal = totalPlannedValue + totalDeclaredValue + totalSoldValue + totalStaffValue + totalWastageValue + totalLeftoversValue;
         document.getElementById('grand-total').textContent = `$${grandTotal.toFixed(2)}`;
     }
-
-
+    
     function printEndOfDaySheet() {
         window.print();
     }

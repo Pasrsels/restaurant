@@ -122,32 +122,34 @@
             </thead>
             <tbody>
                 {% for item in production_today %}
-                    <tr>
-                        <td><small>{{ forloop.counter }}</small></td>
-                        <td><small>{{ item.dish_name }}</small></td>
-                       <td>
-                            <input type="number" class="form-control" name="wastage" placeholder="Wastage"
-                                value="{{ item.wastage|default_if_none:'' }}"
-                                {% if item.recorded %}disabled{% endif %}>
-                        </td>
+                    {% if item.dish_name and not item.finished_product %}
+                        <tr>
+                            <td><small>{{ forloop.counter }}</small></td>
+                            <td><small>{{ item.dish_name }}</small></td>
                         <td>
-                            <input type="number" class="form-control" name="leftovers" placeholder="Leftovers"
-                                value="{{ item.leftovers|default_if_none:'' }}"
-                                {% if item.recorded %}disabled{% endif %}>
-                        </td>
-                        <td class="action-cell">
-                            {% if item.recorded %}
-                                <span class='badge bg-success p-2' disabled>
-                                    <i class='bx bx-check'></i> Done
-                                </span>
-                                <button class="btn btn-danger-subtle btn-sm btn-danger" onclick="undoRecord({{ item.id }})">
-                                    <i class='bx bx-redo'></i> 
-                                </button>
-                            {% else %}
-                                <button class="header-btn btn btn-sm">Submit</button>
-                            {% endif %}
-                        </td>
-                    </tr>
+                                <input type="number" class="form-control" name="wastage" placeholder="Wastage"
+                                    value="{{ item.wastage|default_if_none:'' }}"
+                                    {% if item.recorded %}disabled{% endif %}>
+                            </td>
+                            <td>
+                                <input type="number" class="form-control" name="leftovers" placeholder="Leftovers"
+                                    value="{{ item.leftovers|default_if_none:'' }}"
+                                    {% if item.recorded %}disabled{% endif %}>
+                            </td>
+                            <td class="action-cell">
+                                {% if item.recorded %}
+                                    <span class='badge bg-success p-2' disabled>
+                                        <i class='bx bx-check'></i> Done
+                                    </span>
+                                    <button class="btn btn-danger-subtle btn-sm btn-danger" onclick="undoRecord({{ item.id }})">
+                                        <i class='bx bx-redo'></i> 
+                                    </button>
+                                {% else %}
+                                    <button class="header-btn btn btn-sm">Submit</button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endif %}
                 {% endfor %}
             </tbody>
         </table>

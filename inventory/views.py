@@ -1870,10 +1870,7 @@ def new_declare_production(request, pp_id):
                                     'cost': round(Decimal(raw_material_prod.cost) * Decimal(raw_material_prod.quantity), 2),
                                 }
                             )
-
-            logger.info(raw_materials)
-            logger.info(allocated_raw_materials)
-            
+      
             allocated_raw_material_total_cost = 0
             allocated_raw_material_total_qnty = 0
             
@@ -1883,8 +1880,6 @@ def new_declare_production(request, pp_id):
 
             for cost in raw_materials:
                 total_cost += cost['cost']
-            logger.info(total_cost)
-            logger.info(dish_details)
 
         except Production.DoesNotExist:
             messages.warning(request, f'Production Plan With ID: {pp_id} doesn\'t exist.')
@@ -2008,7 +2003,7 @@ def new_declare_production(request, pp_id):
                         total_quantity=p_rm.quantity,
                     )
                     p_rm.save()
-            
+    
             try:
                 production = Production.objects.get(id=pp_id, branch=request.user.branch)  
                 production_plan_items = ProductionItems.objects.filter(production=production)
@@ -2021,7 +2016,7 @@ def new_declare_production(request, pp_id):
                 COGS.objects.create(
                     production=production,
                     amount=total_cost,
-                    # branch=request.user.branch
+                    branch=request.user.branch
                 )
                 
                 if declaration_flag:
@@ -2047,15 +2042,6 @@ def new_declare_production(request, pp_id):
                             'add_portions': extra_portions
                         }
                     )
-                # else:
-                #     edit_pplan_portions.append(
-                #         {
-                #             'name': dish.get('dish_name'),
-                #             'portions': dish.get('declared'),
-                #             'planned_portions': dish.get('planned_portions'),
-                #             'add_portions': 0
-                #         }
-                #     ) 
 
             logger.info(edit_pplan_portions)
             if edit_pplan_portions:
@@ -2079,11 +2065,10 @@ def latest_declare_production(request):
                 .first()
             )
             pr_variance = ProductionVariance.objects.filter(production=latest_declared_plan).select_related('ingredient')
-            logger.info(pr_variance)
+
             if not latest_declared_plan:
                 return JsonResponse({'success': False, 'message': 'No declared production plan found.'}, status=404)
 
-            logger.info(f'Latest Declared Plan: {latest_declared_plan.date_created} {latest_declared_plan.time_created}')
             pr_variance = ProductionVariance.objects.filter(production=latest_declared_plan).select_related('ingredient')
             production_plan_items = ProductionItems.objects.filter(production=latest_declared_plan)
 
@@ -2097,7 +2082,6 @@ def latest_declare_production(request):
 
 
             for item in pr_variance:
-                logger.info(item)
                 existing = next((rm for rm in raw_material_variance if rm['name'] == item.ingredient.name), None)
                 if existing:
                     existing['quantity'] += float(item.quantity)
@@ -2110,15 +2094,13 @@ def latest_declare_production(request):
                         'cost': float(item.ingredient.cost),
                         'total_cost': float(item.quantity * float(item.ingredient.cost))
                     })
-            logger.info(raw_material_variance)
+
             for item in production_plan_items:
                 total_portions += item.portions
 
-                # Dish total price for this item
                 dish_total_price = round(item.dish.price * Decimal(item.portions), 2)
                 total_price += dish_total_price
 
-                # Add to serialized dish list (JS expects dish.dish.name, etc.)
                 dishes_serialized.append({
                     'dish': {
                         'name': item.dish.name,
@@ -2129,19 +2111,16 @@ def latest_declare_production(request):
                     'portions': item.portions
                 })
 
-                # For price row below the table
                 dish_details.append({
                     'name': item.dish.name,
                     'cost': float(item.dish.cost),
                     'total_price': float(dish_total_price)
                 })
 
-                # Handle ingredient calculations
                 ingredients = Ingredient.objects.filter(dish=item.dish, minor_raw_material__branch=request.user.branch)
                 for ing in ingredients:
                     quantity = round(ing.quantity * (item.portions / item.dish.portion_multiplier), 3)
 
-                    # Prevent duplicates: merge quantities and costs
                     existing = next((rm for rm in raw_materials if rm['id'] == ing.minor_raw_material.id), None)
 
                     if existing:
@@ -2156,11 +2135,9 @@ def latest_declare_production(request):
                             'cost': round(Decimal(ing.minor_raw_material.cost) * Decimal(quantity), 2)
                         })
 
-            # Compute total cost of ingredients
             for rm in raw_materials:
                 total_cost += rm['cost']
 
-            # Final JSON-safe payload
             data_content = {
                 'production_plan': dishes_serialized,
                 'total_price': dish_details,
@@ -2216,7 +2193,7 @@ def confirm_declaration(request):
         COGS.objects.create(
             production=production,
             amount=total_cost,
-            # branch=request.user.branch
+            branch=request.user.branch
         )
         
         if declaration_flag:
@@ -3094,6 +3071,8 @@ def end_of_day_view(request):
             if declared:
                 eod_item.servers_variance = declared - (total_sold + staff_portions + wastage + leftovers)
                 logger.info(f'Variance: {eod_item.servers_variance}')
+
+            
           
             eod_item.save()
             logger.success(f'End of Day item updated: {eod_item}')
@@ -3121,26 +3100,45 @@ def confirm_end_of_day(request):
         e_o_d.done = True
         e_o_d.save()
 
-        items = EndOfDayItems.objects.filter(end_of_day=e_o_d)
-        break_flag = False
-   
-            # if item.declared is not None:
+        end_of_day_items = EndOfDayItems.objects.filter(end_of_day=e_o_d)
+        products = Product.objects.filter(finished_product=True, branch=request.user.branch)
+        purchase_order = PurchaseOrder.objects.filter(branch=request.user.branch, order_date__date=e_o_d.date, received=True).first()
+        purchase_order_items = PurchaseOrderItem.objects.filter(purchase_order=purchase_order) 
+                  
+        purchase_order_map = {}
+        for item in purchase_order_items:  # average cost to be revised 
+            if item.product.name in purchase_order_map:
+                purchase_order_map[item.product.name] += item.quantity
+            else:
+                purchase_order_map[item.product.name] = item.quantity
 
-            #     total_sold = item.total_sold or 0
-            #     staff_portions = item.staff_portions or 0
-            #     wastage = item.wastage or 0
-            #     leftovers = item.leftovers or 0
-            #     declared = item.declared or 0
-            #     item.servers_variance = declared - (total_sold + staff_portions + wastage + leftovers)
-            #     item.save()
-            # else:
-            #     break_flag = True
-            #     break
+        products_map = {product.name: product for product in products}
+
+        for eod_item in end_of_day_items:
+            if eod_item.finished_product:
+                product = products_map.get(eod_item.finished_product)
+
+                purchase = purchase_order_map.get(eod_item.finished_product, 0)
+
+                if product:
+                    eod_item.product_cost = product.cost * (eod_item.total_portions or 0)
+                    eod_item.product_price = product.price * (eod_item.total_sold or 0)
+                    eod_item.close_stock = product.quantity
+
+                    if purchase:
+                        eod_item.purchase_units = purchase
+
+                    eod_item.open_stock = product.quantity + (eod_item.total_sold or 0) + (eod_item.staff_portions or 0) + purchase
+                else:
+                    eod_item.product_cost = 0
+                    eod_item.product_price = 0
+            else:
+                eod_item.product_cost = 0
+                eod_item.product_price = 0
             
-        if break_flag:
-            return JsonResponse({'success':False, 'message':'Wait for the production to be declared.'})
+            eod_item.save()
         
-        logger.success(f'End of day successfully save!')
+        logger.success(f'End of day successfully saved!')
 
         return JsonResponse({'success': True})
     except Exception as e:
@@ -3172,60 +3170,15 @@ def end_of_day_detail(request, e_o_d_id):
         end_of_day = EndOfDay.objects.get(id=e_o_d_id, branch = request.user.branch)
         end_of_day_items = EndOfDayItems.objects.filter(end_of_day=end_of_day)
         dishes = Dish.objects.all()
-      
-        # buffer = generate_end_of_day_report(end_of_day, end_of_day_items, total_amount_staff_sold_today)
-        # send_end_of_day_report(request, buffer)
 
-        products = Product.objects.filter(finished_product=True, branch=request.user.branch)
-        purchase_order = PurchaseOrder.objects.filter(branch=request.user.branch, order_date__date=end_of_day.date, received=True).first()
-        purchase_order_items = PurchaseOrderItem.objects.filter(purchase_order=purchase_order) 
-
-        print(purchase_order_items, request.user.branch)
-                  
-        purchase_order_map = {}
-        for item in purchase_order_items:  # average cost to be revised 
-            if item.product.name in purchase_order_map:
-                purchase_order_map[item.product.name] += item.quantity
-            else:
-                purchase_order_map[item.product.name] = item.quantity
-
-        products_map = {product.name: product for product in products}
-
-        for eod_item in end_of_day_items:
-            if eod_item.finished_product:
-                product = products_map.get(eod_item.finished_product)
-                print(product, product.quantity if product else 'N/A')
-
-                purchase = purchase_order_map.get(eod_item.finished_product, 0)
-                print('purchase ->', purchase,  eod_item.total_sold, eod_item.staff_portions)
-
-                if product:
-                    eod_item.product_cost = product.cost * (eod_item.total_portions or 0)
-                    eod_item.product_price = product.price * (eod_item.total_sold or 0)
-                    eod_item.close_stock = product.quantity
-
-                    if purchase:
-                        eod_item.purchase_units = purchase
-
-                    eod_item.open_stock = product.quantity + (eod_item.total_sold or 0) + (eod_item.staff_portions or 0)  
-                    print('open stock ->', eod_item.open_stock)
-                    print('product quantity ->', product.quantity)
-                else:
-                    eod_item.product_cost = 0
-                    eod_item.product_price = 0
-            else:
-                eod_item.product_cost = 0
-                eod_item.product_price = 0
-            
-            eod_item.save()
-        
         if download:
             context = {
                 'end_of_day': end_of_day,
-                'items': end_of_day_items,
+                'end_of_day_items': end_of_day_items,
                 'dishes': dishes,
                 'branch': request.user.branch,
             }
+            return render_to_pdf(template_src="End_of_day_pdf_report.html", context_data=context)
 
         return render(request, 'end_of_day_detail.html', 
             {
