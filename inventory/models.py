@@ -129,8 +129,6 @@ class MinorProductionItems(models.Model):
     def __str__(self) -> str:
         return f'{self.minor_raw_material}'
     
-    
-    
 class Declaration(models.Model):
     dish = models.ForeignKey('inventory.dish', on_delete=models.CASCADE, null=True)
     meal = models.ForeignKey('inventory.meal', on_delete=models.CASCADE, null=True)
