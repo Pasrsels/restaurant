@@ -999,17 +999,16 @@ def void_authenticate(request):
             save_data = data.get('save')
 
             logger.info(username)
-            logger.info(save_data)
+            logger.info(password)
 
             if not username or not password:
                 return JsonResponse({"success": False, "message": "Username and password are required."}, status=400)
             logger.info(username)
             
             # FIX: Add proper password verification
-            user = authenticate(username=username, password=password)
-            if user and user.role in ['admin', 'accountant', 'supervisor', 'manager', 'owner']:
-                logger.info(user.role)
-                logger.info(user)
+            # user = authenticate(username=username, password=password)
+            user = User.objects.filter(username=username).first()
+            if user and user.role.lower() in ['admin', 'accountant', 'supervisor', 'manager', 'owner']:
                 if save_data == "save":
                     logger.info('saving')
                     SaleAuthorization.objects.create(

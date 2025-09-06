@@ -736,6 +736,7 @@ def cash_up(request):
               cashed_amount:float,  
             } 
         """
+        from inventory.models import EndOfDay
         
         try:
             data = json.loads(request.body)
@@ -745,12 +746,16 @@ def cash_up(request):
             if cashed_amount < 0:
                 return JsonResponse({'success':False, 'message':f'Cashed amount cannot be less than zero.'}, status=400)
             
-            cash_up = CashUp.objects.get(cashier__id=cashier, cashed=False, branch=request.user.branch)
-            cash_up.cashed_amount = Decimal(cashed_amount)
+            with transaction.atomic():
+                cash_up = CashUp.objects.get(cashier__id=cashier, cashed=False, branch=request.user.branch)
+                cash_up.cashed_amount = Decimal(cashed_amount)
 
-            cash_up.difference = cash_up.cashed_amount - (cash_up.sales - cash_up.void_amount - cash_up.expenses + cash_up.change)
-            cash_up.cashed = True
-            cash_up.save()
+                cash_up.difference = cash_up.cashed_amount - (cash_up.sales - cash_up.void_amount - cash_up.expenses + cash_up.change)
+                cash_up.cashed = True
+                
+                end_of_day = EndOfDay.objects.filter(branch=request.user.branch).last()
+                
+                cash_up.save()
 
         except Exception as e:
             return JsonResponse({'success':False, 'message':f'{e}'}, status=400)

@@ -2,8 +2,6 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from permisions.permisions import admin_required
 import csv
-import pandas as pd
-import matplotlib.pyplot as plt
 from loguru import logger
 from inventory.models import Production, ProductionItems
 
