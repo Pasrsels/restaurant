@@ -66,6 +66,9 @@
                         <li class="m-1">
                             <a class="btn color-button text-light" id="void">Void</a>
                         </li>
+                        <li class="m-1">
+                            <a class="btn btn-info text-light" onclick="cacheImages()">Cache Images</a>
+                        </li>
                     </div>
                 </div>
             </div>
@@ -460,6 +463,7 @@
         let changeAmount = 0;
         let productionModalAuth = false;
         const changeData = []
+        let imageUrlsToCache = [];
 
         // const cashModal = document.getElementById('cashTypeModal');
         const productionModal = new bootstrap.Modal(document.getElementById('addProductioNPlanModal'));
@@ -500,7 +504,14 @@
                         dishCat.appendChild(dishContainer);
                     });
                 }
-            })
+            });
+
+            // Populate image URLs
+            fetch('{% url "pos:product_meal_json" %}')
+                .then(response => response.json())
+                .then(data => {
+                    imageUrlsToCache = data.items.map(item => item.image ? `/media/${item.image}` : null).filter(Boolean);
+                });
         });
 
         function filter(filterby){
@@ -1237,8 +1248,7 @@
                 meal: meal.meal,
                 dish: meal.dish
             })),
-            change_data: changeData,
-            timestamp: new Date().toISOString()
+            change_data: changeData
         };
 
         Swal.fire({
@@ -1259,64 +1269,66 @@
             },
             body: JSON.stringify(saleData)
         })
-            .then(response => response.json())
-            .then(data => {
-                Swal.close();
-                if (data.success) {
-                    console.log('Sale processed successfully:', data);
-                    Swal.fire({
-                        title: "Success",
-                        text: "Processing Receipt",
-                        icon: "success"
-                    });
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            } else {
+                throw new Error('Network response was not ok.');
+            }
+        })
+        .then(data => {
+            Swal.close();
+            if (data.success) {
+                console.log('Sale processed successfully:', data);
+                Swal.fire({
+                    title: "Success",
+                    text: "Processing Receipt",
+                    icon: "success"
+                });
 
-                    // Clear the cart and reset UI
-                    cart = [];
-                    updateOrderDetails();
-                    chargeModal.hide();
-                    clearChangeData()
-                    console.log('cleared')
+                cart = [];
+                updateOrderDetails();
+                chargeModal.hide();
+                clearChangeData();
 
-                    // Generate and print receipt
-                    const receiptContent = generateReceiptContent(data.data);
-                    printReceiptSilently(receiptContent);
+                const receiptContent = generateReceiptContent(data.data);
+                printReceiptSilently(receiptContent);
 
-                } else {
-                    Swal.fire({
-                        title: "Error",
-                        text: data.message,
-                        icon: "error"
-                    });
-                    chargeModal.hide();
-                }
-            })
-            .catch(error => {
-                Swal.close();
-                console.error('Fetch error:', error);
-                // Offline
-                saveSale(saleData).then(() => {
-                    return navigator.serviceWorker.ready;
-                }).then(swRegistration => {
-                    return swRegistration.sync.register('sync-pending-sales');
-                }).then(() => {
-                    Swal.fire({
-                        title: "Offline",
-                        text: "Sale saved locally. It will be synced when you're back online.",
-                        icon: "info"
-                    });
-                    cart = [];
-                    updateOrderDetails();
-                    chargeModal.hide();
-                    clearChangeData();
-                }).catch(error => {
-                    console.error('Error saving sale offline:', error);
-                    Swal.fire({
-                        title: "Error",
-                        text: "Could not save sale locally.",
-                        icon: "error"
-                    });
+            } else {
+                Swal.fire({
+                    title: "Error",
+                    text: data.message,
+                    icon: "error"
+                });
+                chargeModal.hide();
+            }
+        })
+        .catch(error => {
+            Swal.close();
+            console.error('Fetch error:', error);
+            saveSale(saleData).then(() => {
+                return navigator.serviceWorker.ready;
+            }).then(swRegistration => {
+                return swRegistration.sync.register('sync-pending-sales');
+            }).then(() => {
+                Swal.fire({
+                    title: "Offline",
+                    text: "Sale saved locally. It will be synced when you're back online.",
+                    icon: "info"
+                });
+                cart = [];
+                updateOrderDetails();
+                chargeModal.hide();
+                clearChangeData();
+            }).catch(error => {
+                console.error('Error saving sale offline:', error);
+                Swal.fire({
+                    title: "Error",
+                    text: "Could not save sale locally.",
+                    icon: "error"
                 });
             });
+        });
     }
 
     function generateReceiptContent(saleData) {
@@ -2328,6 +2340,33 @@ function generateAccountantCashUp(userId) {
             }
         });
     }*/
+
+    function cacheImages() {
+        if (imageUrlsToCache.length > 0) {
+            caches.open('pos-cache-v1').then(cache => {
+                cache.addAll(imageUrlsToCache).then(() => {
+                    Swal.fire({
+                        title: "Success",
+                        text: "All images have been cached for offline use.",
+                        icon: "success"
+                    });
+                }).catch(error => {
+                    console.error('Error caching images:', error);
+                    Swal.fire({
+                        title: "Error",
+                        text: "Could not cache all images.",
+                        icon: "error"
+                    });
+                });
+            });
+        } else {
+            Swal.fire({
+                title: "Info",
+                text: "Image URLs are still being loaded. Please try again in a moment.",
+                icon: "info"
+            });
+        }
+    }
 
     function getCookie(name) {
         let cookieValue = null;

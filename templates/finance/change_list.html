@@ -250,12 +250,15 @@
                 },
                 body: JSON.stringify(data)
             })
-            .then(response => response.json().then(data => ({
-                status: response.status,
-                data: data
-            })))
-            .then(res => {
-                if (res.status === 200) {
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('Network response was not ok.');
+                }
+            })
+            .then(data => {
+                if (data.success) {
                     Swal.fire({
                         icon: 'success',
                         title: 'Success!',
@@ -268,7 +271,7 @@
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
-                        text: res.data.message,
+                        text: data.message,
                         confirmButtonText: 'OK'
                     });
                 }
