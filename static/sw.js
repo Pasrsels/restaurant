@@ -47,7 +47,7 @@ self.addEventListener('fetch', event => {
 
         return fetch(fetchRequest).then(
           response => {
-            if (!response || response.status !== 200 ) {
+            if (!response || response.status !== 200 || event.request.method !== 'GET') {
               return response;
             }
 
