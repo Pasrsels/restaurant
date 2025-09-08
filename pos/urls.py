@@ -38,4 +38,12 @@ urlpatterns = [
 
     #low production plan stock
     path('low-stock/', lowStockNotification, name='low_stock'),
+
+    # offline
+    path('offline/', offline_view, name='offline'),
+
+    # sync
+    path('sync/', sync_sales, name='sync_sales'),
+    path('get-csrf-token/', get_csrf_token, name='get_csrf_token'),
+    path('sync-collections/', sync_collections, name='sync_collections'),
 ]
