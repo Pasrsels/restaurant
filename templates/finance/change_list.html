@@ -242,47 +242,67 @@
                 amount:parseFloat(document.getElementById('id_amount').value)
             };
 
-            console.log(data)
-        
-            fetch('/pos/collect_change/', { 
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCSRFToken() 
-                },
-                body: JSON.stringify(data)
-            })
-            .then(response => response.json().then(data => ({
-                status: response.status,
-                data: data
-            })))
-            .then(res => {
-                if (res.status === 200) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Success!',
-                        text: 'Change has been collected successfully.',
-                        confirmButtonText: 'OK'
-                    }).then(() => {
-                        location.reload(); 
-                    });
-                } else {
+            if (navigator.onLine) {
+                fetch('/pos/collect_change/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCSRFToken()
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json().then(data => ({
+                    status: response.status,
+                    data: data
+                })))
+                .then(res => {
+                    if (res.status === 200) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success!',
+                            text: 'Change has been collected successfully.',
+                            confirmButtonText: 'OK'
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: res.data.message,
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                })
+                .catch(error => {
                     Swal.fire({
                         icon: 'error',
-                        title: 'Error',
-                        text: res.data.message,
+                        title: 'Request Failed',
+                        text: error.toString(),
                         confirmButtonText: 'OK'
                     });
-                }
-            })
-            .catch(error => {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Request Failed',
-                    text: error.toString(),
-                    confirmButtonText: 'OK'
                 });
-            });
+            } else {
+                saveCollection(data).then(() => {
+                    return navigator.serviceWorker.ready;
+                }).then(swRegistration => {
+                    return swRegistration.sync.register('sync-pending-collections');
+                }).then(() => {
+                    Swal.fire({
+                        title: "Offline",
+                        text: "Collection saved locally. It will be synced when you're back online.",
+                        icon: "info"
+                    });
+                    $('#amountModal').modal('hide');
+                }).catch(error => {
+                    console.error('Error saving collection offline:', error);
+                    Swal.fire({
+                        title: "Error",
+                        text: "Could not save collection locally.",
+                        icon: "error"
+                    });
+                });
+            }
         }
         
         function getCSRFToken() {
