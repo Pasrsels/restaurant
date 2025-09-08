@@ -289,7 +289,7 @@
         //     playNotificationSound();
         // }
 
-    // totals sales websocket
+    {% comment %} // totals sales websocket
     const socket = new WebSocket('ws://' + window.location.host + '/ws/sales/');
 
     socket.onopen = function() {
@@ -309,7 +309,7 @@
             totalSalesElement.innerText = `$${message['data']['total_sales']}`;
         }
 
-    };
+    }; {% endcomment %}
 
     </script>
 </body>

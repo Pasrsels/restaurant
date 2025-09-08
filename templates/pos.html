@@ -6,6 +6,7 @@
 {% block css %}
     {{ block.super }}
     <link rel="stylesheet" href="{% static 'css/pos.css'%}">
+    <link rel="manifest" href="{% static 'manifest.json' %}">
 {% endblock css %}
 
 {% block content %}
@@ -64,9 +65,6 @@
                         </li>
                         <li class="m-1">
                             <a class="btn color-button text-light" id="void">Void</a>
-                        </li>
-                        <li class="m-1">
-                            <a class="btn btn-info text-light" onclick="cacheImages()">Cache Images</a>
                         </li>
                     </div>
                 </div>
@@ -462,7 +460,6 @@
         let changeAmount = 0;
         let productionModalAuth = false;
         const changeData = []
-        let imageUrlsToCache = [];
 
         // const cashModal = document.getElementById('cashTypeModal');
         const productionModal = new bootstrap.Modal(document.getElementById('addProductioNPlanModal'));
@@ -479,8 +476,6 @@
         const authenticatevoidModal = new bootstrap.Modal(document.getElementById('voidModal'));
         const sellAuthorizationModal = new bootstrap.Modal(document.getElementById('AuthorizationModal'));
         const search = document.getElementById('searchInput')
-
-
 
 
         document.addEventListener('DOMContentLoaded', function(){
@@ -505,14 +500,7 @@
                         dishCat.appendChild(dishContainer);
                     });
                 }
-            });
-
-            // Populate image URLs
-            fetch('{% url "pos:product_meal_json" %}')
-                .then(response => response.json())
-                .then(data => {
-                    imageUrlsToCache = data.items.map(item => item.image ? `/media/${item.image}` : null).filter(Boolean);
-                });
+            })
         });
 
         function filter(filterby){
@@ -1237,16 +1225,6 @@
             return;
         }
 
-        Swal.fire({
-            title: "Processing...",
-            text: "Please wait while the sale is being processed.",
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-
         const saleData = {
             received_amount: totalAmountInput,
             staff: staff,
@@ -1257,66 +1235,73 @@
                 price: meal.price,
                 type: meal.type,
                 meal: meal.meal,
-                meal: meal.dish
+                dish: meal.dish
             })),
-            change_data: changeData
+            change_data: changeData,
+            timestamp: new Date().toISOString()
         };
 
-        Swal.fire({
-            title: "Processing...",
-            text: "Please wait while the sale is being processed.",
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
+        if (navigator.onLine) {
+            Swal.fire({
+                title: "Processing...",
+                text: "Please wait while the sale is being processed.",
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
 
-        fetch('{% url "pos:process_sale" %}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify(saleData)
-        })
-        .then(response => {
-            if (response.ok) {
-                return response.json();
-            } else {
-                throw new Error('Network response was not ok.');
-            }
-        })
-        .then(data => {
-            Swal.close();
-            if (data.success) {
-                console.log('Sale processed successfully:', data);
-                Swal.fire({
-                    title: "Success",
-                    text: "Processing Receipt",
-                    icon: "success"
+            fetch('{% url "pos:process_sale" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(saleData)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    Swal.close();
+                    if (data.success) {
+                        console.log('Sale processed successfully:', data);
+                        Swal.fire({
+                            title: "Success",
+                            text: "Processing Receipt",
+                            icon: "success"
+                        });
+
+                        // Clear the cart and reset UI
+                        cart = [];
+                        updateOrderDetails();
+                        chargeModal.hide();
+                        clearChangeData()
+                        console.log('cleared')
+
+                        // Generate and print receipt
+                        const receiptContent = generateReceiptContent(data.data);
+                        printReceiptSilently(receiptContent);
+
+                    } else {
+                        Swal.fire({
+                            title: "Error",
+                            text: data.message,
+                            icon: "error"
+                        });
+                        chargeModal.hide();
+                    }
+                })
+                .catch(error => {
+                    Swal.close();
+                    console.error('Error:', error);
+                    Swal.fire({
+                        title: "Error",
+                        text: "An error occurred while processing the sale.",
+                        icon: "error"
+                    });
                 });
-
-                cart = [];
-                updateOrderDetails();
-                chargeModal.hide();
-                clearChangeData();
-
-                const receiptContent = generateReceiptContent(data.data);
-                printReceiptSilently(receiptContent);
-
-            } else {
-                Swal.fire({
-                    title: "Error",
-                    text: data.message,
-                    icon: "error"
-                });
-                chargeModal.hide();
-            }
-        })
-        .catch(error => {
-            Swal.close();
-            console.error('Fetch error:', error);
+        } else {
+            // Offline
             saveSale(saleData).then(() => {
                 return navigator.serviceWorker.ready;
             }).then(swRegistration => {
@@ -1339,7 +1324,7 @@
                     icon: "error"
                 });
             });
-        });
+        }
     }
 
     function generateReceiptContent(saleData) {
@@ -2352,33 +2337,6 @@ function generateAccountantCashUp(userId) {
         });
     }*/
 
-    function cacheImages() {
-        if (imageUrlsToCache.length > 0) {
-            caches.open('pos-cache-v1').then(cache => {
-                cache.addAll(imageUrlsToCache).then(() => {
-                    Swal.fire({
-                        title: "Success",
-                        text: "All images have been cached for offline use.",
-                        icon: "success"
-                    });
-                }).catch(error => {
-                    console.error('Error caching images:', error);
-                    Swal.fire({
-                        title: "Error",
-                        text: "Could not cache all images.",
-                        icon: "error"
-                    });
-                });
-            });
-        } else {
-            Swal.fire({
-                title: "Info",
-                text: "Image URLs are still being loaded. Please try again in a moment.",
-                icon: "info"
-            });
-        }
-    }
-
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -2614,5 +2572,17 @@ function generateAccountantCashUp(userId) {
             updateCartTable();
         }
     });
+
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/static/sw.js')
+            .then(registration => {
+                console.log('Service Worker registered with scope:', registration.scope);
+            })
+            .catch(error => {
+                console.error('Service Worker registration failed:', error);
+            });
+        });
+    }
     </script>
 {% endblock %}
