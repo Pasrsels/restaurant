@@ -102,7 +102,57 @@ def unit_of_measurement(request):
         return JsonResponse({'success':False, 'message':'Unit of measurement is invalid'}, status=400)
     
     return JsonResponse({'success':False, 'message':'Invalid request'}, status=400)
-                  
+
+@login_required
+def generate_report(request, eod_id):
+    """
+        cashier, servers and production variance
+    """
+    end_of_day = EndOfDay.objects.filter(id=eod_id, branch=request.user.branch).first()
+    cashier_end_of_days = EndOfDayCashier.objects.filter(end_of_day=end_of_day)
+    production = Production.objects.filter(date_created=end_of_day.date)
+    
+    logger.info(cashier_end_of_days)
+
+    cashier_list = []
+    total_sales = 0
+    total_cashed_amount = 0
+    total_variance = 0
+    
+    for c in cashier_end_of_days:
+        cashier_obj = c.cashier
+        sales = getattr(c, 'sales', 0) if hasattr(c, 'sales') else 0
+        cashed_amount = c.cashed_amount or 0
+        variance = getattr(c, 'variance', 0) if hasattr(c, 'variance') else 0
+        cashier_list.append({
+            'cashier': cashier_obj,
+            'sales': sales,
+            'cashed_amount': cashed_amount,
+            'variance': variance,
+            'object': c,
+        })
+        total_sales += sales
+        total_cashed_amount += cashed_amount
+        total_variance += variance
+
+    servers_variance_total = end_of_day.variance
+
+    production_variance_total = 0
+    for prod in production:
+        production_variance_total += prod.productionitems_set.aggregate(total=Sum('wastage'))['total'] or 0
+
+    context = {
+        'cashier_list': cashier_list,
+        'cashier_totals': {
+            'total_sales': total_sales,
+            'total_cashed_amount': total_cashed_amount,
+            'total_variance': total_variance,
+        },
+        'servers_variance_total': servers_variance_total,
+        'production_variance_total': production_variance_total,
+    }
+
+    return render_to_pdf('end_of_day_totals.html', context)
 
 @login_required
 def products(request):
@@ -1806,6 +1856,7 @@ def new_declare_production(request, pp_id):
             form = ProductionPlanInlineForm()
             production_plan_items = ProductionItems.objects.filter(production=production_plan)
             allocated_raw_materials = AllocatedRawMaterials.objects.filter(production=production_plan)
+            print(allocated_raw_materials)
             
             raw_materials = []
             dish_details = []
@@ -1970,10 +2021,10 @@ def new_declare_production(request, pp_id):
                     'variance': ing.get('variance')
                 })
             
-                try:
-                    allocated = AllocatedRawMaterials.objects.get(raw_material__name=ing.get('ingridient_name'), production=production)
-                except ProductionItems.DoesNotExist:
-                    return JsonResponse({'success': False, 'message': f'Raw Material with ID: {ing.get('ingridient_name')} doesn\'t exist'}, status=404)
+                # try:
+                #     allocated = AllocatedRawMaterials.objects.get(raw_material__name=ing.get('ingridient_name'), production=production)
+                # except ProductionItems.DoesNotExist:
+                #     return JsonResponse({'success': False, 'message': f'Raw Material with ID: {ing.get('ingridient_name')} doesn\'t exist'}, status=404)
 
                 try:
                     product = Product.objects.get(name=ing.get('ingridient_name'), branch=request.user.branch)
@@ -1991,8 +2042,8 @@ def new_declare_production(request, pp_id):
                     p_rm.quantity -= float(ing.get('system'))
                     
                     
-                    allocated.remaining_quantity = allocated.quantity - float(ing.get('system'))
-                    allocated.save()
+                    # allocated.remaining_quantity = allocated.quantity - float(ing.get('system'))
+                    # allocated.save()
                     
                     ProductionLogs.objects.create(
                         user=request.user, 
@@ -2016,7 +2067,7 @@ def new_declare_production(request, pp_id):
                 COGS.objects.create(
                     production=production,
                     amount=total_cost,
-                    branch=request.user.branch
+                    # branch=request.user.branch
                 )
                 
                 if declaration_flag:
@@ -3088,6 +3139,7 @@ def confirm_end_of_day(request):
     try:
         today = localdate()
         branch = request.user.branch
+        
         sales = Sale.objects.filter(date=today, staff=False, branch=branch).aggregate(total_amount=Sum('total_amount'))['total_amount'] or 0
         cashed_amount = request.POST.get('cashed_amount') or request.GET.get('cashed_amount')
 
@@ -3098,50 +3150,64 @@ def confirm_end_of_day(request):
             e_o_d.cashed_amount = cashed_amount
             
         e_o_d.done = True
-        e_o_d.save()
 
         end_of_day_items = EndOfDayItems.objects.filter(end_of_day=e_o_d)
         products = Product.objects.filter(finished_product=True, branch=request.user.branch)
         purchase_order = PurchaseOrder.objects.filter(branch=request.user.branch, order_date__date=e_o_d.date, received=True).first()
         purchase_order_items = PurchaseOrderItem.objects.filter(purchase_order=purchase_order) 
-                  
+        dishes = Dish.objects.filter()
+        
+        dishes_map = { dish.name: {'price': dish.price} for dish in dishes }
+        variance = 0
+        
         purchase_order_map = {}
-        for item in purchase_order_items:  # average cost to be revised 
-            if item.product.name in purchase_order_map:
-                purchase_order_map[item.product.name] += item.quantity
-            else:
-                purchase_order_map[item.product.name] = item.quantity
+        
+        with transaction.atomic():
+            
+            for item in purchase_order_items:  # average cost to be revised 
+                if item.product.name in purchase_order_map:
+                    purchase_order_map[item.product.name] += item.quantity
+                else:
+                    purchase_order_map[item.product.name] = item.quantity
 
-        products_map = {product.name: product for product in products}
+            products_map = {product.name: product for product in products}
 
-        for eod_item in end_of_day_items:
-            if eod_item.finished_product:
-                product = products_map.get(eod_item.finished_product)
+            for eod_item in end_of_day_items:
+                if eod_item.finished_product:
+                    product = products_map.get(eod_item.finished_product)
+                    purchase = purchase_order_map.get(eod_item.finished_product, 0)
+                    if product:
+                        eod_item.product_cost = product.cost * (eod_item.total_portions or 0)
+                        eod_item.product_price = product.price * (eod_item.total_sold or 0)
+                        eod_item.close_stock = product.quantity
 
-                purchase = purchase_order_map.get(eod_item.finished_product, 0)
+                        if purchase:
+                            eod_item.purchase_units = purchase
 
-                if product:
-                    eod_item.product_cost = product.cost * (eod_item.total_portions or 0)
-                    eod_item.product_price = product.price * (eod_item.total_sold or 0)
-                    eod_item.close_stock = product.quantity
-
-                    if purchase:
-                        eod_item.purchase_units = purchase
-
-                    eod_item.open_stock = product.quantity + (eod_item.total_sold or 0) + (eod_item.staff_portions or 0) + purchase
+                        eod_item.open_stock = product.quantity + (eod_item.total_sold or 0) + (eod_item.staff_portions or 0) + purchase
+                    else:
+                        eod_item.product_cost = 0
+                        eod_item.product_price = 0
                 else:
                     eod_item.product_cost = 0
                     eod_item.product_price = 0
-            else:
-                eod_item.product_cost = 0
-                eod_item.product_price = 0
             
-            eod_item.save()
-        
-        logger.success(f'End of day successfully saved!')
+                dish = dishes_map.get(eod_item.dish_name)
+                
+                if dish and eod_item.servers_variance:
+                    print(dish)
+                    variance += Decimal(eod_item.servers_variance) * Decimal(dish['price'])
+                
+                eod_item.save()
+                
+            e_o_d.variance = variance
+            e_o_d.save()
+            
+            logger.success(f'End of day successfully saved!')
 
         return JsonResponse({'success': True})
     except Exception as e:
+        logger.error(f'Error, processing file: {e}')
         return JsonResponse({'success': False, 'message': f'invalid:{e}'})
 
 

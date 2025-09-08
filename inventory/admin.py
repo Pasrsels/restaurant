@@ -16,6 +16,7 @@ for model in [
     StockTake, 
     StockTakeItem,
     EndOfDay,
-    EndOfDayItems
+    EndOfDayItems,
+    EndOfDayCashier
 ]:
     admin.site.register(model)

@@ -21,6 +21,7 @@ from django.contrib.auth.decorators import login_required
 from inventory.models import Logs
 from permisions.permisions import admin_required
 from collections import defaultdict
+from .utilities import *
 
 def get_previous_month():
     first_day_of_current_month = datetime.datetime.now().replace(day=1)
@@ -736,7 +737,7 @@ def cash_up(request):
               cashed_amount:float,  
             } 
         """
-        from inventory.models import EndOfDay
+        from inventory.models import EndOfDay, EndOfDayCashier
         
         try:
             data = json.loads(request.body)
@@ -753,11 +754,30 @@ def cash_up(request):
                 cash_up.difference = cash_up.cashed_amount - (cash_up.sales - cash_up.void_amount - cash_up.expenses + cash_up.change)
                 cash_up.cashed = True
                 
-                end_of_day = EndOfDay.objects.filter(branch=request.user.branch).last()
+                end_of_day = EndOfDay.objects.filter(branch=request.user.branch, date=cash_up.date).first()
                 
+                logger.info(f' End of day: {end_of_day}')
+                
+                sales = calculate_cashier_sales(cash_up.cashier, cash_up.date, request.user.branch)
+                expense = calculate_cashier_expenses(cash_up.cashier, cash_up.date, request.user.branch)
+                
+                logger.info(f'sales {sales}')
+                
+                EndOfDayCashier.objects.create(
+                    end_of_day = end_of_day,
+                    cashier = cash_up.cashier,
+                    cashed_amount = Decimal(cashed_amount),
+                    sales = sales['normal_sales'],
+                    voids = sales['void_sales'],
+                    expenses = expense['expenses_total'],
+                    variance = Decimal(sales['norma_sales']) - Decimal(cashed_amount)
+                )
+        
+                end_of_day.save()
                 cash_up.save()
-
+                logger.success(f'Cash up recorded successfully!')
         except Exception as e:
+            logger.error(f'Error processing cashup {e}')
             return JsonResponse({'success':False, 'message':f'{e}'}, status=400)
         return JsonResponse({'success':True, 'message':f'Cash Up successfully created'}, status=201)
     return JsonResponse({'success':False, 'message':f'Invalid request'}, status=405)

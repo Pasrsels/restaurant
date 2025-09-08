@@ -155,5 +155,8 @@ urlpatterns = [
     path('stocktake/detail/<int:stocktake_id>/', stocktake_detail, name='stock_take_detail'),
     path('recorder/stocktake/', record_stock_take, name='record_stock_take'),
     path('stocktake/accept-variance/', accept_variance, name='accept_variance'),
-    path('stocktake/undo/recording/', undo_record_stock_take, name='undo_record_stock_take')
+    path('stocktake/undo/recording/', undo_record_stock_take, name='undo_record_stock_take'),
+    
+    # report
+    path('generate/report/<int:eod_id>/', generate_report, name='generate-report')
 ]

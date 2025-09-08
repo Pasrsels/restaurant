@@ -52,10 +52,6 @@ from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from django.core.paginator import Paginator
 from users.models import User
-from users.models import User
-from django.core.mail import send_mail
-from django.conf import settings
-import threading
 from django.core.mail import EmailMessage
 from utils.email import EmailThread
 import io
@@ -72,6 +68,7 @@ from collections import defaultdict
 from django.core.cache import cache
 from inventory.forms import ProductionPlanInlineForm
 from django.views.decorators.csrf import csrf_exempt
+
 today = localdate()
 
 @csrf_exempt
@@ -196,6 +193,8 @@ def create_client_change(client_data, receipt_number, cashier, sale):
         claimed=False,
         cashier=cashier
     )
+    
+    logger.success(f'Change created for client: {client_data.get('name')}')
 
 @login_required
 def process_sale(request):

@@ -245,7 +245,7 @@ class PurchaseOrder(models.Model):
     other_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
     is_partial = models.BooleanField(default=False)  
     received = models.BooleanField(default=False)
-
+    
     def generate_order_number():
         return f'PO-{uuid.uuid4().hex[:10].upper()}'
 
@@ -334,15 +334,30 @@ class MinorRawMaterials(models.Model):
     def __str__(self) -> str:
         return self.raw_material.name
     
+
 class EndOfDay(models.Model):
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     date = models.DateField(auto_now_add=True)
     done = models.BooleanField(default=False)
     total_sales = models.DecimalField(max_digits=10, decimal_places=2, null=True)
-    cashed_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True)
+    variance = models.DecimalField(max_digits=10, decimal_places=2, null=True)
     
     def __str__(self) -> str:
         return f'{self.total_sales}'
+
+class EndOfDayCashier(models.Model):
+    end_of_day = models.ForeignKey(EndOfDay, on_delete=models.CASCADE)
+    cashier = models.ForeignKey('users.User', on_delete=models.CASCADE)
+    cashed_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True)
+    sales = models.DecimalField(max_digits=10, decimal_places=2, null=True)
+    voids = models.DecimalField(max_digits=10, decimal_places=2, null=True)
+    expenses = models.DecimalField(max_digits=10, decimal_places=2, null=True)
+    variance = models.DecimalField(max_digits=10, decimal_places=2, null=True)
+    class Meta:
+        unique_together = ('end_of_day', 'cashier')
+
+    def __str__(self):
+        return f'{self.cashier} - {self.cashed_amount} on {self.end_of_day.date}'
     
 class EndOfDayItems(models.Model):
     end_of_day = models.ForeignKey(EndOfDay, on_delete=models.CASCADE)
@@ -362,6 +377,7 @@ class EndOfDayItems(models.Model):
     purchase_units = models.FloatField(null=True)
     open_stock = models.FloatField(null=True)
     close_stock = models.FloatField(null=True)
+    
     def __str__(self) -> str:
         return f'{self.end_of_day.date}: {self.dish_name}'
     

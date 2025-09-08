@@ -1,0 +1,128 @@
+{% block content %}
+<style>
+  .eod-summary-container {
+    max-width: 900px;
+    margin: 2em auto;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    padding: 2em 2.5em;
+    font-family: 'Segoe UI', Arial, sans-serif;
+  }
+  .eod-totals-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5em;
+    justify-content: space-between;
+    margin-bottom: 2.5em;
+  }
+  .eod-total-card {
+    flex: 1 1 160px;
+    background: linear-gradient(135deg, #e9f5ec 60%, #d8f3dc 100%);
+    border-radius: 10px;
+    box-shadow: 0 1px 6px rgba(44, 62, 80, 0.07);
+    padding: 1.2em 1.5em;
+    text-align: center;
+    min-width: 150px;
+    margin: 0 0.2em;
+    border: 1px solid #b7e4c7;
+    transition: box-shadow 0.2s;
+  }
+  .eod-total-card:hover {
+    box-shadow: 0 4px 16px rgba(44, 62, 80, 0.13);
+  }
+  .eod-total-label {
+    font-size: 1.05em;
+    color: #40916c;
+    margin-bottom: 0.3em;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+  }
+  .eod-total-value {
+    font-size: 1.5em;
+    color: #1b4332;
+    font-weight: bold;
+    margin-bottom: 0.1em;
+  }
+  .eod-section {
+    margin-bottom: 2em;
+  }
+  .eod-section h3 {
+    color: #2d6a4f;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 0.3em;
+    margin-bottom: 1em;
+    font-size: 1.2em;
+    letter-spacing: 0.5px;
+  }
+  .cashier-card {
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    margin-bottom: 1em;
+    padding: 1em 1.5em;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+    transition: box-shadow 0.2s;
+  }
+  .cashier-card:hover {
+    box-shadow: 0 4px 16px rgba(44, 62, 80, 0.08);
+  }
+  h2 {
+    text-align: center;
+    color: #1b4332;
+    margin-bottom: 2em;
+    letter-spacing: 1px;
+  }
+</style>
+
+<div class="eod-summary-container">
+  <h2>End of Day Summary</h2>
+
+  <div class="eod-totals-row">
+    <div class="eod-total-card">
+      <div class="eod-total-label">Total Sales</div>
+      <div class="eod-total-value">{{ cashier_totals.total_sales }}</div>
+    </div>
+    <div class="eod-total-card">
+      <div class="eod-total-label">Total Cashed Amount</div>
+      <div class="eod-total-value">{{ cashier_totals.total_cashed_amount }}</div>
+    </div>
+    <div class="eod-total-card">
+      <div class="eod-total-label">Total Variance</div>
+      <div class="eod-total-value">{{ cashier_totals.total_variance }}</div>
+    </div>
+    <div class="eod-total-card">
+      <div class="eod-total-label">Servers Variance</div>
+      <div class="eod-total-value">{{ servers_variance_total }}</div>
+    </div>
+    <div class="eod-total-card">
+      <div class="eod-total-label">Production Variance</div>
+      <div class="eod-total-value">{{ production_variance_total }}</div>
+    </div>
+  </div>
+
+  <div class="eod-section">
+    <h3>Cashier Details</h3>
+    {% for c in cashier_list %}
+      <div class="cashier-card">
+        <strong>Cashier:</strong> {{ c.cashier.get_full_name|default:c.cashier.username }}<br>
+        <strong>Sales:</strong> {{ c.sales }}<br>
+        <strong>Cashed Amount:</strong> {{ c.cashed_amount }}<br>
+        <strong>Variance:</strong> {{ c.variance }}<br>
+        <span style="font-size:0.9em;color:#888;"><strong>Object:</strong> {{ c.object }}</span>
+      </div>
+    {% empty %}
+      <p>No cashier data available.</p>
+    {% endfor %}
+  </div>
+
+  <p>End of day links</p>
+  <ul>
+    <li>
+    {% comment %} <button class="header-btn" onclick="window.location.href='{% url 'inventory:generate_report' end_of_day.id %}?download=pdf'" title="Download PDF">
+      <i class="bx bx-download"></i> Download PDF
+    </button> {% endcomment %}
+    </li>
+  </ul>
+</div>
+{% endblock %}
