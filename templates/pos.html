@@ -1241,90 +1241,82 @@
             timestamp: new Date().toISOString()
         };
 
-        if (navigator.onLine) {
-            Swal.fire({
-                title: "Processing...",
-                text: "Please wait while the sale is being processed.",
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
+        Swal.fire({
+            title: "Processing...",
+            text: "Please wait while the sale is being processed.",
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
 
-            fetch('{% url "pos:process_sale" %}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
-                },
-                body: JSON.stringify(saleData)
-            })
-                .then(response => response.json())
-                .then(data => {
-                    Swal.close();
-                    if (data.success) {
-                        console.log('Sale processed successfully:', data);
-                        Swal.fire({
-                            title: "Success",
-                            text: "Processing Receipt",
-                            icon: "success"
-                        });
+        fetch('{% url "pos:process_sale" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(saleData)
+        })
+            .then(response => response.json())
+            .then(data => {
+                Swal.close();
+                if (data.success) {
+                    console.log('Sale processed successfully:', data);
+                    Swal.fire({
+                        title: "Success",
+                        text: "Processing Receipt",
+                        icon: "success"
+                    });
 
-                        // Clear the cart and reset UI
-                        cart = [];
-                        updateOrderDetails();
-                        chargeModal.hide();
-                        clearChangeData()
-                        console.log('cleared')
+                    // Clear the cart and reset UI
+                    cart = [];
+                    updateOrderDetails();
+                    chargeModal.hide();
+                    clearChangeData()
+                    console.log('cleared')
 
-                        // Generate and print receipt
-                        const receiptContent = generateReceiptContent(data.data);
-                        printReceiptSilently(receiptContent);
+                    // Generate and print receipt
+                    const receiptContent = generateReceiptContent(data.data);
+                    printReceiptSilently(receiptContent);
 
-                    } else {
-                        Swal.fire({
-                            title: "Error",
-                            text: data.message,
-                            icon: "error"
-                        });
-                        chargeModal.hide();
-                    }
-                })
-                .catch(error => {
-                    Swal.close();
-                    console.error('Error:', error);
+                } else {
                     Swal.fire({
                         title: "Error",
-                        text: "An error occurred while processing the sale.",
+                        text: data.message,
+                        icon: "error"
+                    });
+                    chargeModal.hide();
+                }
+            })
+            .catch(error => {
+                Swal.close();
+                console.error('Fetch error:', error);
+                // Offline
+                saveSale(saleData).then(() => {
+                    return navigator.serviceWorker.ready;
+                }).then(swRegistration => {
+                    return swRegistration.sync.register('sync-pending-sales');
+                }).then(() => {
+                    Swal.fire({
+                        title: "Offline",
+                        text: "Sale saved locally. It will be synced when you're back online.",
+                        icon: "info"
+                    });
+                    cart = [];
+                    updateOrderDetails();
+                    chargeModal.hide();
+                    clearChangeData();
+                }).catch(error => {
+                    console.error('Error saving sale offline:', error);
+                    Swal.fire({
+                        title: "Error",
+                        text: "Could not save sale locally.",
                         icon: "error"
                     });
                 });
-        } else {
-            // Offline
-            saveSale(saleData).then(() => {
-                return navigator.serviceWorker.ready;
-            }).then(swRegistration => {
-                return swRegistration.sync.register('sync-pending-sales');
-            }).then(() => {
-                Swal.fire({
-                    title: "Offline",
-                    text: "Sale saved locally. It will be synced when you're back online.",
-                    icon: "info"
-                });
-                cart = [];
-                updateOrderDetails();
-                chargeModal.hide();
-                clearChangeData();
-            }).catch(error => {
-                console.error('Error saving sale offline:', error);
-                Swal.fire({
-                    title: "Error",
-                    text: "Could not save sale locally.",
-                    icon: "error"
-                });
             });
-        }
     }
 
     function generateReceiptContent(saleData) {
