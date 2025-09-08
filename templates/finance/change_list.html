@@ -242,47 +242,39 @@
                 amount:parseFloat(document.getElementById('id_amount').value)
             };
 
-            if (navigator.onLine) {
-                fetch('/pos/collect_change/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': getCSRFToken()
-                    },
-                    body: JSON.stringify(data)
-                })
-                .then(response => response.json().then(data => ({
-                    status: response.status,
-                    data: data
-                })))
-                .then(res => {
-                    if (res.status === 200) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Success!',
-                            text: 'Change has been collected successfully.',
-                            confirmButtonText: 'OK'
-                        }).then(() => {
-                            location.reload();
-                        });
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: res.data.message,
-                            confirmButtonText: 'OK'
-                        });
-                    }
-                })
-                .catch(error => {
+            fetch('/pos/collect_change/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json().then(data => ({
+                status: response.status,
+                data: data
+            })))
+            .then(res => {
+                if (res.status === 200) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: 'Change has been collected successfully.',
+                        confirmButtonText: 'OK'
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
                     Swal.fire({
                         icon: 'error',
-                        title: 'Request Failed',
-                        text: error.toString(),
+                        title: 'Error',
+                        text: res.data.message,
                         confirmButtonText: 'OK'
                     });
-                });
-            } else {
+                }
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
                 saveCollection(data).then(() => {
                     return navigator.serviceWorker.ready;
                 }).then(swRegistration => {
@@ -302,7 +294,7 @@
                         icon: "error"
                     });
                 });
-            }
+            });
         }
         
         function getCSRFToken() {

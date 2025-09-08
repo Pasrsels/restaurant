@@ -288,7 +288,6 @@ def process_sale(request):
                 'cashier': f'{request.user.first_name} {request.user.last_name}',
                 'receipt_number': sale.receipt_number,
                 'total_amount': sale.total_amount,
-                'receipt_number':sale.receipt_number,
                 'tax': sale.tax,
                 'sub_total': sale.sub_total,
                 'received_amount': sale_data.get('received_amount'),
