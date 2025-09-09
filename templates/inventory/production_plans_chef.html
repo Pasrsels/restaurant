@@ -698,16 +698,14 @@
                     <h4><i class="fas fa-eye"></i> View Chef Requests</h4>
                     <div class="request-count chef-requests">{{ plans.count }}</div>
                 </a>
-                {% if request.user.role == 'stores_person' %}
                 <a href="#" class="request-box" onclick="loadPage('{% url 'inventory:production_declaration_table_ajax' %}', this)">
-                    <h4><i class="fas fa-eye"></i> View Declarations</h4>
+                    <h4><i class="fas fa-clipboard-check"></i> View Declarations</h4>
                     <div class="request-count declare-dishes">
                         {% with pending_declarations=declaration_plans|length %}
                             {% if pending_declarations > 0 %}{{ pending_declarations }}{% else %}0{% endif %}
                         {% endwith %}
                     </div>
                 </a>
-                {% endif %}
                 <a href="#" class="request-box" onclick="loadPage('{% url 'inventory:production_analysis_api' %}', this)">
                     <h4><i class="fas fa-chart-line"></i> Production Analysis</h4>
                     <div class="request-count" style="color: #20c997;">
