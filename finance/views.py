@@ -70,7 +70,7 @@ def get_expense(request, expense_id):
         'amount': expense.amount,
         'description': expense.description,
         'category': expense.category.id,
-        'branch_name': expense.branch.name,
+        'branch_name': expense.branch.branch_name,
         'branch_id':expense.branch.id
     }
     return JsonResponse({'success': True, 'data': data})
@@ -213,7 +213,8 @@ def expenses(request):
             return JsonResponse({'success': False, 'message': str(e)}, status=400)
 
 @admin_required
-@login_required      
+@login_required
+@login_required
 def add_or_edit_expense(request):
     if request.method == 'POST':
         try:
@@ -224,35 +225,52 @@ def add_or_edit_expense(request):
             expense_id = data.get('id')
 
             if not amount or not description or not category_id:
-                return JsonResponse({'success': False, 'message': 'Missing fields: amount, description, category.'})
-            
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Missing fields: amount, description, category.'
+                }, status=400)
+
             category = get_object_or_404(ExpenseCategory, id=category_id)
 
-            if expense_id:  
+            if expense_id:
+                # Update existing expense
                 expense = get_object_or_404(Expense, id=expense_id)
                 before_amount = expense.amount
-                
+
                 expense.amount = amount
                 expense.description = description
                 expense.category = category
                 expense.save()
                 message = 'Expense successfully updated'
-                
+
                 try:
                     cashbook_expense = CashBook.objects.get(expense=expense)
                     expense_amount = Decimal(expense.amount)
                     if cashbook_expense.amount < expense_amount:
                         cashbook_expense.amount = expense_amount
-                        cashbook_expense.description = cashbook_expense.description + f'Expense (update from {before_amount} to {cashbook_expense.amount})'
+                        cashbook_expense.description += f' Expense (update from {before_amount} to {cashbook_expense.amount})'
                     else:
                         cashbook_expense.amount -= cashbook_expense.amount - expense_amount
-                        cashbook_expense.description = cashbook_expense.description + f'(update from {before_amount} to {cashbook_expense.amount})'
+                        cashbook_expense.description += f' (update from {before_amount} to {cashbook_expense.amount})'
                     cashbook_expense.save()
                 except Exception as e:
                     return JsonResponse({'success': False, 'message': str(e)}, status=400)
+            else:
+                # Create new expense
+                expense = Expense.objects.create(
+                    amount=amount,
+                    description=description,
+                    category=category
+                )
+                message = 'Expense successfully created'
+
             return JsonResponse({'success': True, 'message': message}, status=201)
+
         except Exception as e:
+            # Debugging line
+            print("DEBUG ERROR:", str(e))
             return JsonResponse({'success': False, 'message': str(e)}, status=400)
+
     return JsonResponse({'success': False, 'message': 'Invalid request method'}, status=400)
 
 
