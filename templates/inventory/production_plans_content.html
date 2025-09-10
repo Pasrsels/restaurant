@@ -219,34 +219,55 @@
     
     // Load production plan details via AJAX
     function loadProductionPlanDetail(planId) {
+        const container = document.getElementById('production-detail-container');
         const content = document.getElementById('production-detail-content');
-        if (!content) return;
+        if (!content || !container) {
+            console.error('Could not find production detail container');
+            return;
+        }
+        
+        // Show loading state
+        content.innerHTML = `
+            <div class="text-center p-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Loading production plan details...</p>
+            </div>`;
+            
+        container.style.display = 'block';
         
         // Update current open plan ID
         currentOpenPlanId = planId;
         
-        fetch(`/inventory/production_plan/detail/${planId}/ajax/`, {
+        // Add timestamp to prevent caching
+        const timestamp = new Date().getTime();
+        const url = `/inventory/production_plan/detail/${planId}/ajax/?_=${timestamp}`;
+        
+        fetch(url, {
             method: 'GET',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json',
                 'X-CSRFToken': '{{ csrf_token }}'
             },
-            credentials: 'same-origin'
+            credentials: 'same-origin',
+            cache: 'no-cache'
         })
         .then(async response => {
             const contentType = response.headers.get('content-type');
             
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                const error = new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                error.status = response.status;
+                error.debug = errorData.debug;
+                throw error;
+            }
+            
             if (contentType && contentType.includes('application/json')) {
-                const data = await response.json();
-                if (!response.ok) {
-                    throw new Error(data.error || 'Failed to load production plan details');
-                }
-                return data;
+                return response.json();
             } else {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
                 return response.text();
             }
         })
@@ -262,15 +283,31 @@
             }
             
             // Scroll to the details container
-            const container = document.getElementById('production-detail-container');
             container.scrollIntoView({ behavior: 'smooth', block: 'start' });
         })
         .catch(error => {
             console.error('Error loading production plan details:', error);
+            
+            let errorMessage = 'An error occurred while loading the production plan details.';
+            let debugInfo = '';
+            
+            if (error.message) {
+                errorMessage = error.message;
+            }
+            
+            // Add debug info for staff users
+            if (error.debug) {
+                debugInfo = `\n\nDebug: ${error.debug}`;
+            }
+            
             content.innerHTML = `
                 <div class="alert alert-danger">
                     <h5 class="alert-heading">Error Loading Production Plan</h5>
-                    <p>${error.message || 'An unknown error occurred while loading the production plan details.'}</p>
+                    <p>${errorMessage}</p>
+                    <pre class="mt-2 mb-0 p-2 bg-light" style="font-size: 0.8rem; display: ${error.debug ? 'block' : 'none'};">
+                        ${error.stack || error.toString()}
+                        ${error.debug || ''}
+                    </pre>
                     <hr>
                     <p class="mb-0">
                         <small class="text-muted">
@@ -282,11 +319,17 @@
                 
             // Log the error to the server if possible
             if (navigator.sendBeacon) {
-                const errorData = new FormData();
-                errorData.append('error', error.message || 'Unknown error');
-                errorData.append('url', window.location.href);
-                errorData.append('plan_id', planId);
-                navigator.sendBeacon('/log-error/', errorData);
+                try {
+                    const errorData = new FormData();
+                    errorData.append('error', error.message || 'Unknown error');
+                    errorData.append('url', window.location.href);
+                    errorData.append('plan_id', planId);
+                    errorData.append('stack', error.stack || '');
+                    errorData.append('status', error.status || '');
+                    navigator.sendBeacon('/log-error/', errorData);
+                } catch (e) {
+                    console.error('Failed to log error:', e);
+                }
             }
         });
     }
