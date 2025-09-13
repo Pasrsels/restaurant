@@ -1,21 +1,34 @@
-import json, csv, io
-from django.utils import timezone
-from . models import *
-from loguru import logger
+import json
+import csv
+import io
+import logging
 from decimal import Decimal, ROUND_HALF_UP
-from django.views import View    
-from django.contrib import messages 
+from django.utils import timezone
+from django.views import View
+from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from loguru import logger
-from .models import Dish, Ingredient
-from django.views import View
 from django.db.models import Sum
 from django.utils.timezone import localdate
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
+
+# Import models explicitly to avoid circular imports
+from .models import (
+    Dish, 
+    Ingredient,
+    Production,
+    ProductionItems,
+    ProductionRawMaterials,
+    OverrideHistory,
+    Transfer,
+    Product
+)
+
+# Configure logging
+logger = logging.getLogger(__name__)
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib.enums import TA_CENTER
@@ -4452,67 +4465,128 @@ def production_declaration_table_ajax(request):
     return render(request, 'inventory/production_declaration_table.html', context)
 
 @login_required
-@login_required
 def production_plan_detail_ajax(request, plan_id):
     """AJAX view for detailed production plan information"""
+    import traceback
+    
     try:
+        logger.info(f"Starting production_plan_detail_ajax for plan_id: {plan_id}")
+        
         # Get the specific production plan
-        plan = Production.objects.get(id=plan_id, branch=request.user.branch)
+        try:
+            plan = Production.objects.get(id=plan_id, branch=request.user.branch)
+            logger.info(f"Found production plan: {plan.id}")
+        except Production.DoesNotExist:
+            logger.error(f"Production plan not found: {plan_id}")
+            return JsonResponse({'success': False, 'error': 'Production plan not found'}, status=404)
+        except Exception as e:
+            logger.error(f"Error getting production plan: {str(e)}\n{traceback.format_exc()}")
+            return JsonResponse({'success': False, 'error': 'Error retrieving production plan'}, status=500)
         
         # Get production items for this plan
-        plan_items = ProductionItems.objects.filter(production=plan)
+        try:
+            plan_items = list(ProductionItems.objects.filter(production=plan).select_related('dish'))
+            logger.info(f"Found {len(plan_items)} plan items")
+        except Exception as e:
+            logger.error(f"Error getting plan items: {str(e)}\n{traceback.format_exc()}")
+            return JsonResponse({'success': False, 'error': 'Error retrieving plan items'}, status=500)
         
         # Get dish ingredients for display
-        dish_ingredients = Ingredient.objects.filter(minor_raw_material__branch=request.user.branch)
+        try:
+            dish_ingredients = list(Ingredient.objects.filter(
+                minor_raw_material__branch=request.user.branch
+            ).select_related('minor_raw_material', 'dish'))
+            logger.info(f"Found {len(dish_ingredients)} dish ingredients")
+        except Exception as e:
+            logger.error(f"Error getting dish ingredients: {str(e)}\n{traceback.format_exc()}")
+            return JsonResponse({'success': False, 'error': 'Error retrieving dish ingredients'}, status=500)
         
         # Get ingredients/raw materials for this plan with detailed information
         ingredients = []
         raw_materials = []
+        raw_materials_map = {}  # To track raw materials by ID
         
-        for item in plan_items:
-            if hasattr(item, 'dish') and item.dish:
+        try:
+            for item in plan_items:
+                if not hasattr(item, 'dish') or not item.dish:
+                    logger.warning(f"Plan item {item.id} has no dish associated")
+                    continue
+                    
+                logger.info(f"Processing plan item {item.id} for dish: {item.dish.name if item.dish else 'None'}")
+                
                 # Get ingredients for this dish
-                dish_ingredients_for_item = Ingredient.objects.filter(dish=item.dish, minor_raw_material__branch=request.user.branch)
+                try:
+                    dish_ingredients_for_item = list(Ingredient.objects.filter(
+                        dish=item.dish, 
+                        minor_raw_material__branch=request.user.branch
+                    ).select_related('minor_raw_material', 'minor_raw_material__unit'))
+                    logger.info(f"Found {len(dish_ingredients_for_item)} ingredients for dish {item.dish.id}")
+                except Exception as e:
+                    logger.error(f"Error getting ingredients for dish {item.dish.id}: {str(e)}\n{traceback.format_exc()}")
+                    continue
+                
                 for ing in dish_ingredients_for_item:
                     try:
+                        if not hasattr(ing, 'minor_raw_material') or not ing.minor_raw_material:
+                            logger.warning(f"Ingredient {ing.id} has no minor_raw_material")
+                            continue
+                            
+                        if not hasattr(ing.minor_raw_material, 'unit'):
+                            logger.warning(f"Minor raw material {ing.minor_raw_material.id} has no unit")
+                            continue
+                        
                         # Calculate quantities - convert to Decimal for consistent calculations
-                        from decimal import Decimal
-                        ing_quantity = Decimal(str(ing.quantity))
-                        item_portions = Decimal(str(item.portions or 0))
-                        portion_multiplier = Decimal(str(item.dish.portion_multiplier or 1))
+                        ing_quantity = Decimal(str(ing.quantity)) if ing.quantity is not None else Decimal('0')
+                        item_portions = Decimal(str(item.portions)) if item.portions is not None else Decimal('0')
+                        portion_multiplier = Decimal(str(item.dish.portion_multiplier)) if hasattr(item.dish, 'portion_multiplier') and item.dish.portion_multiplier is not None else Decimal('1')
+                        
+                        if portion_multiplier == 0:
+                            logger.warning(f"Portion multiplier is 0 for dish {item.dish.id}, using 1 to avoid division by zero")
+                            portion_multiplier = Decimal('1')
                         
                         required_quantity = float(ing_quantity * (item_portions / portion_multiplier))
                         
                         # Get production raw materials info
-                        production_inventory = ProductionRawMaterials.objects.filter(
-                            product=ing.minor_raw_material, 
-                            product__branch=request.user.branch
-                        ).first()
-                        current_quantity = float(production_inventory.quantity) if production_inventory else 0.0
+                        try:
+                            production_inventory = ProductionRawMaterials.objects.filter(
+                                product=ing.minor_raw_material, 
+                                product__branch=request.user.branch
+                            ).first()
+                            current_quantity = float(production_inventory.quantity) if production_inventory and production_inventory.quantity is not None else 0.0
+                        except Exception as e:
+                            logger.error(f"Error getting production inventory: {str(e)}")
+                            current_quantity = 0.0
+                            
                         expected_quantity = required_quantity - current_quantity
                         
                         # Get override history
-                        overrided_raw_materials = OverrideHistory.objects.filter(
-                            raw_material_overrided=ing.minor_raw_material, 
-                            raw_material_overrided__branch=request.user.branch
-                        )
-                        
-                        total_overrides_up = sum(item.up if item.up else 0 for item in overrided_raw_materials)
-                        total_overrides_down = sum(item.down if item.down else 0 for item in overrided_raw_materials)
+                        try:
+                            overrided_raw_materials = list(OverrideHistory.objects.filter(
+                                raw_material_overrided=ing.minor_raw_material, 
+                                raw_material_overrided__branch=request.user.branch
+                            ))
+                            total_overrides_up = sum(float(item.up) if item.up is not None else 0 for item in overrided_raw_materials)
+                            total_overrides_down = sum(float(item.down) if item.down is not None else 0 for item in overrided_raw_materials)
+                        except Exception as e:
+                            logger.error(f"Error getting override history: {str(e)}")
+                            total_overrides_up = 0
+                            total_overrides_down = 0
                         
                         # Check if raw material already exists in the list
-                        raw_material_found = next((rm for rm in raw_materials if rm['id'] == ing.minor_raw_material.id), None)
+                        raw_material_found = raw_materials_map.get(ing.minor_raw_material.id)
                         
                         if raw_material_found:
                             raw_material_found['quantity'] += required_quantity
                             raw_material_found['expected_quantity'] += expected_quantity
                             raw_material_found['quantity_b_f'] += current_quantity
+                            
                             # Update dollar amounts
-                            raw_material_found['planned_amount'] = raw_material_found['quantity'] * raw_material_found['cost_per_unit']
-                            raw_material_found['expected_amount'] = raw_material_found['quantity'] * raw_material_found['cost_per_unit']
-                            raw_material_found['declared_amount'] = raw_material_found['expected_quantity'] * raw_material_found['cost_per_unit'] if plan.declared else 0
-                            raw_material_found['actual_amount'] = raw_material_found['expected_quantity'] * raw_material_found['cost_per_unit'] if plan.declared else 0
-                            raw_material_found['variance_amount'] = (raw_material_found['expected_quantity'] - raw_material_found['quantity']) * raw_material_found['cost_per_unit'] if plan.declared else 0
+                            cost_per_unit = float(ing.minor_raw_material.cost or 0)
+                            raw_material_found['planned_amount'] = raw_material_found['quantity'] * cost_per_unit
+                            raw_material_found['expected_amount'] = raw_material_found['quantity'] * cost_per_unit
+                            raw_material_found['declared_amount'] = raw_material_found['expected_quantity'] * cost_per_unit if plan.declared else 0
+                            raw_material_found['actual_amount'] = raw_material_found['expected_quantity'] * cost_per_unit if plan.declared else 0
+                            raw_material_found['variance_amount'] = (raw_material_found['expected_quantity'] - raw_material_found['quantity']) * cost_per_unit if plan.declared else 0
                         else:
                             cost_per_unit = float(ing.minor_raw_material.cost or 0)
                             total_cost = required_quantity * cost_per_unit
@@ -4520,11 +4594,11 @@ def production_plan_detail_ajax(request, plan_id):
                             # Calculate dollar amounts
                             planned_amount = required_quantity * cost_per_unit
                             expected_amount = required_quantity * cost_per_unit
-                            declared_amount = expected_quantity * cost_per_unit if plan.declared else 0
-                            actual_amount = expected_quantity * cost_per_unit if plan.declared else 0
-                            variance_amount = (expected_quantity - required_quantity) * cost_per_unit if plan.declared else 0
+                            declared_amount = expected_quantity * cost_per_unit if getattr(plan, 'declared', False) else 0
+                            actual_amount = expected_quantity * cost_per_unit if getattr(plan, 'declared', False) else 0
+                            variance_amount = (expected_quantity - required_quantity) * cost_per_unit if getattr(plan, 'declared', False) else 0
                             
-                            raw_materials.append({
+                            raw_material_data = {
                                 'id': ing.minor_raw_material.id,
                                 'name': ing.minor_raw_material.name,
                                 'quantity_b_f': float(current_quantity),
@@ -4532,7 +4606,7 @@ def production_plan_detail_ajax(request, plan_id):
                                 'expected_quantity': float(expected_quantity),
                                 'accumulated_overrides_up': total_overrides_up,
                                 'accumulated_overrides_down': total_overrides_down,
-                                'unit': ing.minor_raw_material.unit.unit_name,
+                                'unit': ing.minor_raw_material.unit.unit_name if hasattr(ing.minor_raw_material.unit, 'unit_name') else 'unit',
                                 'cost_per_unit': cost_per_unit,
                                 'total_cost': total_cost,
                                 'planned_amount': planned_amount,
@@ -4540,87 +4614,150 @@ def production_plan_detail_ajax(request, plan_id):
                                 'declared_amount': declared_amount,
                                 'actual_amount': actual_amount,
                                 'variance_amount': variance_amount,
-                            })
+                            }
+                            
+                            raw_materials.append(raw_material_data)
+                            raw_materials_map[ing.minor_raw_material.id] = raw_material_data
                         
                         # Add to ingredients list for basic info
-                        stock_available = float(ing.minor_raw_material.quantity or 0)
-                        stock_status = 'Sufficient' if stock_available >= required_quantity else 'Insufficient'
-                        cost_per_unit = float(ing.minor_raw_material.cost or 0)
-                        total_cost = required_quantity * cost_per_unit
-                        
-                        ingredients.append({
-                            'name': ing.minor_raw_material.name,
-                            'quantity_required': required_quantity,
-                            'unit': ing.minor_raw_material.unit.unit_name,
-                            'cost_per_unit': cost_per_unit,
-                            'total_cost': total_cost,
-                            'stock_available': stock_available,
-                            'stock_status': stock_status
-                        })
+                        try:
+                            stock_available = float(ing.minor_raw_material.quantity) if ing.minor_raw_material.quantity is not None else 0.0
+                            stock_status = 'Sufficient' if stock_available >= required_quantity else 'Insufficient'
+                            cost_per_unit = float(ing.minor_raw_material.cost or 0)
+                            total_cost = required_quantity * cost_per_unit
+                            
+                            ingredients.append({
+                                'name': ing.minor_raw_material.name,
+                                'quantity_required': required_quantity,
+                                'unit': ing.minor_raw_material.unit.unit_name if hasattr(ing.minor_raw_material.unit, 'unit_name') else 'unit',
+                                'cost_per_unit': cost_per_unit,
+                                'total_cost': total_cost,
+                                'stock_available': stock_available,
+                                'stock_status': stock_status
+                            })
+                        except Exception as e:
+                            logger.error(f"Error adding to ingredients list: {str(e)}")
+                            
                     except Exception as ing_error:
-                        logger.error(f"Error processing ingredient {ing.id}: {ing_error}")
+                        logger.error(f"Error processing ingredient {getattr(ing, 'id', 'unknown')}: {str(ing_error)}\n{traceback.format_exc()}")
                         continue
+                        
+        except Exception as e:
+            logger.error(f"Error processing plan items: {str(e)}\n{traceback.format_exc()}")
+            return JsonResponse({
+                'success': False,
+                'error': 'Error processing plan items',
+                'details': str(e)
+            }, status=500)
         
-        # Calculate totals and add cost per portion to plan items
-        total_planned_portions = sum(item.portions or 0 for item in plan_items)
-        total_actual_portions = sum(item.actual_quantity or 0 for item in plan_items)
-        total_production_cost = sum(item.total_cost or 0 for item in plan_items)
-        total_ingredients_cost = sum(ing['total_cost'] for ing in ingredients)
-        
-        # Add cost per portion to plan items
-        for item in plan_items:
-            if item.portions and item.portions > 0:
-                total_cost = float(item.total_cost or 0)
-                portions = float(item.portions)
-                item.cost_per_portion = total_cost / portions
-            else:
-                item.cost_per_portion = 0
-        
-        # Calculate variance
-        variance = total_actual_portions - total_planned_portions
-        
-        # Calculate revenue metrics for each plan item
-        total_expected_revenue = 0
-        total_actual_revenue = 0
-        total_unsold_portions = 0
-        
-        for item in plan_items:
-            # Calculate expected revenue (declared portions * dish price)
-            expected_revenue = float(item.portions or 0) * float(item.dish.price or 0)
-            item.expected_revenue = expected_revenue
-            total_expected_revenue += expected_revenue
+        try:
+            # Calculate totals and add cost per portion to plan items
+            total_planned_portions = 0
+            total_actual_portions = 0
+            total_production_cost = 0
+            total_ingredients_cost = 0
             
-            # Calculate actual revenue (sold portions * dish price)
-            actual_revenue = float(item.portions_sold or 0) * float(item.dish.price or 0)
-            item.actual_revenue = actual_revenue
-            total_actual_revenue += actual_revenue
+            # Ensure we have valid numeric values for all calculations
+            try:
+                total_planned_portions = sum(float(item.portions) if item.portions is not None else 0 for item in plan_items)
+                total_actual_portions = sum(float(item.actual_quantity) if item.actual_quantity is not None else 0 for item in plan_items)
+                total_production_cost = sum(float(item.total_cost) if item.total_cost is not None else 0 for item in plan_items)
+                total_ingredients_cost = sum(float(ing.get('total_cost', 0)) for ing in ingredients)
+            except (TypeError, ValueError) as e:
+                logger.error(f"Error calculating totals: {str(e)}\n{traceback.format_exc()}")
+                # Continue with defaults if calculation fails
+                total_planned_portions = 0
+                total_actual_portions = 0
+                total_production_cost = 0
+                total_ingredients_cost = 0
             
-            # Calculate unsold portions
-            unsold_portions = float(item.portions or 0) - float(item.portions_sold or 0)
-            item.unsold_portions = unsold_portions if unsold_portions > 0 else 0
-            total_unsold_portions += item.unsold_portions
-        
-        # Calculate revenue variance
-        revenue_variance = total_actual_revenue - total_expected_revenue
-        
-        context = {
-            'plan': plan,
-            'plan_items': plan_items,
-            'ingredients': ingredients,
-            'raw_materials': raw_materials,
-            'dish_ing': dish_ingredients,
-            'total_planned_portions': total_planned_portions,
-            'total_actual_portions': total_actual_portions,
-            'total_production_cost': total_production_cost,
-            'total_ingredients_cost': total_ingredients_cost,
-            'variance': variance,
-            'positive_variance': variance if variance > 0 else 0,
-            'negative_variance': abs(variance) if variance < 0 else 0,
-            'total_expected_revenue': total_expected_revenue,
-            'total_actual_revenue': total_actual_revenue,
-            'total_unsold_portions': total_unsold_portions,
-            'revenue_variance': revenue_variance,
-        }
+            # Add cost per portion to plan items
+            for item in plan_items:
+                try:
+                    if hasattr(item, 'portions') and item.portions and float(item.portions) > 0:
+                        total_cost = float(item.total_cost) if hasattr(item, 'total_cost') and item.total_cost is not None else 0
+                        portions = float(item.portions)
+                        item.cost_per_portion = total_cost / portions if portions > 0 else 0
+                    else:
+                        item.cost_per_portion = 0
+                except (TypeError, ValueError, ZeroDivisionError) as e:
+                    logger.error(f"Error calculating cost per portion for item {getattr(item, 'id', 'unknown')}: {str(e)}")
+                    item.cost_per_portion = 0
+            
+            # Calculate variance with safe type conversion
+            try:
+                variance = float(total_actual_portions) - float(total_planned_portions)
+            except (TypeError, ValueError):
+                variance = 0
+            
+            # Calculate revenue metrics for each plan item
+            total_expected_revenue = 0
+            total_actual_revenue = 0
+            total_unsold_portions = 0
+            
+            for item in plan_items:
+                try:
+                    if not hasattr(item, 'dish') or not item.dish:
+                        continue
+                        
+                    # Calculate expected revenue (declared portions * dish price)
+                    portions = float(item.portions) if hasattr(item, 'portions') and item.portions is not None else 0
+                    dish_price = float(item.dish.price) if hasattr(item.dish, 'price') and item.dish.price is not None else 0
+                    expected_revenue = portions * dish_price
+                    item.expected_revenue = expected_revenue
+                    total_expected_revenue += expected_revenue
+                    
+                    # Calculate actual revenue (sold portions * dish price)
+                    portions_sold = float(item.portions_sold) if hasattr(item, 'portions_sold') and item.portions_sold is not None else 0
+                    actual_revenue = portions_sold * dish_price
+                    item.actual_revenue = actual_revenue
+                    total_actual_revenue += actual_revenue
+                    
+                    # Calculate unsold portions
+                    unsold_portions = max(0, portions - portions_sold)
+                    item.unsold_portions = unsold_portions
+                    total_unsold_portions += unsold_portions
+                    
+                except (TypeError, ValueError, AttributeError) as e:
+                    logger.error(f"Error calculating revenue for item {getattr(item, 'id', 'unknown')}: {str(e)}")
+                    continue
+            
+            # Calculate revenue variance with safe type conversion
+            try:
+                revenue_variance = float(total_actual_revenue) - float(total_expected_revenue)
+            except (TypeError, ValueError):
+                revenue_variance = 0
+            
+            # Prepare context with safe defaults
+            context = {
+                'plan': plan,
+                'plan_items': plan_items,
+                'ingredients': ingredients or [],
+                'raw_materials': raw_materials or [],
+                'dish_ing': dish_ingredients,
+                'total_planned_portions': total_planned_portions,
+                'total_actual_portions': total_actual_portions,
+                'total_production_cost': total_production_cost,
+                'total_ingredients_cost': total_ingredients_cost,
+                'variance': variance,
+                'positive_variance': max(0, float(variance)),
+                'negative_variance': abs(min(0, float(variance))),
+                'total_expected_revenue': total_expected_revenue,
+                'total_actual_revenue': total_actual_revenue,
+                'total_unsold_portions': total_unsold_portions,
+                'revenue_variance': revenue_variance,
+            }
+            
+            logger.info("Context prepared successfully with calculated values")
+            
+        except Exception as e:
+            logger.error(f"Error in final calculations: {str(e)}\n{traceback.format_exc()}")
+            # Return a minimal context with error information
+            return JsonResponse({
+                'success': False,
+                'error': 'Error in calculations',
+                'details': str(e)
+            }, status=500)
         
         # Debug logging
         logger.info(f"Context prepared successfully for plan {plan_id}")

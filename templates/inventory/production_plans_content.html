@@ -62,14 +62,20 @@
                         </div>
                     </td>
                     <td>
-                        <button class="edit-btn" onclick="loadPage('{% url 'inventory:production_plan_detail' plan.id %}')">
-                            edit
-                        </button>
-                                   {% if plan.declared %}
-           <a href="{% url 'inventory:view_production_plan' plan.id %}" class="edit-btn" style="background-color: #6f42c1; margin-left: 5px; color: white; text-decoration: none; display: inline-block;">
-               <i class="bx bx-bar-chart-alt-2"></i> Analysis
-           </a>
-           {% endif %}
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-sm btn-outline-primary view-details-btn" 
+                                    onclick="toggleProductionPlanDetail({{ plan.id }}, this); return false;"
+                                    data-plan-id="{{ plan.id }}">
+                                <i class="bx bx-show"></i> View Details
+                            </button>
+                            {% if plan.declared %}
+                            <a href="{% url 'inventory:view_production_plan' plan.id %}" 
+                               class="btn btn-sm btn-outline-primary" 
+                               style="background-color: #6f42c1; color: white; border-color: #6f42c1;">
+                                <i class="bx bx-bar-chart-alt-2"></i> Analysis
+                            </a>
+                            {% endif %}
+                        </div>
                     </td>
                 </tr>
             {% empty %}
@@ -97,7 +103,194 @@
     </tbody>
 </table>
 
+<!-- Production Plan Detail Container -->
+<div id="production-detail-container" class="mt-4" style="display: none;">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Production Plan Details</h5>
+            <button type="button" class="btn-close" onclick="closeProductionPlanDetail()" aria-label="Close"></button>
+        </div>
+        <div class="card-body" id="production-detail-content">
+            <!-- Details will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Production Plan Details Styles */
+    #production-detail-container {
+        transition: all 0.3s ease;
+        margin-bottom: 30px;
+    }
+    
+    #production-detail-container .card {
+        border: 1px solid rgba(0, 0, 0, 0.125);
+        border-radius: 0.5rem;
+        box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.05);
+    }
+    
+    #production-detail-container .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+        padding: 0.75rem 1.25rem;
+    }
+    
+    #production-detail-container .card-body {
+        padding: 1.25rem;
+    }
+    
+    .view-details-btn.active {
+        background-color: #0d6efd;
+        color: white;
+    }
+    
+    .alert {
+        padding: 15px;
+        margin-bottom: 20px;
+        border: 1px solid transparent;
+        border-radius: 4px;
+    }
+    
+    .alert-danger {
+        color: #842029;
+        background-color: #f8d7da;
+        border-color: #f5c2c7;
+    }
+    
+    .production-detail-dropdown {
+        background: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-top: 1.5rem;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.05);
+    }
+</style>
+
 <script>
+    let currentOpenPlanId = null;
+    
+    // Toggle production plan details
+    function toggleProductionPlanDetail(planId, button) {
+        const container = document.getElementById('production-detail-container');
+        const content = document.getElementById('production-detail-content');
+        const buttons = document.querySelectorAll('.view-details-btn');
+        
+        // If clicking the same button, close the details
+        if (currentOpenPlanId === planId) {
+            closeProductionPlanDetail();
+            return;
+        }
+        
+        // Update active state of buttons
+        buttons.forEach(btn => {
+            if (btn === button) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+        
+        // Show loading state
+        content.innerHTML = `
+            <div class="text-center p-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Loading production plan details...</p>
+            </div>`;
+        
+        // Show the container
+        container.style.display = 'block';
+        
+        // Load the details
+        loadProductionPlanDetail(planId);
+    }
+    
+    // Close the production plan details
+    function closeProductionPlanDetail() {
+        const container = document.getElementById('production-detail-container');
+        const buttons = document.querySelectorAll('.view-details-btn');
+        
+        container.style.display = 'none';
+        buttons.forEach(btn => btn.classList.remove('active'));
+        currentOpenPlanId = null;
+    }
+    
+    // Load production plan details via AJAX
+    function loadProductionPlanDetail(planId) {
+        const content = document.getElementById('production-detail-content');
+        if (!content) return;
+        
+        // Update current open plan ID
+        currentOpenPlanId = planId;
+        
+        fetch(`/inventory/production_plan/detail/${planId}/ajax/`, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            credentials: 'same-origin'
+        })
+        .then(async response => {
+            const contentType = response.headers.get('content-type');
+            
+            if (contentType && contentType.includes('application/json')) {
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to load production plan details');
+                }
+                return data;
+            } else {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.text();
+            }
+        })
+        .then(data => {
+            if (typeof data === 'string') {
+                content.innerHTML = data;
+            } else if (data.html) {
+                content.innerHTML = data.html;
+            } else if (data.error) {
+                throw new Error(data.error);
+            } else {
+                throw new Error('Unexpected response format');
+            }
+            
+            // Scroll to the details container
+            const container = document.getElementById('production-detail-container');
+            container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        })
+        .catch(error => {
+            console.error('Error loading production plan details:', error);
+            content.innerHTML = `
+                <div class="alert alert-danger">
+                    <h5 class="alert-heading">Error Loading Production Plan</h5>
+                    <p>${error.message || 'An unknown error occurred while loading the production plan details.'}</p>
+                    <hr>
+                    <p class="mb-0">
+                        <small class="text-muted">
+                            Please try again or contact support if the problem persists.
+                            ${error.status ? `<br>Status: ${error.status}` : ''}
+                        </small>
+                    </p>
+                </div>`;
+                
+            // Log the error to the server if possible
+            if (navigator.sendBeacon) {
+                const errorData = new FormData();
+                errorData.append('error', error.message || 'Unknown error');
+                errorData.append('url', window.location.href);
+                errorData.append('plan_id', planId);
+                navigator.sendBeacon('/log-error/', errorData);
+            }
+        });
+    }
+
     // Set the custom date input to the current selected date
     document.addEventListener('DOMContentLoaded', function() {
         const customDateInput = document.getElementById('customDate');
