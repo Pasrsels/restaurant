@@ -4,16 +4,19 @@
 {% block title%} Cashiers {% endblock%}
 {% block content %}
 <div class="Finance">
-    <nav class="d-flex justify-content-between align-items-center rounded mb-2 py-2 border-bottom">
-        <div>
-            <a href='{% url "finance:finance"%}' class='border btn bx bx-arrow-back fs-5'></a>
-            <a href='/' class='bx bx-home btn border fs-5 mx-2'></a>
-            <span class='mt-2 fs-5'>Cashiers</span>
+    <nav class="d-flex justify-content-between align-items-center rounded mb-2 py-2">
+        <div class='d-flex justify-content-center'>
+            <a href='{% url "finance:finance"%}' class='btn bx bx-arrow-back fs-5'></a>
+            <a href='/' class='bx bx-home btn fs-5'></a>
+            <span class='h4 ms-2'>Cashiers</span>
         </div>
     </nav>
     <div class='mt-2'>
-        <table class="table table-hover table-bordered table-striped" id="cashiers_table" style="width: 100%;">
-            <thead>
+        <div class="d-flex mb-2">
+            <input id="cashiers_search" type="text" class="form-control w-100" placeholder="Search..." oninput="filterTable('cashiers_table','cashiers_search')">
+        </div>
+        <table class="table p-1" id="cashiers_table" style="width: 100%;">
+            <thead class="bg-primary-subtle text-white">
                 <tr>
                     <th>Name</th>
                     <th>Amount Owing</th>
@@ -77,7 +80,14 @@
     </div>
     
    <script>
-        new DataTable('#cashiers_table')
+        function filterTable(tableId, inputId){
+            const q = document.getElementById(inputId).value.toLowerCase();
+            const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+            rows.forEach(tr => {
+                const text = tr.innerText.toLowerCase();
+                tr.style.display = text.includes(q) ? '' : 'none';
+            });
+        }
                 
         function openPaymentModal(cashierId, cashupId) {
             document.getElementById('cashierId').value = cashierId;

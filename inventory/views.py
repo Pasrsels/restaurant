@@ -401,7 +401,8 @@ def product(request):
             portion_multiplier: int
             description
             raw_material:bool,
-            finished_product:bool
+            finished_product:bool,
+            packaging:bool
         """
         try:
             data = json.loads(request.body)
@@ -435,8 +436,8 @@ def product(request):
             raw_material = True if data['raw_material'] else False,
             finished_product = True if data['finished_product'] else False,
             unit = unit,
-            branch=request.user.branch
-            #image = 
+            branch = request.user.branch,
+            packaging= True if data['packaging'] else False,
         )
         product.save()
         logger.info(f'product saved')
@@ -455,19 +456,39 @@ def product(request):
 @login_required
 def product_detail(request, product_id):
     if request.method == 'GET':
-        try: 
+        print('here')
+        try:
             product = Product.objects.get(id=product_id, branch=request.user.branch)
         except Product.DoesNotExist:
-            messages.warning(request, f'Product with ID: {product_id} doesn\'t exists')
-            
-        logs = Logs.objects.filter(product=product, branch=request.user.branch)
+            return JsonResponse({
+                'error': f'Product with ID {product_id} does not exist'
+            }, status=404)
 
-        return render(request, 'inventory/product_detail.html', 
+        logs = Logs.objects.filter(product=product, branch=request.user.branch).order_by('-timestamp')[:5]
+
+        logs_data = [
             {
-                'product': product,
-                'logs': logs,
+                'timestamp': log.timestamp.strftime('%Y-%m-%d %H:%M'),
+                'action': log.action,
+                'user': log.user.username if log.user else 'System',
+                'quantity': log.quantity,
+                'total_quantity': log.total_quantity,
+                'description': log.description if log.description else ''
             }
-        )
+            for log in logs
+        ]
+
+        data = {
+            'id': product.id,
+            'name': product.name,
+            'cost': float(product.cost),
+            'quantity': float(product.quantity),
+            'unit': product.unit.unit_name,
+            'logs': logs_data
+        }
+
+        return JsonResponse(data, safe=False)
+    
     elif request.method == 'DELETE':
         try:
             logger.info(product_id)
@@ -2328,7 +2349,13 @@ class DishCreateView(View):
     def get(self, request):
         form = DishForm()
         r_m = Product.objects.filter(raw_material=True, branch=request.user.branch)
-        return render(request, 'inventory/dish_form.html', {'form': form, 'r_m':r_m})
+        packaging_products = Product.objects.filter(packaging=True, branch=request.user.branch)
+        
+        return render(request, 'inventory/dish_form.html', {
+            'form': form, 
+            'r_m':r_m,
+            'packaging_products':packaging_products
+        })
 
     def post(self, request):
         form = DishForm(request.POST)
@@ -2411,11 +2438,13 @@ def add_dish(request): # didn't change the name of the template, it caters for b
     
     if request.method == 'GET':
         r_m = Product.objects.filter(raw_material=True, branch=request.user.branch)
+        packagaging_products = Product.objects.filter(packaging=True, branch=request.user.branch)
         return render(request, 'inventory/ingredient_form.html', 
             {
                 'r_m':r_m,
                 'form':form,
-                'dish_form':dish_form
+                'dish_form':dish_form,
+                'packaging_products':packagaging_products
             }
         )
     
@@ -2441,46 +2470,43 @@ def add_dish(request): # didn't change the name of the template, it caters for b
         
         try:
             data = json.loads(request.body)
-            logger.info(data)
-            cart = data.get('cart')
-        
-            dish_name = data.get('name')
-            portion_multiplier = data.get('portion_multiplier')
+           
+            cart = data.get('dish_info', [])
             cost = data.get('dish_cost')
-            selling_price = data.get('selling_price')
-            category = data.get('category')
+            supplies = data.get('supplies', [])
+            ingredients = data.get('ingredients', [])
 
-            logger.info(cart)
+            logger.info(data)
             
-            
-            # if not dish_name or not portion_multiplier or not cost or not selling_price:
-            #     return JsonResponse({'success': False, 'message': f'Please fill all the missing data'}, status=400)
+            products = Product.objects.filter(packaging=True, branch=request.user.branch)
+            products_map = { product.name:product for product in products }
             
             with transaction.atomic():
  
                 dish = Dish.objects.create(
                     cost = cost,
-                    name = dish_name,
-                    portion_multiplier = portion_multiplier,
-                    price = selling_price,
-                    category=category,
+                    name = cart['name'],
+                    portion_multiplier = cart['portion_multiplier'],
+                    price = cart['selling_price'],
+                    category=cart['category'],
                     branch=request.user.branch
                 )
                 
-                """if category exists in meal category return else create and assign to the dish"""
-                # category, _ =  MealCategory.objects.get_or_create(name=dish.name)
-
-                # meal = Meal.objects.create(
-                #     name=dish.name,
-                #     price=dish.price,
-                #     category=category,
-                #     deactivate=False
-                # )
+                logger.success(f'Dish-{dish.name} saved')
                 
-                # meal.dish.set([dish])
-                # meal.save()
+                for supply in supplies:
+                    print(supply['item'])
+                    product = products_map.get(supply['item'])
+                    Supplies.objects.create(
+                        item = product,
+                        dish = dish,
+                        quantity = supply['quantity'],
+                        type='dish'
+                    )
+                    
+                logger.success(f'Supplies saved')
 
-                for item in cart:
+                for item in ingredients:
                     raw_material = Product.objects.get(name=item.get('raw_material'), branch=request.user.branch)
                     Ingredient.objects.create(
                         dish=dish,
@@ -2492,7 +2518,7 @@ def add_dish(request): # didn't change the name of the template, it caters for b
                     )
 
         except Exception as e:
-            logger.info(e)
+            logger.error(f'Error saving dish: {e}')
             return JsonResponse({'success':False, 'message':f'{e}'})
         return JsonResponse({'success':True, 'meessage':f'Ingridient successfully added'})
 
@@ -2536,40 +2562,60 @@ def meal_list(request):
         }
     )
 
-
-@login_required
 @login_required
 def add_meal(request):
     dishes = Dish.objects.filter(branch=request.user.branch)
     meal_categories = MealCategory.objects.all()
-
-    logger.info(meal_categories)
     
     if request.method == 'POST':
         form = MealForm(request.POST)
-        
+
         if form.is_valid():
             name = form.cleaned_data['name']
             price = form.cleaned_data['price']
+            category = form.cleaned_data['category']
+            selected_dishes = request.POST.getlist('dish')
+            selected_supplies = request.POST.getlist('supplies')
             
-            # validation
-            if Meal.objects.filter(name=name).exists():
-                messages.warning(request, f'Meal: {name.upper()} exists.')
+            logger.info(f'supplies: {selected_supplies}')
+
+            if Meal.objects.filter(name__iexact=name).exists():
+                messages.warning(request, f'Meal "{name.upper()}" already exists.')
                 return redirect('inventory:add_meal')
-            
+
             if float(price) < 0:
-                messages.warning(request, f'Price can\'t be less than zero.')
+                messages.warning(request, 'Price cannot be less than zero.')
                 return redirect('inventory:add_meal')
-            
-            form.save()
-            messages.success(request, 'Meal successfully added.')
-            return redirect('inventory:meal_list')  
+
+            meal = form.save(commit=False)
+            meal.branch = request.user.branch
+            meal.save()
+
+            if selected_dishes:
+                meal.dish.set(selected_dishes)
+
+            for product_id in selected_supplies:
+                product = Product.objects.filter(id=product_id, branch=request.user.branch).first()
+                if product:
+                    Supplies.objects.create(
+                        meal=meal,
+                        item=product,
+                        quantity=1,  # to be dynamic
+                    )
+            messages.success(request, f'Meal "{meal.name}" created successfully.')
+            return redirect('inventory:meal_list')
+        else:
+            messages.error(request, 'Please correct the errors in the form.')
+            logger.error(f"Form errors: {form.errors}")
+
     else:
         form = MealForm()
+
     return render(request, 'inventory/add_meal.html', 
         {
             'dishes':dishes,
             'meal_categories':meal_categories,
+            'packaging_products':Product.objects.filter(packaging=True, branch=request.user.branch),
             'form': form
         }
     )

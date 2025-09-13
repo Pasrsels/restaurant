@@ -23,7 +23,7 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
     '192.168.1.136',
     '196.27.126.114',
-    '127.0.0.1'
+    '192.168.1.254'
 ]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -78,6 +78,7 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',
     
     # custom
+    'middleware.request_logging.RequestLoggingMiddleware',
     'users.middleware.CompanySetupMiddleware',
     'middleware.sales_middleware.SalesAccessMiddleware',
     'middleware.chef_middleware.ChefAccessMiddleware',

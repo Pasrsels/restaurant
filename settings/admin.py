@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Modules
+from .models import Module
 
 
-admin.site.register(Modules)
+admin.site.register(Module)

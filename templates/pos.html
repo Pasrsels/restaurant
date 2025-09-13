@@ -66,6 +66,9 @@
                         <li class="m-1">
                             <a class="btn color-button text-light" id="void">Void</a>
                         </li>
+                        {% comment %} <li class="m-1">
+                            <a class="btn btn-info text-light" onclick="cacheImages()">Cache Images</a>
+                        </li> {% endcomment %}
                     </div>
                 </div>
             </div>
@@ -460,8 +463,8 @@
         let changeAmount = 0;
         let productionModalAuth = false;
         const changeData = []
+        let imageUrlsToCache = [];
 
-        // const cashModal = document.getElementById('cashTypeModal');
         const productionModal = new bootstrap.Modal(document.getElementById('addProductioNPlanModal'));
         const chargeModal = new bootstrap.Modal(document.getElementById('chargeModal'));
         const staffModal = new bootstrap.Modal(document.getElementById('staffModal'));
@@ -500,7 +503,13 @@
                         dishCat.appendChild(dishContainer);
                     });
                 }
-            })
+            });
+
+            fetch('{% url "pos:product_meal_json" %}')
+                .then(response => response.json())
+                .then(data => {
+                    imageUrlsToCache = data.items.map(item => item.image ? `/media/${item.image}` : null).filter(Boolean);
+                });
         });
 
         function filter(filterby){
@@ -1237,71 +1246,64 @@
                 meal: meal.meal,
                 dish: meal.dish
             })),
-            change_data: changeData,
-            timestamp: new Date().toISOString()
+            change_data: changeData
         };
 
-        if (navigator.onLine) {
-            Swal.fire({
-                title: "Processing...",
-                text: "Please wait while the sale is being processed.",
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
+        Swal.fire({
+            title: "Processing...",
+            text: "Please wait while the sale is being processed.",
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
 
-            fetch('{% url "pos:process_sale" %}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
-                },
-                body: JSON.stringify(saleData)
-            })
-                .then(response => response.json())
-                .then(data => {
-                    Swal.close();
-                    if (data.success) {
-                        console.log('Sale processed successfully:', data);
-                        Swal.fire({
-                            title: "Success",
-                            text: "Processing Receipt",
-                            icon: "success"
-                        });
-
-                        // Clear the cart and reset UI
-                        cart = [];
-                        updateOrderDetails();
-                        chargeModal.hide();
-                        clearChangeData()
-                        console.log('cleared')
-
-                        // Generate and print receipt
-                        const receiptContent = generateReceiptContent(data.data);
-                        printReceiptSilently(receiptContent);
-
-                    } else {
-                        Swal.fire({
-                            title: "Error",
-                            text: data.message,
-                            icon: "error"
-                        });
-                        chargeModal.hide();
-                    }
-                })
-                .catch(error => {
-                    Swal.close();
-                    console.error('Error:', error);
-                    Swal.fire({
-                        title: "Error",
-                        text: "An error occurred while processing the sale.",
-                        icon: "error"
-                    });
+        fetch('{% url "pos:process_sale" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(saleData)
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            } else {
+                throw new Error('Network response was not ok.');
+            }
+        })
+        .then(data => {
+            Swal.close();
+            if (data.success) {
+                console.log('Sale processed successfully:', data);
+                Swal.fire({
+                    title: "Success",
+                    text: "Processing Receipt",
+                    icon: "success"
                 });
-        } else {
-            // Offline
+
+                cart = [];
+                updateOrderDetails();
+                chargeModal.hide();
+                clearChangeData();
+
+                const receiptContent = generateReceiptContent(data.data);
+                printReceiptSilently(receiptContent);
+
+            } else {
+                Swal.fire({
+                    title: "Error",
+                    text: data.message,
+                    icon: "error"
+                });
+                chargeModal.hide();
+            }
+        })
+        .catch(error => {
+            Swal.close();
+            console.error('Fetch error:', error);
             saveSale(saleData).then(() => {
                 return navigator.serviceWorker.ready;
             }).then(swRegistration => {
@@ -1324,7 +1326,7 @@
                     icon: "error"
                 });
             });
-        }
+        });
     }
 
     function generateReceiptContent(saleData) {
@@ -2337,6 +2339,33 @@ function generateAccountantCashUp(userId) {
         });
     }*/
 
+    function cacheImages() {
+        if (imageUrlsToCache.length > 0) {
+            caches.open('pos-cache-v1').then(cache => {
+                cache.addAll(imageUrlsToCache).then(() => {
+                    Swal.fire({
+                        title: "Success",
+                        text: "All images have been cached for offline use.",
+                        icon: "success"
+                    });
+                }).catch(error => {
+                    console.error('Error caching images:', error);
+                    Swal.fire({
+                        title: "Error",
+                        text: "Could not cache all images.",
+                        icon: "error"
+                    });
+                });
+            });
+        } else {
+            Swal.fire({
+                title: "Info",
+                text: "Image URLs are still being loaded. Please try again in a moment.",
+                icon: "info"
+            });
+        }
+    }
+
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -2439,10 +2468,9 @@ function generateAccountantCashUp(userId) {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    ingredientsData = data.data; // Replaces previous data
+                    ingredientsData = data.data; 
                     portion_multiplier = data.portion_multiplier;
                 } else {
-                    // Only show error if it's not an empty selection
                     if (selectedProductId && selectedProductId !== '') {
                         Swal.fire({
                             title: "Error",
@@ -2456,8 +2484,7 @@ function generateAccountantCashUp(userId) {
                 console.error('Error posting product data:', error);
             });
         });
-    
-        // Quantity input listener
+
         $('#id_quantity').on('input', function(e) {
             let quantityVal = parseFloat(e.target.value) || 0;
             let lfVal = parseFloat(lf.value) || 0;
@@ -2468,8 +2495,7 @@ function generateAccountantCashUp(userId) {
             actual.readOnly = true;
             actual.style.backgroundColor = 'lightgray';
         });
-    
-        // Calculate total cost based on dish and portion size
+ 
         function total_dish_cost(portions) {
             let cost_per_kg = 0;
             let kgs = portions / portion_multiplier;
@@ -2481,7 +2507,6 @@ function generateAccountantCashUp(userId) {
             return kgs * cost_per_kg;
         }
     
-        // Add item to cart
         $('#save-button').on('click', function() {
             const portions = parseFloat($('#id_portions').val());
             const dish_name = $('#select2-id_dish-container').text();
@@ -2527,7 +2552,6 @@ function generateAccountantCashUp(userId) {
             $('#id_portions').val(0);
         });
     
-        // Update cart table display
         function updateCartTable() {
             const cartItems = $('#cart-items');
             cartItems.empty();
@@ -2548,7 +2572,6 @@ function generateAccountantCashUp(userId) {
             });
         }
     
-        // Global functions for cart item actions
         window.deleteItem = function(index) {
             cart.splice(index, 1);
             updateCartTable();

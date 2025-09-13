@@ -228,6 +228,7 @@ def _process_sale_data(sale_data, user):
             cash_type=cash_type
         )
 
+        product = None
         for item in items:
             if not item['type']:
                 meal = None
@@ -248,7 +249,13 @@ def _process_sale_data(sale_data, user):
                     sale_item.meal = meal
                 elif dish:
                     sale_item.dish = dish
+                    
                 sale_item.save()
+                
+                print('sale item', sale_item.quantity)
+                
+                # _process_log(product=product, user=user, sale=sale, quantity=sale_item.quantity, total_quantity=product.quantity)
+                
             else:
                 product_id = item['meal_id'].split('-')[1]
                 product = get_object_or_404(Product, id=product_id, branch=user.branch)
@@ -260,6 +267,9 @@ def _process_sale_data(sale_data, user):
                     price=product.price,
                 )
                 product.save()
+     
+                _process_log(product,user, sale, sale_item.quantity)
+            _process_supplies(dish, meal, user)
 
         CashBook.objects.create(
             branch=user.branch,
@@ -268,12 +278,53 @@ def _process_sale_data(sale_data, user):
             debit=True,
             description=f'Sale (Receipt number: {sale.receipt_number})'
         )
-
+        
         if change_data:
             create_client_change(change_data, sale.receipt_number, sale.cashier, sale)
 
         return sale
+    
 
+def _process_supplies(dish, meal, user):
+    from inventory.models import Supplies
+
+    supplies = Supplies.objects.filter(dish=dish) if dish else Supplies.objects.filter(meal=meal)
+    
+    with transaction.atomic():
+    
+        for supply in supplies:
+            product = supply.item
+            product.quantity -= supply.quantity
+            product.save()
+            
+            logger.info(f'{supply.item} deducted {supply.quantity}')
+            
+            Logs.objects.create(
+                branch=user.branch,
+                product=product,
+                user=user,
+                quantity=supply.quantity,
+                total_quantity=product.quantity,
+                description="Sale",
+                action='Sale'
+            )
+            
+def _process_log(product, user, sale, quantity):
+    """Record a sale log for finished products with linkage to the sale for reversals."""
+    try:
+        Logs.objects.create(
+            branch=user.branch,
+            sale=sale,
+            product=product,
+            user=user,
+            quantity=quantity,
+            total_quantity=product.quantity if product else 0,
+            description="Sale",
+            action='sale'
+        )
+    except Exception as e:
+        logger.error(f"Failed to create sale log: {e}")
+    
 @login_required
 def process_sale(request):
     if request.method == 'POST':
@@ -294,6 +345,9 @@ def process_sale(request):
                 'change': sale_data.get('received_amount') - sale.total_amount,
                 'items': list(SaleItem.objects.filter(sale=sale).values('quantity', 'price', 'meal__name', 'dish__name', 'product__name'))
             }
+            
+            logger.success(f'sale successfully recorded: {sale}')
+            
             return JsonResponse({'success': True, 'data': data}, status=201)
         except Exception as e:
             logger.error(f'Error processing sale: {str(e)}')

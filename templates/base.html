@@ -1,4 +1,4 @@
-..{% load static i18n %}
+{% load static i18n %}
 {% get_current_language as LANGUAGE_CODE %}
 <!DOCTYPE html>
 <html lang="en">
@@ -11,6 +11,7 @@
     <link rel="icon" href="{% static 'images/favicons/favicon.ico' %}"/>
 
     {% block css %}
+        <link rel="stylesheet" href="{% static 'css/theme.css'%}">
         <link rel="stylesheet" href="{% static 'css/main.css'%}">
         <link rel="stylesheet" href="{% static 'css/bootstrap/css/bootstrap.css'%}">
         <link rel="stylesheet" href="{% static 'assets/hint.css/hint.min.css'%}">
@@ -42,7 +43,7 @@
     <div class="Urban-Eat">
         <div class="row">
             <div class=" top-bar">
-                <nav class="p-2 border">
+                <nav class="p-2">
                     {% if request.resolver_match.url_name == 'declare_production' %}
                     <div class='production-plan mt-2 d-flex justify-content-between align-items-center'>
                         <div>
@@ -52,25 +53,26 @@
                         </div>
                     </div>
                     {% else %}
-                    <div class="d-flex justify-content-between align-items-center w-100">
-                        <div class="text-center py-0 my-0">
+                    {% comment %} <div class="d-flex justify-content-between align-items-center w-100">
+                        <div class="py-0 my-0">
                             <button class="btn btn-secondary d-md-none" id="sidebar-toggle-button">
                                 <i class="bx bx-menu"></i>
                             </button>
-                            <h4 class="fw-bold">
+                            <h4 class="fw-bold d-flex">
                                 {{ request.user.company.name }}
+                                
                                 <br>
                                 {% if request.user.role == 'admin' or request.user.role == 'owner' or request.user.role == 'accountant' or request.user.role == 'supervisor' or request.user.role == 'chef' or request.user.role == 'stores_person' %}
                                     <span>
                                         <button class="btn btn-seconday" onclick="branchSwitch()">
-                                            <i class="bx bx-git-branch"></i>
+                                            <i class="bx bx-menu fs-4"></i>
                                         </button>
                                     </span>
                                 {% endif %}
-                                <span>
-                                    {{ request.user.branch.branch_name }}
-                                </span>
                             </h4>
+                            <span class='text-muted' style='margin-top:-10px;'>
+                                {{ request.user.branch.branch_name }}
+                            </span>
                         </div>
                         <div>
                             <ul class="list-unstyled d-flex align-items-center">
@@ -96,45 +98,44 @@
                                 <li class='btn border btn-danger bx bx-log-out-circle mt-1 fs-3 cursor-pointer' data-bs-toggle="modal" data-bs-target="#logoutModal"></li>
                             </ul>
                         </div>
+                    </div> {% endcomment %}
+                    {% endif %} 
+                </nav>
+                <div class="row">
+                    {% if request.resolver_match.url_name == 'pos' %}
+                    <div id="pos-sidebar" class="col-2 d-flex justify-content-center border rounded">
+                        {% include 'base/Possidebar.html' %}
+                    </div>
+                    {% elif request.resolver_match.url_name not in 'declare_production,confirm_production_plan,production_plans,view_production_plan' %}
+                    <div id="main-sidebar" class="col-2 d-flex justify-content-center">
+                        {% include 'base/side_bar.html' %}
                     </div>
                     {% endif %}
-                                       
-                </nav>
-                    <div class="row container-fluid">
-                        {% if request.resolver_match.url_name == 'pos' %}
-                        <div id="pos-sidebar" class="col-2 mt-3 d-flex justify-content-center border rounded">
-                            {% include 'base/Possidebar.html' %}
+                    
+                    <div class="{% if request.resolver_match.url_name in 'view_production_plan' %}col-12 p-4{% else %}col-10{% endif %}">
+                        <div class="app-area {% if request.resolver_match.url_name not in 'view_production_plan' %}overflow{% endif %}" {% if request.resolver_match.url_name == 'view_production_plan' %}class="app-area-style"{% endif %}>
+                            {% if messages %}
+                                {% for message in messages %}
+                                    <div class="alert alert-dismissible {% if message.tags %}alert-{{ message.tags }}{% endif %}">
+                                    {{ message }}
+                                    <button type="button"
+                                        class="btn-close"
+                                        data-bs-dismiss="alert"
+                                        aria-label="Close">
+                                    </button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                            {% block content %}{% endblock %}
                         </div>
-                        {% elif request.resolver_match.url_name not in 'declare_production,confirm_production_plan,production_plans,view_production_plan' %}
-                        <div id="main-sidebar" class="col-2 mt-3 d-flex justify-content-center">
-                            {% include 'base/side_bar.html' %}
-                        </div>
-                        {% endif %}
-                        
-                        <div class="{% if request.resolver_match.url_name in 'view_production_plan' %}col-12 p-4{% else %}col-10{% endif %}">
-                            <div class="app-area {% if request.resolver_match.url_name not in 'view_production_plan' %}overflow{% endif %}" {% if request.resolver_match.url_name == 'view_production_plan' %}class="app-area-style"{% endif %}>
-                                {% if messages %}
-                                    {% for message in messages %}
-                                        <div class="alert alert-dismissible {% if message.tags %}alert-{{ message.tags }}{% endif %}">
-                                        {{ message }}
-                                        <button type="button"
-                                            class="btn-close"
-                                            data-bs-dismiss="alert"
-                                            aria-label="Close">
-                                        </button>
-                                        </div>
-                                    {% endfor %}
-                                {% endif %}
-                                {% block content %}{% endblock %}
-                            </div>
-                        </div>
-                        
-                        {% if request.resolver_match.url_name == 'declare_production' or request.resolver_match.url_name == 'confirm_production_plan' or request.resolver_match.url_name == 'production_plans' %}
-                        <div class="col-2 checklist-style">
-                            {% include 'base/check_list.html' %}
-                        </div>
-                        {% endif %}
                     </div>
+                    
+                    {% if request.resolver_match.url_name == 'declare_production' or request.resolver_match.url_name == 'confirm_production_plan' or request.resolver_match.url_name == 'production_plans' %}
+                    <div class="col-2 checklist-style">
+                        {% include 'base/check_list.html' %}
+                    </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
         <!-- logout modal -->
@@ -194,7 +195,6 @@
             }).then(response => response.json())
             .then(data => {
                 if(data.success){
-                    console.log(data)
                     populateBranchModal(data.branch);
                     BranchModal.show();
                 }else{
@@ -237,7 +237,6 @@
             })
         }
         
-
         function getCSRFToken() {
             const name = 'csrftoken';
             const cookies = document.cookie.split(';');

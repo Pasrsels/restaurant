@@ -52,9 +52,11 @@ class Product(models.Model):
     min_stock_level = models.FloatField(default=0, null=True)
     raw_material = models.BooleanField(default=False)
     finished_product = models.BooleanField(default=False)
+    packaging = models.BooleanField(default=False)
     description = models.TextField()
     deactivate = models.BooleanField(default=False)
     image = models.ImageField(upload_to='product_images/', default='placeholder1.jpg', null=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True)
     
     def __str__(self) -> str:
         return self.name
@@ -164,6 +166,7 @@ class ProductionInventory(models.Model):
     def __str__(self) -> str:
         return f'{self.raw_material}: ({self.quantity})'
 
+
 class Dish(models.Model):
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     name = models.CharField(max_length=100)
@@ -182,6 +185,21 @@ class Dish(models.Model):
 
     def __str__(self) -> str:
         return self.name
+    
+class Supplies(models.Model):
+    TYPE_CHOICES = (
+        ('dish', 'Dish'),
+        ('meal', 'Meal'),
+    )
+    type = models.CharField(max_length=10, choices=TYPE_CHOICES)
+    dish = models.ForeignKey(Dish, on_delete=models.CASCADE, null=True, blank=True)
+    meal = models.ForeignKey('inventory.Meal', on_delete=models.CASCADE, null=True, blank=True)
+    item = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.IntegerField()
+
+    def __str__(self):
+        return f"{self.item.name} ({self.get_type_display()})"
+
 
 class Ingredient(models.Model):
     dish = models.ForeignKey(Dish, on_delete=models.CASCADE, null=True)
@@ -315,6 +333,7 @@ class Logs(models.Model):
         ('deactivated', 'deactivated'),
         ('removed', 'removed')
     ]
+    
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     sale = models.ForeignKey('finance.sale', on_delete=models.CASCADE, null=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True)
@@ -511,3 +530,18 @@ class StockTakeItem(models.Model):
     
     def __str__(self):
         return f'{self.product.name} - Recorded: {self.recorded_quantity}, Actual: {self.actual_quantity}, Variance: {self.variance}'
+class InventoryNotificationLog(models.Model):
+    NOTIFICATION_TYPES = [
+        ('create', 'Create'),
+        ('update', 'Update'),
+        ('delete', 'Delete'),
+    ]
+
+    inventory_item = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='notifications')
+    action_type = models.CharField(max_length=10, choices=NOTIFICATION_TYPES)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.action_type.upper()} - {self.inventory_item.product_name} at {self.created_at}"
