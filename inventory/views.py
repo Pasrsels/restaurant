@@ -12,8 +12,62 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Sum
 from django.utils.timezone import localdate
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, letter, landscape
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
 from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch, cm, mm
+from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT, TA_JUSTIFY
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfgen import canvas
+from reportlab.graphics.shapes import Drawing, Line
+from .models import Production, ProductionItems, Ingredient, CheckList
+from django.db import models
+from django.db.models import Sum, F, FloatField, ExpressionWrapper
+from django.db.models.functions import Coalesce
+from io import BytesIO
+import os
+
+# Table styling functions
+def get_table_style(header_bg_color='#2c3e50', text_color='#2c3e50', font_size=9):
+    """Return a consistent table style with the specified colors and font size."""
+    return [
+        # Header styling
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor(header_bg_color)),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), font_size + 1),  # Slightly larger header
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+        ('TOPPADDING', (0, 0), (-1, 0), 10),
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        
+        # Body styling
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (-1, -1), font_size),
+        ('TEXTCOLOR', (0, 1), (-1, -1), colors.HexColor(text_color)),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
+        ('TOPPADDING', (0, 1), (-1, -1), 8),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e0e0e0')),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#bdc3c7')),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')])
+    ]
+
+def get_paragraph_style(style_name, **kwargs):
+    """Return a consistent paragraph style with the specified overrides."""
+    defaults = {
+        'fontName': 'Helvetica',
+        'fontSize': 9,
+        'textColor': colors.HexColor('#2c3e50'),
+        'leading': 12,
+        'spaceAfter': 6,
+        'spaceBefore': 6
+    }
+    defaults.update(kwargs)
+    return ParagraphStyle(style_name, **defaults)
 
 # Import models explicitly to avoid circular imports
 from .models import (
@@ -1082,15 +1136,25 @@ def production_plans_admin(request):
     
     transfer_count = Transfer.objects.filter(status=False, branch=request.user.branch).count()
     
-    # Always render the admin template (not the chef template)
-    return render(request, 'inventory/production_plans.html', {
-        'plans': plans, 
-        'transfer_count': transfer_count,
-        'selected_date': filter_date,
-        'today': datetime.now().date(),
-        'yesterday': datetime.now().date() - timedelta(days=1),
-        'date_filter': date_filter
-    })
+    # Check if it's an AJAX request
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        # Return only the content for the dynamic container
+        return render(request, 'inventory/production_plans_content.html', {
+            'plans': plans,
+            'transfer_count': transfer_count,
+            'selected_date': selected_date,
+            'filter_date': filter_date,
+            'date_filter': date_filter
+        })
+    else:
+        # Return full page for regular requests
+        return render(request, 'inventory/production_plans.html', {
+            'plans': plans, 
+            'transfer_count': transfer_count,
+            'selected_date': selected_date,
+            'filter_date': filter_date,
+            'date_filter': date_filter
+        })
 
 @login_required
 @transaction.atomic
@@ -4523,6 +4587,9 @@ def production_plan_detail_ajax(request, plan_id):
             logger.error(f"Error getting dish ingredients: {str(e)}\n{traceback.format_exc()}")
             # Don't fail the whole request if we can't get ingredients
             dish_ingredients = []
+            
+        # Dictionary to consolidate ingredients by name
+        consolidated_ingredients = {}
         
         # Get ingredients/raw materials for this plan with detailed information
         ingredients = []
@@ -4669,17 +4736,33 @@ def production_plan_detail_ajax(request, plan_id):
                             cost_per_unit = float(ing.minor_raw_material.cost or 0)
                             total_cost = required_quantity * cost_per_unit
                             
-                            ingredients.append({
-                                'product_id': getattr(ing.minor_raw_material, 'id', None),
-                                'dish_name': getattr(item.dish, 'name', ''),
-                                'name': ing.minor_raw_material.name,
-                                'quantity_required': required_quantity,
-                                'unit': ing.minor_raw_material.unit.unit_name if hasattr(ing.minor_raw_material.unit, 'unit_name') else 'unit',
-                                'cost_per_unit': cost_per_unit,
-                                'total_cost': total_cost,
-                                'stock_available': stock_available,
-                                'stock_status': stock_status
-                            })
+                            # Add or update ingredient in consolidated dictionary
+                            ingredient_name = ing.minor_raw_material.name
+                            unit_name = ing.minor_raw_material.unit.unit_name if hasattr(ing.minor_raw_material.unit, 'unit_name') else 'unit'
+                            
+                            if ingredient_name in consolidated_ingredients:
+                                # Update existing ingredient
+                                existing = consolidated_ingredients[ingredient_name]
+                                existing['quantity_required'] += required_quantity
+                                existing['total_cost'] += total_cost
+                                existing['stock_available'] += stock_available
+                                # Update status based on new totals
+                                existing['stock_status'] = 'Sufficient' if existing['stock_available'] >= existing['quantity_required'] else 'Insufficient'
+                            else:
+                                # Add new ingredient
+                                consolidated_ingredients[ingredient_name] = {
+                                    'product_id': getattr(ing.minor_raw_material, 'id', None),
+                                    'name': ingredient_name,
+                                    'quantity_required': required_quantity,
+                                    'unit': unit_name,
+                                    'cost_per_unit': cost_per_unit,
+                                    'total_cost': total_cost,
+                                    'stock_available': stock_available,
+                                    'stock_status': 'Sufficient' if stock_available >= required_quantity else 'Insufficient',
+                                    'allocated_quantity': 0,  # Will be updated from raw_materials
+                                    'declared_quantity': 0,   # Will be updated from raw_materials
+                                    'variance_amount': 0      # Will be updated from raw_materials
+                                }
                         except Exception as e:
                             logger.error(f"Error adding to ingredients list: {str(e)}")
                             
@@ -4875,6 +4958,8 @@ def production_plan_detail_ajax(request, plan_id):
                         dish_totals = dish_to_totals.get(dish_name_key, {'pos_amount': 0.0, 'neg_amount': 0.0})
                         ing_row['group_pos_total_amount'] = dish_totals['pos_amount']
                         ing_row['group_neg_total_amount'] = dish_totals['neg_amount']
+                        # Calculate total variance for the group
+                        ing_row['total_variance'] = dish_totals['pos_amount'] - dish_totals['neg_amount']
 
                 # Overall totals
                 total_positive_variance_amount = sum(v['pos_amount'] for v in dish_to_totals.values())
@@ -4884,11 +4969,26 @@ def production_plan_detail_ajax(request, plan_id):
                 total_positive_variance_amount = 0.0
                 total_negative_variance_amount = 0.0
 
+            # Update consolidated ingredients with allocation and declaration data
+            for rm in raw_materials:
+                ingredient_name = rm.get('name')
+                if ingredient_name in consolidated_ingredients:
+                    consolidated_ingredients[ingredient_name].update({
+                        'allocated_quantity': rm.get('quantity', 0),
+                        'allocated_cost': rm.get('planned_amount', 0),
+                        'declared_quantity': rm.get('expected_quantity', 0),
+                        'declared_cost': rm.get('declared_amount', 0),
+                        'variance_amount': rm.get('variance_amount', 0)
+                    })
+        
+            # Convert consolidated ingredients to list for template
+            ingredients_list = list(consolidated_ingredients.values())
+        
             # Prepare context with safe defaults
             context = {
                 'plan': plan,
                 'plan_items': plan_items,
-                'ingredients': ingredients or [],
+                'ingredients': ingredients_list,
                 'raw_materials': raw_materials or [],
                 'dish_ing': dish_ingredients,
                 'total_planned_portions': total_planned_portions,
@@ -5170,6 +5270,115 @@ def add_dish_ajax(request):
 
 @login_required
 @chef_or_stores_view_required
+def production_plan_pdf_template(request, plan_id):
+    plan = get_object_or_404(Production, id=plan_id)
+    
+    # Get production items
+    plan_items = ProductionItems.objects.filter(production=plan).select_related('dish')
+    
+    total_planned_portions = plan_items.aggregate(
+        total=Coalesce(Sum('portions', output_field=models.FloatField()), 0, output_field=models.FloatField())
+    )['total'] or 0
+    
+    total_actual_portions = plan_items.aggregate(
+        total=Coalesce(Sum('portions_sold', output_field=models.FloatField()), 0, output_field=models.FloatField())
+    )['total'] or 0
+    
+    total_production_cost = plan_items.aggregate(
+        total=Coalesce(Sum('total_cost', output_field=models.DecimalField(max_digits=10, decimal_places=2)), 0, 
+                      output_field=models.DecimalField(max_digits=10, decimal_places=2))
+    )['total'] or 0
+    
+    variance = total_actual_portions - total_planned_portions
+    # Prepare ingredients data
+    ingredients = []
+    total_positive_variance_amount = 0
+    total_negative_variance_amount = 0
+    total_ingredients_cost = 0
+    
+    for item in plan_items:
+        if not item.dish:
+            continue
+            
+        # Add group header for dish
+        ingredients.append({
+            'group_header': True,
+            'dish_name': item.dish.name
+        })
+        
+        dish_pos_total = 0
+        dish_neg_total = 0
+        
+        # Get ingredients for this dish
+        dish_ingredients = Ingredient.objects.filter(dish=item.dish).select_related('minor_raw_material', 'minor_raw_material__unit')
+        
+        for ing in dish_ingredients:
+            unit_name = ing.minor_raw_material.unit.unit_name if ing.minor_raw_material and ing.minor_raw_material.unit else 'unit'
+            
+            # Calculate quantities
+            allocated_quantity = ing.quantity * (item.portions / item.dish.portion_multiplier) if item.portions else 0
+            allocated_cost = allocated_quantity * float(ing.cost or 0)
+            
+            quantity_required = ing.quantity
+            total_cost = quantity_required * float(ing.cost or 0)
+            total_ingredients_cost += total_cost
+            
+            declared_quantity = ing.quantity * (item.portions_sold / item.dish.portion_multiplier) if item.portions_sold else 0
+            declared_cost = declared_quantity * float(ing.cost or 0)
+            
+            # Calculate variances
+            variance_amount = declared_cost - allocated_cost
+            variance_positive_amount = variance_amount if variance_amount > 0 else 0
+            variance_negative_amount = abs(variance_amount) if variance_amount < 0 else 0
+            
+            dish_pos_total += variance_positive_amount
+            dish_neg_total += variance_negative_amount
+            
+            total_positive_variance_amount += variance_positive_amount
+            total_negative_variance_amount += variance_negative_amount
+            
+            ingredients.append({
+                'name': ing.minor_raw_material.name if ing.minor_raw_material else 'N/A',
+                'unit': unit_name,
+                'allocated_quantity': allocated_quantity,
+                'allocated_cost': allocated_cost,
+                'quantity_required': quantity_required,
+                'total_cost': total_cost,
+                'declared_quantity': declared_quantity,
+                'declared_cost': declared_cost,
+                'variance_positive_amount': variance_positive_amount,
+                'variance_negative_amount': variance_negative_amount,
+                'group_footer': False
+            })
+        
+        # Add group footer with dish totals
+        ingredients.append({
+            'group_footer': True,
+            'dish_name': item.dish.name,
+            'group_pos_total_amount': dish_pos_total,
+            'group_neg_total_amount': dish_neg_total
+        })
+    
+    context = {
+        'plan': plan,
+        'plan_items': plan_items,
+        'total_planned_portions': total_planned_portions,
+        'total_actual_portions': total_actual_portions,
+        'total_production_cost': total_production_cost,
+        'variance': variance,
+        'ingredients': ingredients,
+        'total_positive_variance_amount': total_positive_variance_amount,
+        'total_negative_variance_amount': total_negative_variance_amount,
+        'total_ingredients_cost': total_ingredients_cost,
+    }
+    
+    return render(request, 'inventory/production_plan_pdf_template.html', context)
+
+
+
+
+
+
 def view_production_plan(request, pp_id):
     """
     View production plan with detailed comparison of planned vs produced quantities

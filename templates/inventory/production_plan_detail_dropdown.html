@@ -36,10 +36,12 @@
                 <span class="status-badge {% if plan.declared %}declared{% else %}not-declared{% endif %}">
                     {% if plan.declared %}✓ Declared{% else %}✗ Not Declared{% endif %}
                 </span>
+                <a href="{% url 'inventory:production_plan_pdf_template' plan.id %}" class="btn btn-primary btn-sm" style="margin-left: 10px; text-decoration: none;" target="_blank" rel="noopener" onclick="event.stopPropagation();">
+                    <i class="fas fa-file-pdf"></i> View/Download PDF
+                </a>
             </div>
         </div>
     </div>
-
     <!-- Summary Stats -->
     <div class="summary-stats">
         <div class="stat-item">
@@ -135,73 +137,79 @@
     </div>
 
     {% if ingredients %}
-    <!-- Unified Ingredients & Raw Materials Summary -->
-        <div class="ingredients-section" style="margin: 30px 0; padding: 0 20px;">
-            <h3 style="color: #333; margin: 0 0 15px 0; font-size: 16px; font-weight: 600;">Ingredients</h3>
-            <table class="production-table" style="width: 100%;">
-                <thead style="position:sticky; top:0; background:#fff; z-index:1;">
-                    <tr>
-                        <th style="text-align: left; padding: 12px; border-bottom: 1px solid #e0e0e0;">Ingredient</th>
-                        <th style="text-align: right; padding: 12px; border-bottom: 1px solid #e0e0e0;">Allocated Units | Price</th>
-                        <th style="text-align: right; padding: 12px; border-bottom: 1px solid #e0e0e0;">Units To Expect | Price</th>
-                        <th style="text-align: right; padding: 12px; border-bottom: 1px solid #e0e0e0;">Declared Units | Price</th>
-                        <th style="text-align: right; padding: 12px; border-bottom: 1px solid #e0e0e0;">Positive Variance ($)</th>
-                        <th style="text-align: right; padding: 12px; border-bottom: 1px solid #e0e0e0;">Negative Variance ($)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                        {% for ing in ingredients %}
-                    {% if ing.group_header %}
-                    <tr style="border-top: 4px double #cfcfcf;">
-                        <td colspan="6" style="padding: 8px 12px; background:#e9ecef; font-weight:700; text-align:left; color:#333;">Dish: {{ ing.dish_name }}</td>
-                    </tr>
-                    {% endif %}
+    <!-- Consolidated Ingredients Summary -->
+    <div class="ingredients-section" style="margin: 30px 0; padding: 0 20px;">
+        <h3 style="color: #333; margin: 0 0 15px 0; font-size: 16px; font-weight: 600;">Consolidated Ingredients</h3>
+        <table class="production-table" style="width: 100%;">
+            <thead style="position:sticky; top:0; background:#fff; z-index:1;">
+                <tr>
+                    <th style="text-align: left; padding: 12px; border-bottom: 1px solid #e0e0e0;">Ingredient</th>
+                    <th style="text-align: right; padding: 12px; border-bottom: 1px solid #e0e0e0;">Allocated Units | Price</th>
+                    <th style="text-align: right; padding: 12px; border-bottom: 1px solid #e0e0e0;">Units To Expect | Price</th>
+                    <th style="text-align: right; padding: 12px; border-bottom: 1px solid #e0e0e0;">Declared Units | Price</th>
+                    <th style="text-align: right; padding: 12px; border-bottom: 1px solid #e0e0e0;">Variance ($)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ing in ingredients %}
                     <tr>
                         <td style="padding: 12px; border-bottom: 1px solid #f0f0f0;">{{ ing.name }}</td>
                         <td style="text-align: right; padding: 12px; border-bottom: 1px solid #f0f0f0;">
-                            {{ ing.allocated_quantity|default:0|floatformat:3 }} {{ ing.unit }} | ${{ ing.allocated_cost|default:0|floatformat:2 }}
+                            {{ ing.allocated_quantity|floatformat:3 }} {{ ing.unit }} | ${{ ing.allocated_cost|floatformat:2 }}
                         </td>
                         <td style="text-align: right; padding: 12px; border-bottom: 1px solid #f0f0f0;">
-                            {{ ing.quantity_required|floatformat:3 }} {{ ing.unit }} | ${{ ing.total_cost|default_if_none:0|floatformat:2 }}
-                            </td>
-                            <td style="text-align: right; padding: 12px; border-bottom: 1px solid #f0f0f0;">
-                            {{ ing.declared_quantity|default:0|floatformat:3 }} {{ ing.unit }} | ${{ ing.declared_cost|default:0|floatformat:2 }}
-                            </td>
-                            <td style="text-align: right; padding: 12px; border-bottom: 1px solid #f0f0f0;">
-                            {% if ing.variance_positive_amount %}<span style="background:#d4edda;color:#0f5132; padding:2px 6px; border-radius:4px;">+${{ ing.variance_positive_amount|floatformat:2 }}</span>{% else %}<span style="color:#6c757d;">$0.00</span>{% endif %}
-                            </td>
-                            <td style="text-align: right; padding: 12px; border-bottom: 1px solid #f0f0f0;">
-                            {% if ing.variance_negative_amount %}<span style="background:#f8d7da;color:#842029; padding:2px 6px; border-radius:4px;">-${{ ing.variance_negative_amount|floatformat:2 }}</span>{% else %}<span style="color:#6c757d;">$0.00</span>{% endif %}
-                            </td>
-                        </tr>
-                    {% if ing.group_footer %}
-                    <tr>
-                        <td colspan="6" style="padding:6px 12px; background:#f9f9f9; text-align:right; font-weight:600;">
-                            Totals for {{ ing.dish_name }}:
-                            <span style="margin-left:12px;">Positive Variance: <span style="background:#d4edda;color:#0f5132; padding:2px 6px; border-radius:4px;">+${{ ing.group_pos_total_amount|default:0|floatformat:2 }}</span></span>
-                            <span style="margin-left:12px;">Negative Variance: <span style="background:#f8d7da;color:#842029; padding:2px 6px; border-radius:4px;">-${{ ing.group_neg_total_amount|default:0|floatformat:2 }}</span></span>
+                            {{ ing.quantity_required|floatformat:3 }} {{ ing.unit }} | ${{ ing.total_cost|floatformat:2 }}
                         </td>
-                        </tr>
-                    <tr><td colspan="6" style="height:8px; background:#fff; border:none;"></td></tr>
-                    {% endif %}
-                    {% endfor %}
-                    <!-- Grand totals across all dishes -->
-                    <tr>
-                        <td colspan="6" style="padding:10px 12px; background:#eef2f7; text-align:right; font-weight:700;">
-                            All Dishes Totals:
-                            <span style="margin-left:12px;">Positive Variance: <span style="background:#d4edda;color:#0f5132; padding:2px 6px; border-radius:4px;">+${{ total_positive_variance_amount|default:0|floatformat:2 }}</span></span>
-                            <span style="margin-left:12px;">Negative Variance: <span style="background:#f8d7da;color:#842029; padding:2px 6px; border-radius:4px;">-${{ total_negative_variance_amount|default:0|floatformat:2 }}</span></span>
+                        <td style="text-align: right; padding: 12px; border-bottom: 1px solid #f0f0f0;">
+                            {{ ing.declared_quantity|floatformat:3 }} {{ ing.unit }} | ${{ ing.declared_cost|floatformat:2 }}
+                        </td>
+                        <td style="text-align: right; padding: 12px; border-bottom: 1px solid #f0f0f0;">
+                            {% with variance=ing.variance_amount %}
+                                {% if variance > 0 %}
+                                    <span style="background:#d4edda;color:#0f5132; padding:2px 6px; border-radius:4px;">+${{ variance|floatformat:2 }}</span>
+                                {% elif variance < 0 %}
+                                    <span style="background:#f8d7da;color:#842029; padding:2px 6px; border-radius:4px;">${{ variance|floatformat:2 }}</span>
+                                {% else %}
+                                    <span style="color:#6c757d;">$0.00</span>
+                                {% endif %}
+                            {% endwith %}
                         </td>
                     </tr>
+                {% endfor %}
+                <!-- Calculate totals -->
+                {% with '' as dummy %}
+                    {% with total_allocated=0 total_cost=0 total_declared=0 total_variance=0 %}
+                        {% for ing in ingredients %}
+                            {% with total_allocated=ing.allocated_quantity|add:total_allocated %}
+                            {% with total_cost=ing.total_cost|add:total_cost %}
+                            {% with total_declared=ing.declared_quantity|add:total_declared %}
+                            {% with total_variance=ing.variance_amount|add:total_variance %}
+                            {% endwith %}{% endwith %}{% endwith %}{% endwith %}
+                        {% endfor %}
                         <!-- Totals Row -->
-                        <tr style="background-color: #f8f9fa; font-weight: 600;">
-                        <td style="padding: 12px; border-top: 2px solid #e0e0e0;">Totals</td>
-                        <td style="text-align: right; padding: 12px; border-top: 2px solid #e0e0e0;">—</td>
-                        <td style="text-align: right; padding: 12px; border-top: 2px solid #e0e0e0;">${{ total_ingredients_cost|default:0|floatformat:2 }}</td>
-                        <td style="text-align: right; padding: 12px; border-top: 2px solid #e0e0e0;">—</td>
-                        <td style="text-align: right; padding: 12px; border-top: 2px solid #e0e0e0;">—</td>
-                        <td style="text-align: right; padding: 12px; border-top: 2px solid #e0e0e0;">—</td>
+                        <tr style="background-color: #e9ecef; font-weight: 700;">
+                            <td style="padding: 12px; border-top: 2px solid #dee2e6;">Grand Total</td>
+                            <td style="text-align: right; padding: 12px; border-top: 2px solid #dee2e6;">
+                                {{ total_allocated|floatformat:3 }} {{ ingredients.0.unit }}
+                            </td>
+                            <td style="text-align: right; padding: 12px; border-top: 2px solid #dee2e6;">
+                                ${{ total_cost|floatformat:2 }}
+                            </td>
+                            <td style="text-align: right; padding: 12px; border-top: 2px solid #dee2e6;">
+                                {{ total_declared|floatformat:3 }} {{ ingredients.0.unit }}
+                            </td>
+                            <td style="text-align: right; padding: 12px; border-top: 2px solid #dee2e6;">
+                                {% if total_variance > 0 %}
+                                    <span style="background:#d4edda;color:#0f5132; padding:2px 6px; border-radius:4px;">+${{ total_variance|floatformat:2 }}</span>
+                                {% elif total_variance < 0 %}
+                                    <span style="background:#f8d7da;color:#842029; padding:2px 6px; border-radius:4px;">${{ total_variance|floatformat:2 }}</span>
+                                {% else %}
+                                    <span style="color:#6c757d;">$0.00</span>
+                                {% endif %}
+                            </td>
                         </tr>
+                    {% endwith %}
+                {% endwith %}
                 </tbody>
             </table>
         </div>

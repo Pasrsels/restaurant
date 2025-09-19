@@ -34,7 +34,7 @@ urlpatterns = [
     path('confirm_declaration/', confirm_declaration, name='confirm_declaration'),
     path('create/production/plan', create_production_plan, name='create_production_plan'),
     path('yesterdays/left/overs/', yeseterdays_left_overs, name='yeseterdays_left_overs'),
-    path('declared/production/plan/', yeseterdays_left_overs, name='declared_production_plan'),
+    path('declared/production_plan/', yeseterdays_left_overs, name='declared_production_plan'),
     path('update_production_plan/<int:pp_id>/', update_production_plan, name='update_production_plan'),
     path('production_plan/detail/<int:pp_id>/', production_plan_detail, name='production_plan_detail'),
     path('view/production/plan/<int:pp_id>/', view_production_plan, name='view_production_plan'),
@@ -57,6 +57,9 @@ urlpatterns = [
     path('production-plan/delete/<int:id>/', production_plan_delete, name="production_plan_delete"),
     path('declare-production-plan/<int:pp_id>/', new_declare_production, name="declare_production"),
     path('latest-declare-production-plan/', latest_declare_production, name="latest_declare_production"),
+
+    # PDF download
+    path('production_plan/<int:plan_id>/pdf-template/', production_plan_pdf_template, name='production_plan_pdf_template'),
 
     # Store Checklist URLs
     path('store/checklist/ajax', store_checklist_ajax, name='store_checklist_ajax'),
