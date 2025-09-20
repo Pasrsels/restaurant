@@ -24,10 +24,14 @@ from reportlab.pdfgen import canvas
 from reportlab.graphics.shapes import Drawing, Line
 from .models import Production, ProductionItems, Ingredient, CheckList
 from django.db import models
-from django.db.models import Sum, F, FloatField, ExpressionWrapper
+from django.db.models import Q, Sum, F, FloatField, ExpressionWrapper
 from django.db.models.functions import Coalesce
+from django.apps import apps
 from io import BytesIO
 import os
+
+def get_purchase_order_model():
+    return apps.get_model('inventory', 'PurchaseOrder')
 
 # Table styling functions
 def get_table_style(header_bg_color='#2c3e50', text_color='#2c3e50', font_size=9):
@@ -234,6 +238,7 @@ def products(request):
 
 
 def finishedProduct(cashier_id):
+    PurchaseOrder = get_purchase_order_model()
     product_info = Product.objects.filter(finished_product=True)
 
     today = datetime.datetime.today()
@@ -2577,6 +2582,7 @@ def add_dish(request): # didn't change the name of the template, it caters for b
                     Supplies.objects.create(
                         item = product,
                         dish = dish,
+                        
                         quantity = supply['quantity'],
                         type='dish'
                     )

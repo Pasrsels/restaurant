@@ -513,7 +513,7 @@ class StockTake(models.Model):
     variance = models.IntegerField(default=0)
     notes = models.TextField(null=True, blank=True)
     conductor = models.ForeignKey('users.User', on_delete=models.SET_NULL, null=True)
-    users = models.ManyToManyField('users.User', related_name='stock_users', null=True)
+    users = models.ManyToManyField('users.User', related_name='stock_users')
     
     def __str__(self):
         return self.branch
