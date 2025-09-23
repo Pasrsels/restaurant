@@ -82,7 +82,7 @@ MIDDLEWARE = [
     'users.middleware.CompanySetupMiddleware',
     'middleware.sales_middleware.SalesAccessMiddleware',
     'middleware.chef_middleware.ChefAccessMiddleware',
-'middleware.stores_person_middleware.StoresPersonAccessMiddleware',
+    'middleware.stores_person_middleware.StoresPersonAccessMiddleware',
 ]
 
 ROOT_URLCONF = 'restaurant.urls'
@@ -102,7 +102,8 @@ TEMPLATES = [
                 # customm
                 'inventory.context_processors.notification_processor', 
                 'inventory.context_processors.check_list_processor',
-                'inventory.context_processors.all_meals_dishes'
+                'inventory.context_processors.all_meals_dishes',
+                'users.context_processors.branches'
             ],
         },
     },

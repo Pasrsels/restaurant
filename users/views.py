@@ -16,6 +16,7 @@ from settings.models import Module
 from django.db import transaction
 from permisions.permisions import admin_required
 import json
+from django.core.paginator import Paginator
 
 def create_company(request):
     if Company.objects.exists():
@@ -29,21 +30,18 @@ def create_company(request):
         if company_form.is_valid() and user_form.is_valid() and branch_form.is_valid():
             logger.info(request.POST)
             with transaction.atomic():
-                # Save the company and branch
                 company = company_form.save()
 
                 branch = branch_form.save(commit=False)
                 branch.company = company
                 branch.save()
-
-                # Create the user with the company
+                
                 user = user_form.save(commit=False)
                 user.company = company
                 user.branch = branch
                 user.role = 'owner'
                 user.save()
-                
-                # create modules
+       
                 modules = ['Sales', 'Finance', 'Inventory', 'Production']
                 bulk_modules = []
 
@@ -86,7 +84,6 @@ def users(request):
 
     qs = qs.order_by('first_name', 'last_name')
 
-    from django.core.paginator import Paginator
     paginator = Paginator(qs, page_size)
     page_obj = paginator.get_page(page)
 
@@ -163,13 +160,15 @@ def login_view(request):
 
 def user_edit(request, user_id):
     user = User.objects.get(id=user_id)
+    
     logger.info(f'User details: {user.first_name + " " + user.email}')
+    
     if request.method == 'POST':
         form = UserDetailsForm2(request.POST, instance=user)
         if form.is_valid():
             form.save()
             messages.success(request, 'User details updated successfully')
-            return redirect('users:user_detail', user_id=user.id)
+            logger.success(f'User successfully edited: {user.first_name} by {request.user}')
         else:
             messages.error(request, 'Invalid form data')
     else:
@@ -248,15 +247,14 @@ def createBranch(request):
             branch.save()
 
             messages.success(request, f'Successfully saved {branch.name}')
-            return redirect('users:create_branch') #create url with name = 'create_branch'
+            return redirect('users:create_branch') 
         
-        #invalid form
         messages.warning(request, f'Failed to save')
-        return redirect('users:create_branch')#create url with name = 'create_branch'
+        return redirect('users:create_branch')
     elif request.method == 'PUT':
         try:
             data = json.loads(request.body)
-            branch_id = data.get('id')  # Or use 'name' if you're identifying by name
+            branch_id = data.get('id') 
             if not branch_id:
                 messages.warning(request, 'No branch ID provided')
                 return redirect('users:create_branch')

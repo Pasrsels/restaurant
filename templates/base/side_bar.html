@@ -1,36 +1,161 @@
 {% load static %}
 {% block content %}
+
 <style>
-    /* Sidebar Container */
+    .floating-controls {
+        position: fixed;
+        top: 15px;
+        right: 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        z-index: 1100;
+    }
+    
+    .floating-controls .btn {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    
+    /* Notification Badge */
+    .notification-btn {
+        position: relative;
+    }
+    
+    .notification-count {
+        position: absolute;
+        top: 5px;
+        right: 8px;
+        background: red;
+        color: white;
+        font-size: 12px;
+        padding: 2px 6px;
+        border-radius: 12px;
+    }
+
     .sidebar {
         height: 100vh;
         position: fixed;
         width: 260px;
-        {% comment %} background: #4F46E5; /* Deep blue background */ {% endcomment %}
-        {% comment %} color: #fff; {% endcomment %}
         display: flex;
         flex-direction: column;
         justify-content: space-between;
         transition: width 0.3s ease;
         overflow: hidden;
         border-radius: 0 20px 20px 0;
+        z-index: 1000;
     }
 
-    /* Collapsed Sidebar */
     .sidebar.collapsed {
         width: 80px;
     }
 
-    /* Top Section */
     .sidebar-header {
         padding: 20px;
-        font-size: 18px;
-        font-weight: bold;
-        text-align: center;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        border-bottom: 1px solid #ddd;
     }
 
-    /* Menu Section */
+    .sidebar-header h4 {
+        font-size: 16px;
+        font-weight: bold;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .sidebar-header .left-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .sidebar-header .company-icon {
+        font-size: 20px;
+        color: #4F46E5;
+    }
+
+    .sidebar-header .branch-info {
+        margin-top: 6px;
+        font-size: 13px;
+        color: #6c757d;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .sidebar-header .branch-info button {
+        border: none;
+        background: none;
+        cursor: pointer;
+        padding: 0;
+    }
+
+    .sidebar.collapsed .sidebar-header h4 span,
+    .sidebar.collapsed .branch-info span {
+        display: none;
+    }
+
+    /* Notification bell inside header */
+    .notification-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .notification-wrapper i {
+        font-size: 22px;
+        cursor: pointer;
+    }
+
+    .notification-wrapper .badge {
+        font-size: 12px;
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: red;
+        color: #fff;
+        padding: 3px 6px;
+        border-radius: 50%;
+    }
+
+    /* Dropdown */
+    .notifications {
+        display: none;
+        position: absolute;
+        right: 0;
+        top: 35px;
+        background: #fff;
+        width: 250px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        z-index: 1100;
+    }
+
+    .notifications.show {
+        display: block;
+    }
+
+    .notifications ul {
+        list-style: none;
+        padding: 10px;
+        margin: 0;
+    }
+
+    .notifications ul li {
+        font-size: 13px;
+        padding: 5px 0;
+    }
+
+    /* Sidebar Menu */
     .sidebar-menu {
         flex: 1;
         padding: 10px 0;
@@ -40,40 +165,36 @@
         display: flex;
         align-items: center;
         padding: 12px 20px;
-        {% comment %} color: #fff; {% endcomment %}
         text-decoration: none;
         font-size: 15px;
+        color: #333;
         transition: background 0.3s, padding 0.3s;
     }
 
-    /* Active & Hover States */
     .sidebar-menu a:hover,
     .sidebar-menu a.active {
-        background: rgba(255, 255, 255, 0.15);
+        background: rgba(0, 0, 0, 0.05);
         border-radius: 8px;
     }
 
-    /* Icons */
-    .sidebar-menu img {
-        width: 24px;
-        height: 24px;
+    .sidebar-menu i {
+        font-size: 22px;
         margin-right: 15px;
         transition: margin 0.3s;
     }
 
-    /* Collapsed: Hide text and adjust icons */
     .sidebar.collapsed .sidebar-menu a span {
         display: none;
     }
 
-    .sidebar.collapsed .sidebar-menu img {
+    .sidebar.collapsed .sidebar-menu i {
         margin: 0 auto;
     }
 
-    /* Profile Section */
+    /* Footer */
     .sidebar-footer {
         padding: 15px;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        border-top: 1px solid #ddd;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -94,75 +215,117 @@
         font-size: 14px;
     }
 
-    /* Collapsed Footer */
     .sidebar.collapsed .sidebar-footer .profile-info {
         display: none;
     }
 
-    /* Toggle Button */
-    .toggle-btn {
-        position: absolute;
-        top: 15px;
-        right: -15px;
+    /* Floating Button for Mobile */
+    .floating-notification-btn {
+        display: none;
+        position: relative;
+        bottom: 20px;
+        right: 20px;
         background: #4F46E5;
-        color: white;
+        color: #fff;
         border: none;
         border-radius: 50%;
-        width: 30px;
-        height: 30px;
-        cursor: pointer;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        width: 55px;
+        height: 55px;
+        font-size: 28px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        z-index: 1200;
     }
-    .sidebar.collapsed ~ .content {
-        margin-left: 80px;
+
+    @media (max-width: 768px) {
+        .sidebar-header .notification-wrapper {
+            display: none;
+        }
+        .floating-notification-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .main-sidebar {
+            display: none !important;
+        }
     }
+
+    
 </style>
 
-<div class="sidebar border" id="sidebar"
-    <!-- Menu Items -->
+<div class="sidebar bg-light" id="sidebar">
+    <div class="sidebar-header">
+        <h4>
+            <div class="left-info">
+                <i class="bx bx-buildings company-icon"></i>
+                <span>{{ request.user.company.name }}</span>
+            </div>
+            <div class="notification-wrapper">
+                <i class="bx bx-bell" id="notification-icon"></i>
+                <span class="badge" id="notification-badge">2</span>
+                <div class="notifications" id="notification-dropdown">
+                    <ul id="notification-box">
+                        {% for notification in notifications %}
+                            <li>
+                                <small class='text-muted'>{{ notification.timestamp }}</small>
+                                <small>- {{ notification.message }}</small>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </h4>
+        <div class="branch-info">
+            <span class='fs-5 fw-bold'>{{ request.user.branch.branch_name }}</span>
+            {% if request.user.role in 'admin owner accountant supervisor chef stores_person' %}
+                <button onclick="branchSwitch()" title="Switch Branch">
+                    <i class="bx bx-transfer-alt fs-5"></i>
+                </button>
+            {% endif %}
+        </div>
+        <div class="branch-info d-flex justify-content-between align-items-center">
+            <span>Logout</span>
+            <button>
+                <i class='bx bx-log-out fs-5'></i>
+            </button>
+        </div>
+    </div>
+
     <div class="sidebar-menu">
         <a href="{% url 'pos:pos' %}" class="{% if request.resolver_match.url_name == 'pos' %}active{% endif %}">
-            <img src="{% static 'assets/pngs/sell.png'%}" alt="POS">
+            <i class='bx bx-cart-alt'></i>
             <span>Point Of Sale</span>
         </a>
-
         <a href="{% url 'analytics_index' %}" class="{% if request.resolver_match.url_name == 'analytics_index' %}active{% endif %}">
-            <img src="{% static 'assets/pngs/dashboard.png'%}" alt="Analytics">
+            <i class='bx bx-bar-chart-alt-2'></i>
             <span>Analytics</span>
         </a>
-
         <a href="{% url 'inventory:products' %}" class="{% if request.resolver_match.url_name == 'products' %}active{% endif %}">
-            <img src="{% static 'assets/pngs/product.png'%}" alt="Inventory">
+            <i class='bx bx-package'></i>
             <span>Inventory</span>
         </a>
-
         <a href="{% url 'inventory:production_plans' %}" class="{% if request.resolver_match.url_name == 'production_plans' %}active{% endif %}">
-            <img src="{% static 'assets/pngs/plan.png'%}" alt="Production">
+            <i class='bx bx-cog'></i>
             <span>Production</span>
         </a>
-
         <a href="{% url 'inventory:transfers' %}" class="{% if request.resolver_match.url_name == 'transfers' %}active{% endif %}">
-            <img src="{% static 'assets/pngs/settings.png'%}" alt="Transfers">
+            <i class='bx bx-transfer'></i>
             <span>Transfers</span>
         </a>
-
         <a href="{% url 'finance:finance' %}" class="{% if request.resolver_match.url_name == 'finance' %}active{% endif %}">
-            <img src="{% static 'assets/pngs/bars.png'%}" alt="Finance">
+            <i class='bx bx-wallet'></i>
             <span>Finance</span>
         </a>
-
         <a href="{% url 'users:users' %}" class="{% if request.resolver_match.url_name == 'users' %}active{% endif %}">
-            <img src="{% static 'assets/pngs/users.png'%}" alt="Users">
+            <i class='bx bx-user'></i>
             <span>Users</span>
         </a>
-
         <a href="{% url 'finance:logs' %}" class="{% if request.resolver_match.url_name == 'logs' %}active{% endif %}">
-            <img src="{% static 'assets/pngs/log.png'%}" alt="Logs">
+            <i class='bx bx-file'></i>
             <span>Transaction Logs</span>
         </a>
-
         <a href="{% url 'settings:settings' %}" class="{% if request.resolver_match.url_name == 'settings' %}active{% endif %}">
-            <img src="{% static 'assets/pngs/settings.png'%}" alt="Settings">
+            <i class='bx bx-cog'></i>
             <span>Settings</span>
         </a>
     </div>
@@ -175,9 +338,25 @@
         </div>
     </div>
 </div>
+
+<button class="floating-notification-btn" id="floating-notification-btn">
+    <i class="bx bx-bell"></i>
+</button>
+
 <script>
-    function toggleSidebar() {
-        document.getElementById('sidebar').classList.toggle('collapsed');
-    }
+    const notificationIcon = document.getElementById('notification-icon');
+    const notificationDropdown = document.getElementById('notification-dropdown');
+    const floatingBtn = document.getElementById('floating-notification-btn');
+
+    notificationIcon.addEventListener('click', () => {
+        notificationDropdown.classList.toggle('show');
+    });
+
+    floatingBtn.addEventListener('click', () => {
+        notificationDropdown.classList.toggle('show');
+        notificationDropdown.style.position = 'fixed';
+        notificationDropdown.style.bottom = '80px';
+        notificationDropdown.style.right = '20px';
+    });
 </script>
 {% endblock content %}

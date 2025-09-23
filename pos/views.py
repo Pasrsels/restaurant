@@ -68,6 +68,8 @@ from collections import defaultdict
 from django.core.cache import cache
 from inventory.forms import ProductionPlanInlineForm
 from django.views.decorators.csrf import csrf_exempt
+from django.utils.timezone import localtime
+from inventory.models import MealDishLowStock, DailyLowStockFlag
 
 today = localdate()
 
@@ -81,7 +83,12 @@ def lowStockNotification(request):
 @login_required
 def pos(request):
     form = ProductionPlanInlineForm()
-    return render(request, 'pos.html', {'form': form})
+    low_stock = DailyLowStockFlag.objects.filter(is_active=True)
+
+    return render(request, 'pos.html', {
+        'form': form,
+        'low_stocks': low_stock
+    })
 
 @login_required
 def dashboard(request):
@@ -324,6 +331,67 @@ def _process_log(product, user, sale, quantity):
         )
     except Exception as e:
         logger.error(f"Failed to create sale log: {e}")
+
+def check_low_stock(meal=None, dish=None, current_portions=0):
+    """
+        Check and update low stock status for a meal or dish.
+        Returns a dictionary with the status and saves it in DailyLowStockFlag.
+    """
+    if not meal and not dish:
+        return {
+            "is_low_stock": False,
+            "message": "No meal or dish provided",
+            "threshold": None
+        }
+
+    now_time = localtime(datetime.now()).time()
+    today = localtime(datetime.now()).date()
+
+    low_stock_entries = MealDishLowStock.objects.filter(
+        meal=meal if meal else None,
+        dish=dish if dish else None
+    )
+
+    for entry in low_stock_entries:
+        if entry.from_time <= now_time <= entry.to_time:
+            if current_portions <= entry.portions:
+                flag, created = DailyLowStockFlag.objects.get_or_create(
+                    dish=dish,
+                    meal=meal,
+                    date=today,
+                    defaults={
+                        "time_detected": now_time,
+                        "current_portions": current_portions,
+                        "threshold": entry.portions,
+                        "is_active": True
+                    }
+                )
+
+                if not created:
+                    flag.current_portions = current_portions
+                    flag.is_active = True
+                    flag.save()
+
+                return {
+                    "is_low_stock": True,
+                    "message": f"Low stock: Portions ({current_portions}) ≤ Threshold ({entry.portions}).",
+                    "threshold": entry.portions,
+                    "from_time": entry.from_time,
+                    "to_time": entry.to_time
+                }
+                
+    DailyLowStockFlag.objects.filter(
+        dish=dish,
+        meal=meal,
+        date=today,
+        is_active=True
+    ).update(is_active=False)
+
+    return {
+        "is_low_stock": False,
+        "message": "Stock level is sufficient.",
+        "threshold": None
+    }
     
 @login_required
 def process_sale(request):

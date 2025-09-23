@@ -13,6 +13,9 @@ urlpatterns = [
     path('add/product/category/', add_product_category, name='add_product_category'),
     path('raw_material_json/', raw_material_json, name='raw_material_json'),
     path('product-history/', productHistory, name='product_history'),
+    path('inventory/stock-movement/', stock_movement_view, name='stock_movement'),
+    path('inventory/filter-products/', filter_products, name='filter_products'),
+    # path('inventory/stock-detail/<int:product_id>/', views.product_detail, name='product_detail'),
 
     path('inventory/', inventory, name='inventory_list'),
     
@@ -21,6 +24,7 @@ urlpatterns = [
     
     # production plan 
     path('production/plan/list', production_plans, name='production_plans'),
+    path('production-plan/<int:pp_id>/detail/', production_detail, name='production_detail'),
     path('production/plan/ajax', production_plans_ajax, name='production_plans_ajax'),
     path('production/plan/admin', production_plans_admin, name='production_plans_admin'),
     path('production/declaration/table/ajax', production_declaration_table_ajax, name='production_declaration_table_ajax'),
