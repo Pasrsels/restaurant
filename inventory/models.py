@@ -52,11 +52,11 @@ class Product(models.Model):
     min_stock_level = models.FloatField(default=0, null=True)
     raw_material = models.BooleanField(default=False)
     finished_product = models.BooleanField(default=False)
-    packaging = models.BooleanField(default=False)
+    # packaging = models.BooleanField(default=False)
     description = models.TextField()
     deactivate = models.BooleanField(default=False)
     image = models.ImageField(upload_to='product_images/', default='placeholder1.jpg', null=True)
-    updated_at = models.DateTimeField(auto_now=True, null=True)
+    # updated_at = models.DateTimeField(auto_now=True, null=True)
     
     def __str__(self) -> str:
         return self.name
@@ -179,9 +179,9 @@ class Dish(models.Model):
         ('Salad', 'Salad')
     ], max_length=255)
     dish = models.BooleanField(default=True)
-    low_stock = models.IntegerField(default=10)
+    low_stock = models.IntegerField(default=10, null=True)
     image = models.ImageField(upload_to='meal_images/', default='placeholder1.jpg', null=True)
-    low_stock_time = models.ForeignKey('inventory.MealDishLowStock', on_delete=models.CASCADE, related_name="dish_notification", null=True)
+    #low_stock_time = models.ForeignKey('inventory.MealDishLowStock', on_delete=models.CASCADE, related_name="dish_notification", null=True, blank=True)
 
     def __str__(self) -> str:
         return self.name
@@ -225,7 +225,7 @@ class Meal(models.Model):
     deactivate = models.BooleanField(default=False)
     meal = models.BooleanField(default=True)
     image = models.ImageField(upload_to='meal_images/', default='placeholder1.jpg', null=True)
-    low_stock_time = models.ForeignKey('inventory.MealDishLowStock', on_delete=models.CASCADE, related_name='meal_notification', null=True)
+    #low_stock_time = models.ForeignKey('inventory.MealDishLowStock', on_delete=models.CASCADE, related_name='meal_notification', null=True, blank=True)
     
     def __str__(self) -> str:
         return self.name

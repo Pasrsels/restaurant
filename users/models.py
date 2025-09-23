@@ -64,12 +64,12 @@ class User(AbstractUser):
         ('owner', 'Owner'), 
         ('stores_person', 'Stores Person')
     )
-    7
+    
     phonenumber = models.CharField(max_length=13)
     role = models.CharField(choices=USER_ROLES, max_length=50)
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="users", null=True)
     branch = models.ForeignKey('Branch', on_delete=models.CASCADE, null=True, blank=True)
-    image = models.ImageField(upload_to='profile', null=True, blank=True)
+    # image = models.ImageField(upload_to='profile', null=True, blank=True)
 
     def __str__(self) -> str:
         return f'{self.first_name} {self.last_name}'

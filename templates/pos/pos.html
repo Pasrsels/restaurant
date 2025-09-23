@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POS System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f0f2f5;
+        }
+
+        .pos-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .left-sidebar {
+            width: 250px;
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .left-sidebar .nav-item {
+            margin-bottom: 10px;
+        }
+
+        .left-sidebar .nav-link {
+            display: flex;
+            align-items: center;
+            color: #333;
+            padding: 10px;
+            border-radius: 8px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .left-sidebar .nav-link:hover, .left-sidebar .nav-link.active {
+            background-color: #007bff;
+            color: #fff;
+        }
+
+        .left-sidebar .nav-link .bx {
+            font-size: 24px;
+            margin-right: 15px;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .products-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .product-categories .btn {
+            margin-right: 10px;
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 20px;
+        }
+
+        .product-card {
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s;
+            text-align: center;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .product-card img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+        }
+
+        .product-card-body {
+            padding: 15px;
+        }
+
+        .product-card-body h6 {
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .product-card-body p {
+            margin: 0;
+            color: #555;
+        }
+        
+        .right-sidebar {
+            width: 350px;
+            background-color: #fff;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-profile {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #eee;
+        }
+
+        .user-profile .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 15px;
+        }
+
+        .notifications {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .notifications-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .notification-item {
+            padding: 10px;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            margin-bottom: 8px;
+        }
+        
+        .order-details {
+            flex-grow: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .order-details-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+
+        .order-summary {
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .summary-total {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .charge-button {
+            background-color: #007bff;
+            color: #fff;
+            font-size: 1.1em;
+            font-weight: bold;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            width: 100%;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div class="pos-container">
+
+    <div class="left-sidebar">
+        <div>
+            <h4 class="mb-4">POS</h4>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'finance:cashier_expenses' request.user.id %}">
+                        <i class="bx bx-wallet"></i>
+                        Expenses
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href='{% url "pos:change_list" %}'>
+                        <i class="bx bx-list-ul"></i>
+                        View Change
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" id="cashup"> 
+                        <i class="bx bx-money"></i>
+                        Cash up
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" id="void">
+                        <i class="bx bx-chart"></i>
+                        Void
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div class="mt-auto">
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="#">
+                        <i class="bx bx-cog"></i>
+                        Settings
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-danger" href="#">
+                        <i class="bx bx-log-out"></i>
+                        Log Out
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="products-header">
+            <h4>Products</h4>
+            <div class="d-flex align-items-center">
+                <input type="text" class="form-control me-2" placeholder="Search for items...">
+                <button class="btn btn-outline-secondary">
+                    <i class="bx bx-filter"></i>
+                    Category Filters
+                </button>
+            </div>
+        </div>
+
+        <div class="product-grid">
+            {% for item in data.items %}
+                <div class="product-card" onclick="addToCart('{{item.id}}', '{{item.name}}', {{item.price}}, '{{item.finished_product}}', '{{item.meal}}', '{{item.dish}}')">
+                    {% if item.image %}
+                        <img src="{{ item.image }}" alt="{{ item.name }}">
+                    {% else %}
+                        <img src="https://placehold.co/200x120?text=No+Image" alt="{{ item.name }}">
+                    {% endif %}
+                    <div class="product-card-body">
+                        <h6>{{ item.name }}</h6>
+                        <p>${{ item.price }}</p>
+                    </div>
+                </div>
+            {% empty %}
+                <p>No products available.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+
+    <div class="right-sidebar">
+        
+        <div class="user-profile">
+            <h5 class="mb-0">Notifications & Messages</h5>
+            <div class="d-flex align-items-center">
+                <i class="bx bx-bell bx-sm me-2"></i>
+                <img src="https://via.placeholder.com/50.png?text=User" alt="User Profile" class="user-avatar">
+            </div>
+        </div>
+        <div class="notifications">
+            <div class="notifications-header">
+                <small class="text-muted">Unread</small>
+                <span class="badge bg-primary rounded-pill">1</span>
+            </div>
+            <div class="notification-item">
+                <small>New message from Dummy</small>
+            </div>
+        </div>
+        
+        <div class="order-details">
+            <h5 class="fw-bold text-center border-bottom pb-2 pt-3 px-3">Current Order</h5>
+            
+            <div id="orderDetail" class="order-details-list">
+                <div class="d-flex justify-content-between my-2">
+                    <span>Espresso x 1</span>
+                    <span>$3.50</span>
+                </div>
+                <div class="d-flex justify-content-between my-2">
+                    <span>Croissant x 2</span>
+                    <span>$5.00</span>
+                </div>
+            </div>
+            
+            <div class="order-summary">
+                <div class="summary-row">
+                    <span>Sub Total</span>
+                    <span id="subTotal">$0.00</span>
+                </div>
+                <div class="summary-row">
+                    <span>Tax</span>
+                    <span id="tax">$0.00</span>
+                </div>
+                <hr>
+                <div class="summary-row summary-total">
+                    <span>Total</span>
+                    <span id="total">$0.00</span>
+                </div>
+            </div>
+            
+            <div class="mt-3">
+                <button class="charge-button" id="chargeButton">
+                    Charge $0.00
+                </button>
+                <button class="btn btn-outline-danger w-100" id="cancelBtn">Cancel (ESC)</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Charge Modal -->
+    <div class="modal fade" id="chargeModal" tabindex="-1" aria-labelledby="chargeModalLabel" aria-hidden="true">
+        <div class="modal-dialog bg modal-dialog-centered">
+            <div class="modal-content shadow">
+                <div class="modal-header">
+                    <h5 id="payModal"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                
+                <div class='m-2'>
+                    <button id="sitting-btn" class="order-type-btn btn btn-outline-dark w-100">Sitting (S)</button>
+                    <button id="takeaway-btn" class="order-type-btn btn btn-outline-dark w-100 mt-2">Takeaway (T)</button>
+                    <input type="hidden" id="order-type-input">
+                    <input type="hidden" id="cash-type-input">
+                   <div class="d-flex justify-content-between mt-2">
+                        <button class="btn btn-outline-dark w-50 me-2" id="eco-cash">ECO CASH</button>
+                        <button class="btn btn-outline-dark w-50" id="solid-cash">CASH</button>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="totalAmountInput" class="form-label">Total Amount Received</label>
+                        <input type="number" class="form-control" id="totalAmountInput" placeholder="Enter total amount received">
+                    </div>
+                    <div class="mb-3">
+                        <label for="changeDisplay" class="form-label">Change</label>
+                        <input type="text" class="form-control" id="changeDisplay" readonly>
+                    </div>
+                </div>
+                <div class="modal-footer d-flex justify-content-between align-items-center">
+                    <button class="btn btn-danger" onclick="showChangeForm()">Change not available (<span class="text-light">Shift</span>)</button>
+                    <button type="button" class="btn btn-primary" onclick="finalizeSale(false)">Finalize Sale</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- change modal -->
+    <div class="modal fade" id="changeModal" tabindex="-1" aria-labelledby="customModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="customModalLabel">Fill In Details Change Customer</h5>
+                </div>
+                <div class="modal-body">
+                    <form id="customForm">
+                        <div class="mb-3">
+                            <label for="id_cient_name" class="form-label">Full name</label>
+                            <input type="text" class="form-control" id="client_name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="id_phone_number" class="form-label">Phone number</label>
+                            <input type="text" class="form-control" id="phonenumber" placeholder="Optional">
+                        </div>
+                        <div class="mb-3">
+                            <label for="id_change_amount" class="form-label">Change Amount</label>
+                            <input type="text" class="form-control" id="change_amount" disabled required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="id_change_given" class="form-label">Change Given</label>
+                            <input type="text" class="form-control" id="change_given" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="id_balance" class="form-label">Balance</label>
+                            <input class="form-control" id="balance" rows="1" disabled required></input>
+                        </div>
+                        <div class='d-flex justify-content-between'>
+                            <button type="button" class="btn btn-outline-dark" id="btn_back">Back</button>
+                            <button type="button" class="btn btn-primary" id="btn_proceed">Proceed</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--cashup modal-->
+    <div class="modal fade" id="cashupModal" tabindex="-1" aria-labelledby="cashupModalLabel" aria-hidden="false">
+        <div class="modal-dialog bg modal-dialog-centered">
+            <div class="modal-content p-3 shadow">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cashupModalLabel">Enter User Credentials</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="" method="POST" autocomplete="off">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input 
+                            type="text" 
+                            id="c_username" 
+                            name="username" 
+                            class="form-control" 
+                            placeholder="Enter username" 
+                            autocomplete="off"
+                            required
+                        >
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input 
+                            type="password" 
+                            id="c_password" 
+                            name="password" 
+                            class="form-control" 
+                            placeholder="Enter password" 
+                            autocomplete="new-password"
+                            required>
+                    </div>
+                    <button id="cash_upbutton" onclick="cashUp()" type="button" class="btn btn-outline-dark w-100">Authenticate</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+
+    let cart = [];
+    let changeData = [];
+    let selectedOrderType = null;
+    const VAT_RATE = 0.15; // VAT to be Dynamic
+
+    // buttons
+    const chargeButton = document.getElementById('chargeButton');
+    const sittingButton = document.getElementById('sitting-btn');
+    const takeawayButton = document.getElementById('takeaway-btn');
+    const cancelBtn = document.getElementById('cancelBtn');
+
+    const sittingBtn = document.getElementById("sitting-btn");
+    const takeawayBtn = document.getElementById("takeaway-btn");
+    const ecocashBtn = document.getElementById("eco-cash");
+    const solidcashBtn = document.getElementById("solid-cash");
+    const chargeBtn = document.querySelector(".btn-primary");
+    const orderTypeInput = document.getElementById("order-type-input");
+    const cashTypeInput = document.getElementById("cash-type-input");
+    const totalAmountInput = document.getElementById("totalAmountInput");
+    const proceedBtn = document.getElementById('btn_proceed');
+    const cashupButton = document.getElementById('cashup');
+
+    // modals
+    const chargeModal = new bootstrap.Modal(document.getElementById('chargeModal'));
+    const changeModal = new bootstrap.Modal(document.getElementById('changeModal'));
+    const cashupModal = new bootstrap.Modal(document.getElementById('cashupModal'));
+
+
+    // order making
+    function addToCart(id, name, price, type, meal, dish) {
+        console.log('dish ID', id)
+
+        if (dish == 'true') {dish=true} else {dish=false}
+        if (meal == 'true') {meal=true} else {meal=false}
+
+        const existingMeal = cart.find(m => m.id === id);
+        if (existingMeal) {
+            existingMeal.quantity += 1;
+        } else {
+
+            if(type){ // checks if its a finished product 
+                type=true 
+            }else{
+                type=false
+            }
+            
+            const item = { id, name, price, quantity: 1, type, meal, dish};
+            cart.push(item);
+        }
+        console.log('order Items:', cart);
+
+        updateOrderDetails();
+    }
+
+    function updateOrderDetails() {
+        const orderDetails = document.getElementById('orderDetail');
+        orderDetails.innerHTML = '';
+        
+        let subTotal = 0;
+        
+        cart.forEach(item => {
+            const lineTotal = item.price * item.quantity;
+            subTotal += lineTotal;
+
+            const row = document.createElement('div');
+            row.classList.add('d-flex', 'justify-content-between', 'align-items-center', 'my-2');
+
+            row.innerHTML = `
+                <div class="item-info">
+                    <span>${item.name}</span> x 
+                    <span class="qty mx-2">${item.quantity}</span>
+                </div>
+                <div class="item-total">
+                    <span>$${lineTotal.toFixed(2)}</span>
+                </div>
+            `;
+
+            orderDetail.appendChild(row);
+        });
+        
+        const total = subTotal;
+        const subTotalExclTax = total / (1 + VAT_RATE);
+        const tax = total - subTotalExclTax;
+        
+        document.getElementById('subTotal').innerText = `$${subTotalExclTax.toFixed(2)}`;
+        document.getElementById('tax').innerText = `$${tax.toFixed(2)}`;
+        document.getElementById('total').innerText = `$${total.toFixed(2)}`;
+        document.getElementById('chargeButton').innerText = `Charge $${total.toFixed(2)} (Enter)`;
+
+        // pay modal
+        document.getElementById('totalAmountInput').value = total.toFixed(2);
+        
+        document.getElementById('payModal').innerHTML = `Total Order Amount: <span class'text-bold'>${total.toFixed(2)}</span>`;
+    }
+
+    // change functionality
+    const showChangeForm = () =>{
+        chargeModal.hide()
+        changeModal.show();
+    }
+
+    const clearChangeData = () => {
+        document.getElementById('client_name').value = '';
+        document.getElementById('phonenumber').value = '';
+        document.getElementById('change_amount').value = '';
+        document.getElementById('change_given').value = '';
+        document.getElementById('balance').value = '';
+    }
+
+    document.getElementById('change_given').addEventListener('input', ()=>{
+        const amountGiven = parseFloat(document.getElementById('change_given').value);
+        const changeAmount = parseFloat(document.getElementById('change_amount').value);
+        console.log('changeAmount', changeAmount)
+        console.log('amountGiven', amountGiven)
+        console.log('balance', changeAmount - amountGiven)
+        document.getElementById('balance').value = changeAmount - amountGiven;
+    })
+
+    document.getElementById('totalAmountInput').addEventListener('input', () => {
+        const totalAmountInput = parseFloat(document.getElementById('totalAmountInput').value);
+        const total = parseFloat(document.getElementById('total').innerText.slice(1));
+        const change = totalAmountInput - total;
+        document.getElementById('changeDisplay').value = `$${change.toFixed(2)}`;
+        document.getElementById('change_amount').value = change.toFixed(2);
+        changeAmount = change.toFixed(2);
+    });
+    
+    // sale functionality
+    chargeButton.addEventListener('click', () => {
+        chargeModal.show();
+    });
+
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 's' || event.key === 'S') {
+            sittingButton.click();  
+        } else if (event.key === 't' || event.key === 'T') {
+            takeawayButton.click(); 
+        }
+    });
+
+    sittingButton.addEventListener('click', function() {
+        orderType = 'Sitting';
+        totalAmountInput.focus();  
+    });
+
+    takeawayButton.addEventListener('click', function() {
+        orderType = 'Takeaway';
+        totalAmountInput.focus(); 
+    });
+
+    function activateButton(button) {
+        sittingBtn.classList.remove("btn-dark");
+        takeawayBtn.classList.remove("btn-dark");
+
+        sittingBtn.classList.remove("text-light");
+        takeawayBtn.classList.remove("text-light");
+        
+        button.classList.add("btn-dark");
+        button.classList.add("text-light");
+
+        selectedOrderType = button.id === "sitting-btn" ? "sitting" : "takeaway";
+        orderTypeInput.value = selectedOrderType;
+
+        chargeBtn.disabled = false;
+    }
+    
+    sittingBtn.addEventListener("click", function() {
+        activateButton(sittingBtn);
+    });
+
+    takeawayBtn.addEventListener("click", function() {
+        activateButton(takeawayBtn);
+    });
+    
+
+    function cashButton(button) {
+        ecocashBtn.classList.remove("btn-dark");
+        solidcashBtn.classList.remove("btn-dark");
+
+        ecocashBtn.classList.remove("text-light");
+        solidcashBtn.classList.remove("text-light");
+        
+        button.classList.add("btn-dark");
+        button.classList.add("text-light");
+
+        selectedCashType = button.id === "eco-cash" ? "eco-cash" : "solid-cash";
+        cashTypeInput.value = selectedCashType;
+
+        chargeBtn.disabled = false;
+    }
+
+    ecocashBtn.addEventListener("click", function() {
+        cashButton(ecocashBtn);
+    });
+
+    solidcashBtn.addEventListener("click", function() {
+        cashButton(solidcashBtn);
+    });
+
+    // Proceed button for Creating change for a client
+    proceedBtn.addEventListener('click', function() {
+        const clientName = document.getElementById('client_name').value;
+        const phoneNumber = document.getElementById('phonenumber').value;
+        const amount = parseFloat(document.getElementById('change_amount').value);
+        const amountGiven = parseFloat(document.getElementById('change_given').value);
+        const balance = parseFloat(document.getElementById('balance').value);
+
+        if (!clientName || !amount || !balance) {
+
+            if (!clientName) {
+                document.getElementById('client_name').focus();
+            } else if (!amount) {
+                document.getElementById('change_amount').focus();
+            } else if (!balance) {
+                document.getElementById('balance').focus();
+            }
+
+            Swal.fire({
+                title: 'Error!',
+                text: 'Please fill out all required fields.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        } else {
+            changeData.push({
+                name: clientName,
+                phonenumber: phoneNumber,
+                amount: amount,
+                amount_given: amountGiven,
+                balance:balance
+            });
+            $('#customModal').modal('hide');
+            chargeModal.show()
+        }
+    });
+
+    function finalizeSale(staff) {
+        const amountField = document.getElementById('totalAmountInput');
+        const changeDisplay = document.getElementById('changeDisplay');
+        const orderTypeInput = document.getElementById('order-type-input');
+        const cashTypeInput = document.getElementById("cash-type-input");
+
+        setTimeout(() => {
+            amountField.focus();
+            amountField.select();
+        }, 100);
+
+        const totalAmountInput = parseFloat(document.getElementById('totalAmountInput').value);
+        const total = parseFloat(document.getElementById('total').innerText.slice(1));
+        const change = totalAmountInput - total;
+
+        console.log('change', change)
+        document.getElementById('changeDisplay').value = `$${change.toFixed(2)}`;
+
+        if (!totalAmountInput) {
+            Swal.fire({
+                title: "Error",
+                text: "Please Insert Amount.",
+                icon: "error"
+            });
+            return;
+        }
+
+        const saleData = {
+            received_amount: totalAmountInput,
+            staff: staff,
+            order_type: orderType,
+            cash_type: selectedCashType,
+            items: cart.map(meal => ({
+                meal_id: meal.id,
+                quantity: meal.quantity,
+                price: meal.price,
+                type: meal.type,
+                meal: meal.meal,
+                dish: meal.dish
+            })),
+            change_data: changeData
+        };
+
+        Swal.fire({
+            title: "Processing...",
+            text: "Please wait while the sale is being processed.",
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        fetch('{% url "pos:process_sale" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(saleData)
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            } else {
+                throw new Error('Network response was not ok.');
+            }
+        })
+        .then(data => {
+            Swal.close();
+            if (data.success) {
+                console.log('Sale processed successfully:', data);
+                Swal.fire({
+                    title: "Success",
+                    text: "Processing Receipt",
+                    icon: "success"
+                });
+
+                cart = [];
+                updateOrderDetails();
+                chargeModal.hide();
+                clearChangeData();
+
+                const receiptContent = generateReceiptContent(data.data);
+                printReceiptSilently(receiptContent);
+
+            } else {
+                Swal.fire({
+                    title: "Error",
+                    text: data.message,
+                    icon: "error"
+                });
+                chargeModal.hide();
+            }
+        })
+        .catch(error => {
+            Swal.close();
+            console.error('Fetch error:', error);
+            Swal.fire({
+                title: "Error",
+                text: "An error occurred while processing the sale.",
+                icon: "error"
+            });
+            chargeModal.hide();
+        });
+    }
+
+    function generateReceiptContent(saleData) {
+        const { received_amount, items, order_type, cashier, receipt_number } = saleData;
+        const sub_total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        const tax = sub_total * (0.15 / (1 + 0.15));
+        const total_amount = sub_total;
+        const change = received_amount - total_amount;
+
+        return `
+            <style>
+                .totals {
+                    width: 100%;
+                    font-weight: bold;
+                }
+
+                .line {
+                    display: flex;
+                    justify-content: space-between;
+                    margin: 5px 0;
+                }
+
+                .line span {
+                    display: inline-block;
+                }
+            </style>
+
+            <div style="
+                font-family: Arial, 
+                sans-serif; 
+                font-size: 14px;
+                "
+                >
+                <h3 style="text-align: center;">Parsles Investments (Urban Eats)</h3>
+                <p style="text-align: center;">65 Speke Ave, Harare</p>
+                <hr>
+                <div class='line'>
+                    <span><strong>TAX NR:</strong> 220356643</span>
+                    <span><strong>TIN No:</strong> 2001020099</span>
+                </div>
+                <hr>
+                <p>Date: ${new Date().toLocaleDateString()}</p>
+                <p>Time: ${new Date().toLocaleTimeString()}</p>
+                <p>Order Type: ${orderType}</p>
+                <hr>
+                ${items.map(item =>`
+                    <p class='line'>
+                        <span>
+                            ${item.dish__name 
+                                ? item.dish__name 
+                                : item.meal__name 
+                                ? item.meal__name 
+                                : item.product__name} 
+                            ${item.quantity} x $${item.price}
+                        </span>
+                        <span>$${(item.quantity * item.price).toFixed(2)}</span>
+                    </p>
+                `).join('')}
+                <hr>
+                <div class="totals">
+                    <div class="line">
+                        <span>Subtotal:</span>
+                        <span>$${sub_total.toFixed(2)}</span>
+                    </div>
+                    <div class="line">
+                        <span>Total:</span>
+                        <span>$${total_amount.toFixed(2)}</span>
+                    </div>
+                    <div class="line">
+                        <span>Received:</span>
+                        <span>$${received_amount.toFixed(2)}</span>
+                    </div>
+                    <div class="line">
+                        <span>Change:</span>
+                        <span>$${change.toFixed(2)}</span>
+                    </div>
+                    <div class="line">
+                        <span>Cashier:</span>
+                        <span>${cashier}</span>
+                    </div>
+                    <div class="line">
+                        <span>Receipt Number:</span>
+                        <span style='font-size:13.5px'>#${receipt_number}</span>
+                    </div>
+                </div>
+                <hr>
+                <p style="text-align: center;">Thank you for your purchase!</p>
+            </div>
+        `;
+    }
+
+    function printReceiptSilently(content) {
+        console.log(content)
+        let printFrame = document.getElementById("print-frame");
+
+        if (!printFrame) {
+            printFrame = document.createElement("iframe");
+            printFrame.id = "print-frame";
+            printFrame.style.display = "none"
+            document.body.appendChild(printFrame);
+        }
+        const frameDoc = printFrame.contentWindow || 
+                        printFrame.contentDocument.document || 
+                        printFrame.contentDocument;
+
+        frameDoc.document.open();
+        frameDoc.document.write(`
+            <html>
+            <head>
+                <title>Receipt</title>
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        font-size: 13.5px;
+                        margin: 0;
+                        padding: 2px;
+                    }
+                    h3 {
+                        text-align: center;
+                    }
+                    hr {
+                        border: none;
+                        border-top: 1px solid #000;
+                    }
+                    p {
+                        margin: 5px 0;
+                    }
+                </style>
+            </head>
+            <body>
+                ${content}
+            </body>
+            </html>
+        `);
+        frameDoc.document.close();
+        setTimeout(() => {
+            printFrame.contentWindow.print(false);
+        }, 100);
+    }
+
+    // cash up functionality
+    const cashUp = () => {
+        const username = document.querySelector('#c_username').value;
+        const password = document.querySelector('#c_password').value;
+
+        fetch('{% url "pos:void_authenticate" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ username, password })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log(data)
+            if (data.success) {
+                Swal.fire({
+                    title: 'Success!',
+                    text: 'Authentication successful!',
+                    icon: 'success',
+                }).then(() => {
+                    if(data.role !== "cashier"){
+                            showConfirmationDialog();   
+                    }
+                    else{
+                        Swal.fire({
+                            title: 'Access Denied',
+                            text: 'You do not have permission to perform cash up.',
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                });
+            } else {
+                Swal.fire({
+                    title: 'Authentication Failed',
+                    text: data.message || 'Invalid username or password.',
+                    icon: 'error',
+                    confirmButtonText: 'Try Again'
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error during authentication:', error);
+            Swal.fire({
+                title: 'Oops!',
+                text: 'Something went wrong. Please try again later.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        });
+    }
+
+    function showConfirmationDialog() {
+        Swal.fire({
+            title: 'Is this the endy of day cashup?',
+            text: "Do you want to proceed?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes',
+            cancelButtonText: 'No',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                processsCashUp();
+            } 
+        });
+    }
+
+    cashupButton.addEventListener('click', ()=>{
+        cashupModal.show()
+    })
+
+    const processsCashUp = () => {
+        fetch(`/pos/cash_up/{{ request.user.id }}/`, {
+            method: 'GET'
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log(data)
+            if (data.success) {
+                let cashupContent = generateCashUpContent(data.data);
+                Swal.fire({
+                    title: "Processing...",
+                    text: "Please wait while printing the cash up.",
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                setTimeout(() => {
+                    Swal.close();
+                    console.log('here')
+                    printCashUpSilently(cashupContent);
+                }, 2000); 
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Failed to process Cash Up'
+                });
+            }
+        })
+    }
+
+    // get cookie
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+  
+</script>
+</body>
+</html>

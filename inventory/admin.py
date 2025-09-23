@@ -18,6 +18,7 @@ for model in [
     EndOfDay,
     EndOfDayItems,
     EndOfDayCashier,
-    Logs
+    Logs,
+    Dish
 ]:
     admin.site.register(model)

@@ -84,10 +84,54 @@ def lowStockNotification(request):
 def pos(request):
     form = ProductionPlanInlineForm()
     low_stock = DailyLowStockFlag.objects.filter(is_active=True)
+    meals = Meal.objects.filter(deactivate=False, branch = request.user.branch).select_related('branch', 'category')
+    products = Product.objects.filter(raw_material=False, branch = request.user.branch).select_related('branch', 'category')
+    dishes = Dish.objects.filter(branch = request.user.branch).select_related('branch')
 
-    return render(request, 'pos.html', {
+    meal_data = [
+        {
+            'image': meal.image.url if meal.image else '',
+            'name':meal.name,
+            'price':meal.price,
+            'category':meal.category.name,
+            'meal':meal.meal,
+            'id':f'm-{meal.id}'
+        }
+        for meal in meals
+    ]
+
+    product_data = [
+        {
+            'image': product.image.url if product.image else '',
+            'name':product.name,
+            'price':product.price,
+            'finished_product':product.finished_product,
+            'id':f'p-{product.id}'
+        }
+        for product in products
+    ]
+
+    dish_data = [
+        {
+            'image': dish.image.url if dish.image else '',
+            'name':dish.name,
+            'price':dish.price,
+            'dish':dish.dish,
+            'id':f'd-{dish.id}'
+        }
+        for dish in dishes
+    ]
+    
+    combined_items = meal_data + product_data + dish_data
+
+    data = {
+        'items': combined_items
+    }
+
+    return render(request, 'pos/pos.html', {
         'form': form,
-        'low_stocks': low_stock
+        'low_stocks': low_stock,
+        'data': data
     })
 
 @login_required
@@ -216,6 +260,7 @@ def _process_sale_data(sale_data, user):
         tax = sub_total * 0.15
         total_amount = sub_total
         balance = 0
+        
         if change_data:
             change_data = change_data[0]
             balance = change_data['balance']
@@ -259,7 +304,7 @@ def _process_sale_data(sale_data, user):
                     
                 sale_item.save()
                 
-                print('sale item', sale_item.quantity)
+                _process_supplies(dish, meal, user)
                 
                 # _process_log(product=product, user=user, sale=sale, quantity=sale_item.quantity, total_quantity=product.quantity)
                 
@@ -276,7 +321,6 @@ def _process_sale_data(sale_data, user):
                 product.save()
      
                 _process_log(product,user, sale, sale_item.quantity)
-            _process_supplies(dish, meal, user)
 
         CashBook.objects.create(
             branch=user.branch,
@@ -398,6 +442,7 @@ def process_sale(request):
     if request.method == 'POST':
         try:
             sale_data = json.loads(request.body)
+            logger.info(f'Sale data received: {sale_data}')
             sale = _process_sale_data(sale_data, request.user)
 
             data = {

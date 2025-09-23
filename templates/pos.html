@@ -117,7 +117,8 @@
                             class="form-control" 
                             placeholder="Enter username" 
                             autocomplete="off"
-                            required>
+                            required
+                        >
                     </div>
                     <div class="mb-3">
                         <label for="password" class="form-label">Password</label>
@@ -1157,10 +1158,6 @@
           
               orderDetails.appendChild(mealRow);
           
-            //   const mealPrice = document.createElement('span');
-            //   mealPrice.innerText = `$${(meal.price * meal.quantity).toFixed(2)}`;
-            //   mealRow.appendChild(mealPrice);
-          
               orderDetails.appendChild(mealRow);
               subTotal += meal.price * meal.quantity;
         });
@@ -1504,9 +1501,11 @@
         const changeAmount = parseFloat(document.getElementById('change_amount').value);
         document.getElementById('balance').value = changeAmount - amountGiven;
     })
+    
     cashupButton.addEventListener('click', ()=>{
         authenticateModal.show()
     })
+    
    /* var cashupButton = document.getElementById('cashupButton')
         function cashup(){
             cashupButton.addEventListener('click', function () {
@@ -2256,7 +2255,7 @@ function generateAccountantCashUp(userId) {
     }
 
     // function to filter items displayed on pos based on selected category
-    function filterItemsByCategory(categoryName) {
+    {% comment %} function filterItemsByCategory(categoryName) {
         console.log(categoryName);
         fetch("{% url 'inventory:filter_meal_category' %}?category=" + encodeURIComponent(categoryName), { 
             method: 'GET'
@@ -2308,7 +2307,7 @@ function generateAccountantCashUp(userId) {
             //document.getElementById('loader').style.display = 'none';
         }, 1000)
     }); 
-
+ {% endcomment %}
 
     populateSidebarCategories();
 
