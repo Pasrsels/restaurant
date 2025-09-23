@@ -535,7 +535,7 @@ def collect_change(request):
     # payload
     """
         change_id:id,
-        amout:float
+        amount:float
     """
     if request.method == 'POST':
         try:
@@ -547,17 +547,30 @@ def collect_change(request):
             change = Change.objects.get(id=change_id, sale__branch = request.user.branch)
             cashier = User.objects.get(id = cashier_id)
 
-            if amount == change.amount:
+            # Calculate new collected amount and balance
+            new_collected = change.amount_collected + amount
+            new_balance = change.amount - new_collected
+
+            if new_balance < 0:
+                return JsonResponse({'success': False, 'message': 'Amount collected exceeds the total change amount'}, status=400)
+
+            # Update the change record
+            change.amount_collected = new_collected
+            change.balance = new_balance
+            change.cashier_give = cashier
+            
+            # If full amount is collected, mark as collected
+            if new_balance == 0:
                 change.collected = True
-                change.cashier_give = cashier
-            elif amount < change.amount:
-                change.amount -= Decimal(amount)
-                change.cashier_give = cashier
-            else:
-                return JsonResponse({'success':False, 'message':'Amount collected is more than the change amount'}, status=400)
+            
             change.save()
             
-            return JsonResponse({'success':True}, status=200)
+            return JsonResponse({
+                'success': True, 
+                'amount_collected': str(change.amount_collected),
+                'balance': str(change.balance),
+                'collected': change.collected
+            }, status=200)
         except Exception as e:
             return JsonResponse({'success':False, 'message':f'{e}'}, status=400)
     return JsonResponse({'success':False, 'message':'Invalid request'}, status=405)

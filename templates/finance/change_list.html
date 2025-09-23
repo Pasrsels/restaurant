@@ -55,6 +55,8 @@
                     <th>Cashier Out</th>
                     <th>Phone number</th>
                     <th>Amount</th>
+                    <th>Amount Collected</th>
+                    <th>Balance</th>
                     <th>Receipt Number</th>
                     <th>Status</th>
                 </tr>
@@ -68,13 +70,13 @@
                         <td><small>{{ change.cashier_give.username }}</small></td>
                         <td><small>{{ change.phonenumber}}</small></td>
                         <td><small>{{ change.amount }}</small></td>
+                        <td><small>{{ change.amount_collected }}</small></td>
+                        <td><small>{{ change.balance }}</small></td>
                         <td><small>{{ change.receipt_number }}</small></td>
-                        <td><small>{{ change.date_collected}}</small></td>
+                        <td><small>{{ change.date_collected|default:'' }}</small></td>
                         <td>
                             {% if change.collected %}
-                                <small>
-                                     Collected
-                                </small>
+                                <small>Collected</small>
                                 {% else %}
                                     <button onclick='displayAmount({{ change.id }})' class='btn btn-outline-dark btn-sm w-100'>collect</button>
                             {% endif %}
@@ -148,8 +150,10 @@
                 tr.style.display = text.includes(q) ? '' : 'none';
             });
         }
-
+        
         let changeId = null;
+        let currentBalance = 0;
+        let currentCollected = 0;
         let authorized = true;
 
          const authModal = new bootstrap.Modal(document.getElementById('AuthorizationModal'));
