@@ -41,6 +41,7 @@ DJANGO_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.humanize",
 ]
 
 THIRD_PARTY_APPS = [
@@ -118,16 +119,13 @@ LOGIN_URL = "users:login"
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
 DATABASES = {
-    # 'default': dj_database_url.config(
-    #     default='postgresql://postgres:bsgtOvAIFbBQgIcHLvlUFlvIiAiapbHm@autorack.proxy.rlwy.net:44818/railway'
-    # )
-
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'a',  
-        'USER': 'postgres',
-        'PASSWORD': 'neverfail',
-        'PORT': '5432',
+        'NAME': 'restaurant',  # Using the existing database
+        'USER': 'postgres',    # Default PostgreSQL superuser
+        'PASSWORD': 'ms123456789',  # Database password
+        'HOST': 'localhost',   # Using localhost since it's a local database
+        'PORT': '5432',        # Default PostgreSQL port
     }
 }
 

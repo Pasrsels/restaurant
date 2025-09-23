@@ -1,0 +1,722 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Production Plan #{{ plan.production_plan_number }}</title>
+    
+    <!-- Include html2pdf library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <!-- Include Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* PDF-specific styling */
+        @media print {
+            body {
+                width: 100%;
+                margin: 0;
+                padding: 0;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                color: #000 !important;
+                background: #fff !important;
+                font-weight: bold !important;
+            }
+            
+            .container {
+                width: 100%;
+                padding: 15px;
+            }
+            
+            .no-print {
+                display: none !important;
+            }
+            
+            .print-only {
+                display: block !important;
+            }
+            
+            /* Ensure all text is black for printing */
+            * {
+                color: #000 !important;
+                background: transparent !important;
+                font-weight: bold !important;
+                -webkit-text-fill-color: #000000 !important;
+            }
+            
+            /* Table styling for print */
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                page-break-inside: avoid;
+            }
+            
+            th, td {
+                padding: 8px;
+                border: 1px solid #ddd;
+                font-size: 10px;
+                font-weight: bold !important;
+                color: #000 !important;
+            }
+            
+            th {
+                background-color: #f2f2f2 !important;
+                font-weight: bold;
+            }
+            
+            .section-title {
+                font-size: 14px;
+                font-weight: bold;
+                margin-top: 15px;
+                margin-bottom: 10px;
+                border-bottom: 1px solid #000;
+                padding-bottom: 5px;
+                color: #000 !important;
+            }
+            
+            .plan-header {
+                text-align: center;
+                margin-bottom: 15px;
+            }
+            
+            .plan-header h1 {
+                font-size: 18px;
+                margin: 0 0 5px 0;
+                color: #000 !important;
+                font-weight: bold !important;
+            }
+            
+            .status-badge {
+                padding: 4px 8px;
+                border-radius: 4px;
+                font-size: 11px;
+                font-weight: bold;
+                background: #e9ecef !important;
+                color: #000 !important;
+                display: inline-block;
+                margin-right: 5px;
+            }
+            
+            .summary-stats {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 15px;
+                flex-wrap: wrap;
+            }
+            
+            .stat-item {
+                text-align: center;
+                padding: 8px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                margin: 5px;
+                min-width: 120px;
+            }
+            
+            .stat-number {
+                font-size: 16px;
+                font-weight: bold;
+                color: #000 !important;
+            }
+            
+            .stat-label {
+                font-size: 12px;
+                color: #000 !important;
+                font-weight: bold;
+            }
+            
+            .positive-variance {
+                color: #28a745 !important;
+            }
+            
+            .negative-variance {
+                color: #dc3545 !important;
+            }
+            
+            /* Page breaks */
+            .page-break {
+                page-break-before: always;
+            }
+            
+            .quantity-box {
+                display: inline-block;
+                padding: 5px 10px;
+                background-color: #f8f9fa;
+                border-radius: 4px;
+                font-weight: 500;
+            }
+            
+            /* Hide controls during PDF generation */
+            .pdf-generating .controls {
+                display: none !important;
+            }
+        }
+        
+        /* Screen styling */
+        @media screen {
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                margin: 20px;
+                background-color: #f8f9fa;
+                color: #000 !important;
+                font-weight: bold !important;
+            }
+            
+            .container {
+                max-width: 1200px;
+                margin: 0 auto;
+                background: white;
+                padding: 20px;
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            }
+            
+            .print-only {
+                display: none;
+            }
+            
+            .controls {
+                margin-bottom: 20px;
+                text-align: center;
+            }
+            
+            .btn {
+                display: inline-block;
+                padding: 10px 20px;
+                background-color: #007bff;
+                color: white;
+                text-decoration: none;
+                border-radius: 4px;
+                font-weight: bold;
+                cursor: pointer;
+                border: none;
+                margin: 5px;
+            }
+            
+            .btn:hover {
+                background-color: #0056b3;
+            }
+            
+            .production-table {
+                width: 100%;
+                border-collapse: separate;
+                border-spacing: 0;
+                margin: 20px 0;
+                font-size: 14px;
+                color: #333;
+                background: transparent;
+            }
+            
+            .production-table thead tr {
+                background-color: transparent;
+                color: #666;
+                text-transform: uppercase;
+                font-size: 12px;
+                font-weight: 600;
+                letter-spacing: 0.5px;
+            }
+            
+            .production-table th,
+            .production-table td {
+                padding: 10px 15px;
+                border: none;
+                text-align: left;
+                vertical-align: middle;
+            }
+            
+            .production-table tbody tr {
+                background-color: #fff;
+                transition: all 0.2s ease;
+                border-bottom: 1px solid #f0f0f0;
+            }
+            
+            .production-table tbody tr:last-child {
+                border-bottom: none;
+            }
+            
+            .production-table tbody tr:hover {
+                background-color: #f9f9f9;
+            }
+            
+            .text-right {
+                text-align: right;
+            }
+            
+            .production-table .text-right {
+                text-align: right;
+            }
+            
+            .production-table .text-center {
+                text-align: center;
+            }
+            
+            .production-table .total-row {
+                font-weight: 600;
+                background-color: #f8f9fa !important;
+                border-top: 2px solid #f0f0f0 !important;
+            }
+            
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 15px;
+            }
+            
+            th, td {
+                padding: 10px;
+                border: 1px solid #ddd;
+                text-align: left;
+                color: #000 !important;
+                font-weight: bold !important;
+            }
+            
+            th {
+                background-color: #f2f2f2;
+                font-weight: bold;
+            }
+            
+            .section-title {
+                font-size: 18px;
+                font-weight: bold;
+                margin-top: 25px;
+                margin-bottom: 15px;
+                border-bottom: 2px solid #007bff;
+                padding-bottom: 5px;
+                color: #000 !important;
+            }
+            
+            .plan-header {
+                text-align: center;
+                margin-bottom: 20px;
+            }
+            
+            .plan-header h1 {
+                font-size: 24px;
+                margin: 0 0 10px 0;
+                color: #000 !important;
+                font-weight: bold !important;
+            }
+            
+            .status-badge {
+                padding: 4px 8px;
+                border-radius: 4px;
+                font-size: 11px;
+                font-weight: bold;
+                background: #e9ecef;
+                color: #000 !important;
+                display: inline-block;
+                margin-right: 5px;
+            }
+            
+            .status-badge.confirmed {
+                background: #ffffff;
+                color: #000 !important;
+            }
+            
+            .status-badge.declared {
+                background: #ffffff;
+                color: #000 !important;
+            }
+            
+            .status-badge.not-declared {
+                background: #ffffff;
+                color: #000 !important;
+            }
+            
+            .summary-stats {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 20px;
+                flex-wrap: wrap;
+            }
+            
+            .stat-item {
+                text-align: center;
+                padding: 15px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                margin: 5px;
+                min-width: 150px;
+                background-color: #f8f9fa;
+            }
+            
+            .stat-number {
+                font-size: 20px;
+                font-weight: bold;
+                color: #000 !important;
+            }
+            
+            .stat-label {
+                font-size: 14px;
+                color: #000 !important;
+                font-weight: bold;
+            }
+            
+            .positive-variance {
+                color: #28a745;
+                font-weight: bold;
+            }
+            
+            .negative-variance {
+                color: #dc3545;
+                font-weight: bold;
+            }
+            
+            .quantity-box {
+                display: inline-block;
+                padding: 5px 10px;
+                background-color: #f8f9fa;
+                border-radius: 4px;
+                font-weight: 500;
+            }
+            
+            /* Hide controls during PDF generation */
+            .pdf-generating .controls {
+                display: none !important;
+            }
+        }
+        
+        /* Common styles for both screen and print */
+        .dropdown-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 15px 0;
+            border-bottom: 1px solid #e9ecef;
+            margin-bottom: 15px;
+        }
+        
+        .header-left {
+            flex: 1;
+        }
+        
+        .header-right {
+            text-align: right;
+        }
+        
+        .main-title {
+            margin: 0 0 8px 0;
+            font-size: 20px;
+            font-weight: bold;
+            color: #000 !important;
+        }
+        
+        .plan-meta {
+            display: flex;
+            gap: 20px;
+            font-size: 12px;
+        }
+        
+        .meta-item {
+            color: #000 !important;
+            font-weight: 500;
+        }
+        
+        .status-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .dishes-section, .ingredients-section {
+            margin: 20px 0;
+        }
+        
+        .alert {
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+        }
+        
+        .alert-danger {
+            color: #721c24;
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        
+        .alert-warning {
+            color: #856404;
+            background-color: #fff3cd;
+            border-color: #ffeeba;
+        }
+        
+        .alert-info {
+            color: #0c5460;
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="pdf-content">
+        <!-- Print controls (only visible on screen) -->
+        <div class="controls no-print">
+            <button class="btn" onclick="generatePDF()">
+                <i class="fas fa-file-pdf"></i> Download PDF
+            </button>
+            <button class="btn" onclick="window.print()">
+                <i class="fas fa-print"></i> Print
+            </button>
+            <button class="btn" onclick="window.history.back()">
+                <i class="fas fa-arrow-left"></i> Go Back
+            </button>
+        </div>
+        
+        <!-- Error handling -->
+        {% if error %}
+        <div class="alert alert-danger">
+            <strong>Error:</strong> {{ error }}
+            {% if request.user.is_staff %}
+                <div class="mt-2">
+                    <small class="text-muted">Technical details: {{ error.details|default:'' }}</small>
+                </div>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        {% if not plan %}
+        <div class="alert alert-warning">
+            No production plan data available.
+        </div>
+        {% endif %}
+        
+        <!-- Header Section -->
+        <div class="dropdown-header">
+            <div class="header-left">
+                <h2 class="main-title">Production Plan #{{ plan.production_plan_number }}</h2>
+                <div class="plan-meta">
+                    <span class="meta-item"><strong>Date:</strong> {{ plan.date_created|date:"M d, Y" }}</span>
+                    <span class="meta-item"><strong>Time:</strong> {{ plan.time_created|time:"H:i" }}</span>
+                    <span class="meta-item"><strong>Branch:</strong> {{ plan.branch.branch_name }}</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="status-info">
+                    <span class="status-badge {% if plan.status %}confirmed{% else %}pending{% endif %}">
+                        {% if plan.status %}✓ Confirmed{% else %}⏳ Pending{% endif %}
+                    </span>
+                    <span class="status-badge {% if plan.declared %}declared{% else %}not-declared{% endif %}">
+                        {% if plan.declared %}✓ Declared{% else %}✗ Not Declared{% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Stats -->
+        <div class="summary-stats">
+            <div class="stat-item">
+                <div class="stat-number">{{ plan_items.count }}</div>
+                <div class="stat-label">Total Dishes</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">{{ total_planned_portions }}</div>
+                <div class="stat-label">Planned Portions</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">{{ total_actual_portions }}</div>
+                <div class="stat-label">Declared Portions</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">${{ total_production_cost|floatformat:2 }}</div>
+                <div class="stat-label">Total Cost</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number {% if variance > 0 %}positive-variance{% elif variance < 0 %}negative-variance{% endif %}">
+                    {% if variance > 0 %}+{{ variance }}{% elif variance < 0 %}{{ variance }}{% else %}0{% endif %}
+                </div>
+                <div class="stat-label">Variance</div>
+            </div>
+        </div>
+        
+        <!-- Dish List -->
+        <div class="dishes-section">
+            <h3 class="section-title">Dishes in this Plan</h3>
+            {% if not plan_items %}
+            <div class="alert alert-info">
+                No dishes found in this production plan.
+            </div>
+            {% else %}
+            <table class="production-table" style="margin-top: 20px;">
+                <thead>
+                    <tr>
+                        <th style="width: 40%;">Dish</th>
+                        <th class="text-right" style="width: 12%;">Planned</th>
+                        <th class="text-right" style="width: 12%;">Actual</th>
+                        <th class="text-right" style="width: 12%;">Variance</th>
+                        <th class="text-right" style="width: 12%;">Unit Cost</th>
+                        <th class="text-right" style="width: 12%;">Total Cost</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in plan_items %}
+                    <tr>
+                        <td style="padding: 12px 15px;">{{ item.dish.name|default:"N/A" }}</td>
+                        <td class="text-right" style="padding: 12px 15px;">{{ item.portions|default:0|floatformat:0 }}</td>
+                        <td class="text-right" style="padding: 12px 15px;">{{ item.portions_sold|default:0|floatformat:0 }}</td>
+                        <td class="text-right" style="padding: 12px 15px; color: {% if item.variance < 0 %}#dc3545{% else %}#28a745{% endif %};">
+                            {{ item.variance|default:0|floatformat:0 }}
+                        </td>
+                        <td class="text-right" style="padding: 12px 15px;">${{ item.cost_per_portion|default:0|floatformat:2 }}</td>
+                        <td class="text-right" style="padding: 12px 15px;">${{ item.total_cost|default:0|floatformat:2 }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center" style="padding: 15px;">No dishes found in this production plan.</td>
+                    </tr>
+                    {% endfor %}
+                    <tr style="background-color: #f8f9fa;">
+                        <td style="padding: 12px 15px; font-weight: 600; border-top: 2px solid #f0f0f0;">Total</td>
+                        <td class="text-right" style="padding: 12px 15px; font-weight: 600; border-top: 2px solid #f0f0f0;">{{ total_planned_portions|default:0|floatformat:0 }}</td>
+                        <td class="text-right" style="padding: 12px 15px; font-weight: 600; border-top: 2px solid #f0f0f0;">{{ total_actual_portions|default:0|floatformat:0 }}</td>
+                        <td class="text-right" style="padding: 12px 15px; font-weight: 600; border-top: 2px solid #f0f0f0; color: {% if variance < 0 %}#dc3545{% else %}#28a745{% endif %};">
+                            {{ variance|default:0|floatformat:0 }}
+                        </td>
+                        <td class="text-right" style="padding: 12px 15px; font-weight: 600; border-top: 2px solid #f0f0f0;"></td>
+                        <td class="text-right" style="padding: 12px 15px; font-weight: 600; border-top: 2px solid #f0f0f0;">${{ total_production_cost|default:0|floatformat:2 }}</td>
+                    </tr>
+                </tbody>
+            </table>
+            {% endif %}
+        </div>
+
+        <!-- Ingredients Section -->
+        {% if ingredients %}
+        <div class="ingredients-section">
+            <h3 class="section-title">Ingredients</h3>
+            <table class="production-table" style="margin-top: 30px;">
+                <thead>
+                    <tr>
+                        <th>Ingredient</th>
+                        <th class="text-right">Allocated Units | Price</th>
+                        <th class="text-right">Total Cost</th>
+                        <th class="text-right">Declared Units | Price</th>
+                        <th class="text-right">Total Cost</th>
+                        <th class="text-right">Variance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ing in ingredients %}
+                        {% if ing.group_header %}
+                        <tr style="background-color: #f5f5f5;">
+                            <td colspan="6" style="font-weight: 600; padding: 10px 8px;">{{ ing.dish_name }}</td>
+                        </tr>
+                        {% elif ing.group_footer %}
+                        <tr style="border-bottom: 2px solid #e0e0e0;">
+                            <td colspan="4" class="text-right" style="font-weight: 600; padding: 8px;">Dish Total:</td>
+                            <td class="text-right" style="color: #dc3545; font-weight: 600; padding: 8px;">
+                                {{ ing.group_neg_total_amount|default:0|floatformat:2 }}
+                            </td>
+                            <td class="text-right" style="color: #28a745; font-weight: 600; padding: 8px;">
+                                {{ ing.group_pos_total_amount|default:0|floatformat:2 }}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td>{{ ing.name }}</td>
+                            <td class="text-right">
+                                {{ ing.allocated_quantity|default:0|floatformat:2 }} {{ ing.unit }}<br>
+                                <small>${{ ing.allocated_cost|default:0|floatformat:2 }}</small>
+                            </td>
+                            <td class="text-right">${{ ing.total_cost|default:0|floatformat:2 }}</td>
+                            <td class="text-right">
+                                {{ ing.declared_quantity|default:0|floatformat:2 }} {{ ing.unit }}<br>
+                                <small>${{ ing.declared_cost|default:0|floatformat:2 }}</small>
+                            </td>
+                            <td class="text-right" style="color: #dc3545;">
+                                {{ ing.variance_negative_amount|default:0|floatformat:2 }}
+                            </td>
+                            <td class="text-right" style="color: #28a745;">
+                                {{ ing.variance_positive_amount|default:0|floatformat:2 }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                    {% empty %}
+                    <!-- Empty State -->
+                    <tr style="background-color: #f8f9fa; font-weight: 600;">
+                        <td style="padding: 12px; border-top: 2px solid #e0e0e0;" colspan="6" class="text-center">No ingredients found for this production plan.</td>
+                    </tr>
+                    {% endfor %}
+                    <!-- Totals Row -->
+                    <tr style="background-color: #f8f9fa; font-weight: 600;">
+                        <td style="padding: 12px; border-top: 2px solid #e0e0e0;">Totals</td>
+                        <td style="text-align: right; padding: 12px; border-top: 2px solid #e0e0e0;">—</td>
+                        <td style="text-align: right; padding: 12px; border-top: 2px solid #e0e0e0;">${{ total_ingredients_cost|default:0|floatformat:2 }}</td>
+                        <td style="text-align: right; padding: 12px; border-top: 2px solid #e0e0e0;">—</td>
+                        <td style="text-align: right; padding: 12px; border-top: 2px solid #e0e0e0;">—</td>
+                        <td style="text-align: right; padding: 12px; border-top: 2px solid #e0e0e0;">—</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            No raw materials data available for this production plan.
+            {% if not plan_items %}
+                <div class="mt-2">
+                    <i class="fas fa-info-circle"></i> This production plan doesn't contain any dishes or items.
+                </div>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <!-- Print footer -->
+        <div class="print-only" style="margin-top: 20px; text-align: center; font-size: 10px; color: #666;">
+            Generated on {% now "F j, Y, g:i a" %}
+        </div>
+    </div>
+
+    <script>
+        function generatePDF() {
+            // Add class to body to indicate PDF generation is in progress
+            document.body.classList.add('pdf-generating');
+            
+            // Get the element to convert to PDF
+            const element = document.getElementById('pdf-content');
+            
+            // Configuration for html2pdf
+            const opt = {
+                margin: [10, 10, 10, 10],
+                filename: 'production_plan_{{ plan.production_plan_number }}.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { 
+                    scale: 2, 
+                    useCORS: true,
+                    onclone: function(clonedDoc) {
+                        // Remove controls from the cloned document
+                        const controls = clonedDoc.querySelector('.controls');
+                        if (controls) {
+                            controls.style.display = 'none';
+                        }
+                    }
+                },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+            };
+            
+            // Generate and download PDF
+            html2pdf().set(opt).from(element).save().then(() => {
+                // Remove the class after PDF generation is complete
+                document.body.classList.remove('pdf-generating');
+            });
+        }
+        
+        // Add page breaks for printing
+        function addPageBreaks() {
+            const sections = document.querySelectorAll('.section-title');
+            sections.forEach((section, index) => {
+                if (index > 0) {
+                    const pageBreak = document.createElement('div');
+                    pageBreak.className = 'page-break';
+                    section.parentNode.insertBefore(pageBreak, section);
+                }
+            });
+        }
+        
+        // Call addPageBreaks when the page loads
+        window.onload = addPageBreaks;
+    </script>
+</body>
+</html>

@@ -28,7 +28,7 @@ urlpatterns = [
     path('production/plan/ajax', production_plans_ajax, name='production_plans_ajax'),
     path('production/plan/admin', production_plans_admin, name='production_plans_admin'),
     path('production/declaration/table/ajax', production_declaration_table_ajax, name='production_declaration_table_ajax'),
-    path('production_plan/detail/<int:plan_id>/ajax', production_plan_detail_ajax, name='production_plan_detail_ajax'),
+    path('production_plan/detail/<int:plan_id>/ajax/', production_plan_detail_ajax, name='production_plan_detail_ajax'),
     path('production_plan/allocations/<int:plan_id>/', production_plan_allocations_ajax, name='production_plan_allocations_ajax'),
     path('create/production/plan/ajax', create_production_plan_ajax, name='create_production_plan_ajax'),
     path('dishes/ajax', dish_list_ajax, name='dish_list_ajax'),
@@ -38,7 +38,7 @@ urlpatterns = [
     path('confirm_declaration/', confirm_declaration, name='confirm_declaration'),
     path('create/production/plan', create_production_plan, name='create_production_plan'),
     path('yesterdays/left/overs/', yeseterdays_left_overs, name='yeseterdays_left_overs'),
-    path('declared/production/plan/', yeseterdays_left_overs, name='declared_production_plan'),
+    path('declared/production_plan/', yeseterdays_left_overs, name='declared_production_plan'),
     path('update_production_plan/<int:pp_id>/', update_production_plan, name='update_production_plan'),
     path('production_plan/detail/<int:pp_id>/', production_plan_detail, name='production_plan_detail'),
     path('view/production/plan/<int:pp_id>/', view_production_plan, name='view_production_plan'),
@@ -61,6 +61,9 @@ urlpatterns = [
     path('production-plan/delete/<int:id>/', production_plan_delete, name="production_plan_delete"),
     path('declare-production-plan/<int:pp_id>/', new_declare_production, name="declare_production"),
     path('latest-declare-production-plan/', latest_declare_production, name="latest_declare_production"),
+
+    # PDF download
+    path('production_plan/<int:plan_id>/pdf-template/', production_plan_pdf_template, name='production_plan_pdf_template'),
 
     # Store Checklist URLs
     path('store/checklist/ajax', store_checklist_ajax, name='store_checklist_ajax'),
