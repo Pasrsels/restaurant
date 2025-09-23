@@ -19,10 +19,11 @@
     <div class="row mt-2">
         <div class="col-9">
             <table class="table">
-                <thead class="bg-primary">
+                <thead class="bg-primary-subtle">
                     <th>Dish</th>
                     <th>Portions</th>
-                    <th>Total Cost</th>
+                    <th>Cost</th>
+                    <th>Selling</th>
                 </thead>
                 <tbody id="cart-items"></tbody>
             </table>
@@ -41,7 +42,6 @@
     </div>
 </div>
 <script>
-    // Function to initialize the production plan form
     function initializeProductionPlanForm() {
         let cart = [];
         let portion_multiplier = 1;
@@ -52,12 +52,10 @@
         const quantity = document.getElementById('id_quantity');
         const actual = document.getElementById('id_actual_quantity');
     
-        // Initialize Select2
         if ($.fn.select2) {
             $('#id_dish').select2();
             console.log('Select2 initialized successfully');
             
-            // Debug: Check if dishes are available
             const dishOptions = $('#id_dish option').length;
             console.log('Number of dish options available:', dishOptions);
             
@@ -68,13 +66,11 @@
             console.error('Select2 not loaded');
         }
     
-        // Reset button functionality
         $('#id_reset').on('click', function() {
             cart = [];
             updateCartTable();
         });
     
-        // Submit button functionality
         $('#id_submit').on('click', function() {
             const postData = {
                 csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
@@ -114,21 +110,18 @@
             });
         });
     
-        // Dish selection event
         $('#id_dish').on('change', function(e) {
-            const selectedProductId = $(this).val(); // Use jQuery to get the value
+            const selectedProductId = $(this).val(); 
             
             console.log('Select2 change event triggered');
             console.log('Selected dish ID:', selectedProductId);
             console.log('Event target value:', e.target.value);
-            
-            // Validate that a dish is actually selected
+
             if (!selectedProductId || selectedProductId === '' || selectedProductId === null) {
                 console.log('No dish selected - returning early');
                 return;
             }
-            
-            // Ensure it's a valid number
+
             const dishId = parseInt(selectedProductId);
             if (isNaN(dishId)) {
                 console.error('Invalid dish ID:', selectedProductId);
@@ -160,7 +153,7 @@
             .then(data => {
                 console.log('Response data:', data);
                 if (data.success) {
-                    ingredientsData = data.data; // Replaces previous data
+                    ingredientsData = data.data; 
                     portion_multiplier = data.portion_multiplier;
                     console.log('Ingredients loaded:', ingredientsData);
                 } else {
@@ -181,7 +174,6 @@
             });
         });
     
-        // Quantity input listener
         $('#id_quantity').on('input', function(e) {
             let quantityVal = parseFloat(e.target.value) || 0;
             let lfVal = parseFloat(lf.value) || 0;
@@ -193,7 +185,6 @@
             actual.style.backgroundColor = 'lightgray';
         });
     
-        // Calculate total cost based on dish and portion size
         function total_dish_cost(portions) {
             let cost_per_kg = 0;
             let kgs = portions / portion_multiplier;
@@ -205,7 +196,6 @@
             return kgs * cost_per_kg;
         }
     
-        // Add item to cart
         $('#save-button').on('click', function() {
             const portions = parseFloat($('#id_portions').val());
             const dish_id = $('#id_dish').val();
@@ -213,7 +203,6 @@
 
             console.log('Dish ID:', dish_id, 'Dish Name:', dish_name);
 
-            // Validate dish selection
             if (!dish_id || dish_id === '' || dish_id === null) {
                 Swal.fire({
                     title: "Invalid Entry",
@@ -223,7 +212,6 @@
                 return;
             }
 
-            // Validate portions
             if (isNaN(portions) || portions <= 0) {
                 Swal.fire({
                     title: "Invalid Entry",
@@ -233,7 +221,6 @@
                 return;
             }
 
-            // Check if ingredients data is loaded
             if (!ingredientsData || ingredientsData.length === 0) {
                 Swal.fire({
                     title: "Missing Data",
@@ -263,7 +250,6 @@
             $('#id_portions').val(0);
         });
     
-        // Update cart table display
         function updateCartTable() {
             const cartItems = $('#cart-items');
             cartItems.empty();
@@ -283,8 +269,7 @@
                 `);
             });
         }
-    
-        // Global functions for cart item actions
+
         window.deleteItem = function(index) {
             cart.splice(index, 1);
             updateCartTable();

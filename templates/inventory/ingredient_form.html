@@ -4,7 +4,7 @@
 {% block title %}Create Dish{% endblock title %}
 
 {% block content %}
-<div class="mt-"5>
+<div class="mt-5">
   <div class="card border-0">
     <div class="card-body">
       <h4 class="card-title mb-4">Create New Dish</h4>
@@ -13,15 +13,91 @@
         <div class="progress-bar bg-primary" id="progress-bar" style="width: 33%">Step 1 of 3</div>
       </div>
 
+      <!-- Step 1 -->
       <div class="step" id="step-1">
         <h5 class="mb-3">Step 1: Dish Information</h5>
         <form id="dish-info-form">
-            {% csrf_token %}
-            {{ dish_form | crispy }}
+          <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+
+          <div class="d-flex justify-content-between align-content-center">
+            <div class="mb-3 w-100">
+              <label for="id_name" class="form-label requiredField">Name<span class="asteriskField">*</span></label>
+              <input type="text" name="name" maxlength="100" class="textinput form-control" required id="id_name">
+            </div>
+
+            <div class="mb-3 w-100 ms-2">
+              <label for="id_portion_multiplier" class="form-label requiredField">Portion multiplier<span class="asteriskField">*</span></label>
+              <input type="number" name="portion_multiplier" step="any" class="numberinput form-control" required id="id_portion_multiplier">
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-between align-content-center gap-2">
+            <div class="mb-3 w-100">
+              <label for="id_category" class="form-label requiredField">Category<span class="asteriskField">*</span></label>
+              <select name="category" class="select form-select" required id="id_category">
+                <option value="" selected>---------</option>
+                <option value="Fast food">Fast food</option>
+                <option value="Meat">Meat</option>
+                <option value="Starch">Starch</option>
+                <option value="Salad">Salad</option>
+              </select>
+            </div>
+
+            <div class="mb-3 w-100">
+              <label for="id_price" class="form-label requiredField">Price<span class="asteriskField">*</span></label>
+              <input type="number" name="price" value="0" step="0.01" class="numberinput form-control" required id="id_price">
+            </div>
+          </div>
+
+          <!-- Low Stock with Time and Quantity -->
+          <div class="mb-3">
+            <label class="form-label requiredField">Low Stock Levels & Time Ranges<span class="asteriskField">*</span></label>
+            <div class="row g-2">
+              <!-- Input 1 -->
+              <div class="col-md-4">
+                <input type="number" value="10" class="form-control low-stock-qty" placeholder="Quantity" required>
+                <div class="mt-1">
+                  <input type="time" class="form-control mb-1 low-stock-from" placeholder="From" required>
+                  <input type="time" class="form-control low-stock-to" placeholder="To" required>
+                </div>
+              </div>
+
+              <!-- Input 2 -->
+              <div class="col-md-4">
+                <input type="number" value="10" class="form-control low-stock-qty" placeholder="Quantity" required>
+                <div class="mt-1">
+                  <input type="time" class="form-control mb-1 low-stock-from" placeholder="From" required>
+                  <input type="time" class="form-control low-stock-to" placeholder="To" required>
+                </div>
+              </div>
+
+              <!-- Input 3 -->
+              <div class="col-md-4">
+                <input type="number" value="10" class="form-control low-stock-qty" placeholder="Quantity" required>
+                <div class="mt-1">
+                  <input type="time" class="form-control mb-1 low-stock-from" placeholder="From" required>
+                  <input type="time" class="form-control low-stock-to" placeholder="To" required>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dish Image Upload -->
+          <div class="mb-3">
+            <label for="id_image" class="form-label requiredField">Image<span class="asteriskField">*</span></label>
+            <div id="image-drop-zone" class="border border-dashed p-3 rounded d-flex flex-column align-items-center justify-content-center" 
+              style="cursor:pointer; min-height:150px;">
+              <p class="mb-2 text-muted">Drag & Drop an image here or click to select</p>
+              <input type="file" name="image" class="form-control d-none" accept="image/*" id="id_image" onchange="previewImage(event)">
+              <img id="image-preview" src="#" alt="Image Preview" style="display:none; max-width: 200px; max-height: 200px; border-radius:5px; margin-top:10px;">
+              <button type="button" class="btn btn-sm btn-danger mt-2" id="remove-image-btn" style="display:none;" onclick="removeImage()">Remove</button>
+            </div>
+          </div>
         </form>
         <button class="btn btn-primary float-end" onclick="nextStep(2)">Next →</button>
       </div>
 
+      <!-- Step 2 -->
       <div class="step d-none" id="step-2">
         <h5 class="mb-3">Step 2: Add Ingredients</h5>
 
@@ -73,6 +149,7 @@
         </div>
       </div>
 
+      <!-- Step 3 -->
       <div class="step d-none" id="step-3">
         <h5 class="mb-3">Step 3: Assign Supplies</h5>
         <div class="row g-3">
@@ -125,6 +202,46 @@ $(document).ready(function() {
 
   $('#id_raw_material').select2();
   $('#id_supply_item').select2();
+
+  const dropZone = document.getElementById('image-drop-zone');
+  const input = document.getElementById('id_image');
+  const preview = document.getElementById('image-preview');
+  const removeBtn = document.getElementById('remove-image-btn');
+
+  dropZone.addEventListener('click', () => input.click());
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('bg-light');
+  });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('bg-light'));
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('bg-light');
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      input.files = e.dataTransfer.files;
+      previewImage({target: input});
+    }
+  });
+
+  window.previewImage = function(event) {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        preview.src = e.target.result;
+        preview.style.display = 'block';
+        removeBtn.style.display = 'inline-block';
+      }
+      reader.readAsDataURL(file);
+    }
+  }
+
+  window.removeImage = function() {
+    input.value = '';
+    preview.src = '#';
+    preview.style.display = 'none';
+    removeBtn.style.display = 'none';
+  }
 
   window.nextStep = function(step) {
     if (validateStep(currentStep)) {
@@ -260,6 +377,21 @@ $(document).ready(function() {
   };
 
   $('#id_submit').on('click', function() {
+    let lowStockData = [];
+    $('.col-md-4').each(function() {
+      const qty = $(this).find('.low-stock-qty').val();
+      const from = $(this).find('.low-stock-from').val();
+      const to = $(this).find('.low-stock-to').val();
+
+      if (qty && from && to) {
+        lowStockData.push({
+          quantity: parseFloat(qty),
+          from_time: from,
+          to_time: to
+        });
+      }
+    });
+
     const postData = {
       csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
       dish_info: {
@@ -270,7 +402,8 @@ $(document).ready(function() {
       },
       ingredients: cart,
       supplies: supplies,
-      dish_cost: dish_total
+      dish_cost: dish_total,
+      low_stock_times: lowStockData 
     };
 
     fetch('{% url "inventory:dish_create" %}', {

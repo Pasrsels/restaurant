@@ -103,6 +103,11 @@ a:hover { background-color: var(--hover-primary-bg) !important; color: var(--hov
   border-color: var(--blue-grotto) !important;
 }
 
+/* text-font */
+.text-blue{
+  color:var(--blue) !important;
+}
+
 /* Utility classes */
 .text-brand { color: var(--blue-grotto) !important; }
 .bg-brand { background-color: var(--blue-grotto) !important; }

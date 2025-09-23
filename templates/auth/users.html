@@ -3,16 +3,16 @@
 {% load crispy_forms_tags %}
 {% block title%} Users {% endblock%}
 {% block content %}
-<div class="users">
+<div class="users me-3">
     <div class='mb-4 mt-2'>
         <div class='d-flex justify-content-between align-items-center rounded'>
             <div class="d-flex align-items-center">
                 <a href='/' class='bx bx-home btn border fs-5'></a>
-                <span class='aria-labelledby ms-2'>Users</span>
+                <h2 class='aria-labelledby ms-2'>Users</h2>
             </div>
             <form class="d-flex align-items-center gap-2" method="get">
-                <input type="text" name="q" value="{{ search_query }}" class="form-control form-control-sm" placeholder="Search name or email">
-                <select name="role" class="form-select form-select-sm">
+                <input type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="Search name or email">
+                <select name="role" class="form-select">
                     <option value="">All roles</option>
                     <option value="admin" {% if filter_role == 'admin' %}selected{% endif %}>Admin</option>
                     <option value="chef" {% if filter_role == 'chef' %}selected{% endif %}>Chef</option>
@@ -21,10 +21,10 @@
                     <option value="owner" {% if filter_role == 'owner' %}selected{% endif %}>Owner</option>
                     <option value="stores_person" {% if filter_role == 'stores_person' %}selected{% endif %}>Stores Person</option>
                 </select>
-                <input type="date" name="start_date" value="{{ start_date }}" class="form-control form-control-sm">
-                <input type="date" name="end_date" value="{{ end_date }}" class="form-control form-control-sm">
-                <button type="submit" class="btn btn-primary btn-sm">Apply</button>
-                <button type="button" id="addUser" class="btn btn-success btn-sm">
+                <input type="date" name="start_date" value="{{ start_date }}" class="form-control">
+                <input type="date" name="end_date" value="{{ end_date }}" class="form-control">
+                <button type="submit" class="btn btn-primary">Apply</button>
+                <button type="button" id="addUser" class="btn btn-success">
                     <i class='bx bx-user-plus'></i>
                 </button>
             </form>
@@ -34,7 +34,7 @@
     <div class="row g-3">
         {% for user in users %}
         <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-            <div class="card h-100 shadow-sm">
+            <div class="card h-100 border-0 shadow-sm">
                 <div class="card-body d-flex flex-column">
                     <div class="d-flex align-items-center mb-3">
                         <div class="rounded-circle bg-brand text-white d-flex align-items-center justify-content-center" style="width:44px;height:44px;">
@@ -105,7 +105,7 @@
         <div class="modal-dialog">
             <div class="modal-content w-100 p-4">
                 <h6 class="fw-bold">Edit User</h6>
-                <form method="post" id="editUserForm" action="{% url 'users:user_edit' 0 %}">
+                <form method="post" id="editUserForm" action="{% url 'users:edit_user' 0 %}">
                     {% csrf_token %}
                     <input type="hidden" name="user_id" id="editUserId">
                     {{ user_details_form|crispy }}
@@ -178,42 +178,72 @@
 </div>
 
 <script src="{% static 'css/bootstrap/js/bootstrap.bundle.min.js'%}"></script>  
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-
     const addBtn = document.getElementById('addUser');
-    const addBranchBtn = document.getElementById('addBranch');
-
     const addModal = new bootstrap.Modal(document.getElementById('addUserModal'));
-    const addBranchModal = new bootstrap.Modal(document.getElementById('addBranchModal'));
-
-    const editUserBtn = document.getElementById('editUser');
-    const editUserBtns = document.querySelectorAll('.editUserBtn');
-    const viewUserBtns = document.querySelectorAll('.viewUserBtn');
     const editModal = new bootstrap.Modal(document.getElementById('editUserModal'));
     const viewModal = new bootstrap.Modal(document.getElementById('viewUserModal'));
-    
-    
-    addBtn.addEventListener('click', ()=>{
-        addModal.show()
-    })
-    
+
+    const editUserBtns = document.querySelectorAll('.editUserBtn');
+    const viewUserBtns = document.querySelectorAll('.viewUserBtn');
+
+    addBtn.addEventListener('click', () => {
+        addModal.show();
+    });
+
+    document.querySelector('#addUserModal form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const form = this;
+        const url = "{% url 'users:users' %}";
+        
+        $.ajax({
+            url: url,
+            method: "POST",
+            data: $(form).serialize(),
+            success: function(response) {
+                addModal.hide();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success',
+                    text: response.message,
+                    timer: 2000,
+                    showConfirmButton: false
+                }).then(() => {
+                    location.reload();
+                });
+            },
+            error: function(xhr) {
+                const errors = xhr.responseJSON.errors;
+                let errorMsg = '';
+                for (let field in errors) {
+                    errorMsg += `${field}: ${errors[field].join(', ')}\n`;
+                }
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: errorMsg
+                });
+            }
+        });
+    });
+
     editUserBtns.forEach(btn => {
         btn.addEventListener('click', function() {
             const userId = this.getAttribute('data-user-id');
-            const url = "{% url 'users:user_edit' 0 %}".replace('0', userId);
-    
+            const fetchUrl = "{% url 'users:get_user_data' 0 %}".replace('0', userId);
+
             $.ajax({
-                url: "{% url 'users:ajax_get_user_data' 0 %}".replace('0', userId),
+                url: fetchUrl,
                 success: function(data) {
-                    $('#editUserForm').attr('action', url);
-                    $('#editUserId').val(userId);
+                    $('#editUserForm').attr('action', "{% url 'users:edit_user' 0 %}".replace('0', userId));
+                    $('#editUserId').val(data.id);
                     $('#editUserModal input[name="first_name"]').val(data.first_name);
                     $('#editUserModal input[name="last_name"]').val(data.last_name);
                     $('#editUserModal input[name="username"]').val(data.username);
                     $('#editUserModal input[name="email"]').val(data.email);
                     $('#editUserModal input[name="phonenumber"]').val(data.phonenumber);
-                    $('#editUserModal select[name="edit_company"]').val(data.company);
-                    $('#editUserModal select[name="edit_branch"]').val(data.branch);
+                    $('#editUserModal select[name="branch"]').val(data.branch);
                     $('#editUserModal select[name="role"]').val(data.role);
                     editModal.show();
                 }
@@ -221,22 +251,61 @@
         });
     });
 
+    document.querySelector('#editUserForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const form = this;
+        const url = form.getAttribute('action');
+
+        $.ajax({
+            url: url,
+            method: "POST",
+            data: $(form).serialize(),
+            success: function(response) {
+                editModal.hide();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Updated',
+                    text: response.message,
+                    timer: 2000,
+                    showConfirmButton: false
+                }).then(() => {
+                    location.reload(); 
+                });
+            },
+            error: function(xhr) {
+                const errors = xhr.responseJSON.errors;
+                let errorMsg = '';
+                for (let field in errors) {
+                    errorMsg += `${field}: ${errors[field].join(', ')}\n`;
+                }
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: errorMsg
+                });
+            }
+        });
+    });
+
     viewUserBtns.forEach(btn => {
         btn.addEventListener('click', function() {
             const userId = this.getAttribute('data-user-id');
+            const url = "{% url 'users:get_user_data' 0 %}".replace('0', userId);
+
             $.ajax({
-                url: "{% url 'users:ajax_get_user_data' 0 %}".replace('0', userId),
+                url: url,
                 success: function(data) {
-                    document.getElementById('v_first_name').innerText = data.first_name || '';
-                    document.getElementById('v_last_name').innerText = data.last_name || '';
-                    document.getElementById('v_username').innerText = data.username || '';
-                    document.getElementById('v_email').innerText = data.email || '';
-                    document.getElementById('v_phone').innerText = data.phonenumber || '';
-                    document.getElementById('v_role').innerText = (data.role || '').toUpperCase();
+                    $('#v_first_name').text(data.first_name || '');
+                    $('#v_last_name').text(data.last_name || '');
+                    $('#v_username').text(data.username || '');
+                    $('#v_email').text(data.email || '');
+                    $('#v_phone').text(data.phonenumber || '');
+                    $('#v_role').text((data.role || '').toUpperCase());
                     viewModal.show();
                 }
             });
         });
     });
 </script>
+
 {% endblock content %}

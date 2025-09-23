@@ -116,18 +116,16 @@
     <div class="underbar border-bottom"></div>
 
 <script>
-    //function to populate sidebar
     function populateSidebarCategories() {
         fetch("{% url 'inventory:create_meal_category' %}", {
             method: 'GET'
         })
         .then(response => response.json())
         .then(data => {
-            // console.log({ category_list_meal: data.meal, category_list_product: data.product, category_list_dish: data.dish});
             const sidebarContainer = document.querySelector('.sidebar');
             sidebarContainer.innerHTML = '';
             
-            // Add CSS for bordered and centered list items
+
             const style = document.createElement('style');
             style.textContent = `
                 .sidebar .card {
@@ -151,13 +149,11 @@
             `;
             document.head.appendChild(style);
             
-            // Create a set to store the names of categories that have already been added
             const createdMealCategories = new Set();
             const createdProductCategories = new Set();
             const createdDishCategories = new Set();
             
             data.meal.forEach(category => {
-                // Check if the category has already been added
                 if (!createdMealCategories.has(category.name)) {
                     // console.log({categories: category.name});
                     

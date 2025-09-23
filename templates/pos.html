@@ -13,7 +13,6 @@
 <div class="pos px-4 py-3">
     <div class="container-fluid">
         <div class="row justify-content-center">
-            <!-- Left Column (Products) -->
             <div class="col-9">
                 <div class="left-column">
                     <div class="d-flex justify-content-between p-2 rounded-0 mt-1 align-items-center border rounded">
@@ -29,12 +28,12 @@
                     <div id="dishCategories" class="d-flex justify-content-between p-1 mt-1 mb-1">
 
                     </div>
-                    <div class="mt-1">
-                        <div class="row container-color border py-1 rounded mx-1 items-container" id="itemsContainer"></div>
+                    <div class="mt-1 mb-4">
+                        <div class="row container-color py-1 rounded mx-1 items-container" id="itemsContainer"></div>
                     </div>
                 </div>
 
-                <div id="floatingButton" class="floating-button d-flex justify-content-between align-items-center mt-3">
+                <div id="floatingButton" class="floating-button d-flex justify-content-between align-items-center mt-5">
                     <div class="d-flex flex-wrap">
                         <li><a href="{% url 'inventory:end_of_day_view' %}" class="btn btn-outline-dark m-1">End of day</a></li>
                         <li class='m-1'>
@@ -52,9 +51,6 @@
                         <li class='m-1'>
                             <a class="btn btn-outline-dark" href="{% url 'inventory:create_purchase_order' %}">Purchases</a>
                         </li>
-                        <!-- <li class='m-1'> pamwe tichazokuda
-                            <a href='{% url "pos:cash_up_accountant_report" %}' class="btn btn-outline-dark">Accountant Report</a>
-                        </li> -->
                     </div>
                     <div class="d-flex">
                         <li class="m-1 d-none">
@@ -66,14 +62,9 @@
                         <li class="m-1">
                             <a class="btn color-button text-light" id="void">Void</a>
                         </li>
-                        {% comment %} <li class="m-1">
-                            <a class="btn btn-info text-light" onclick="cacheImages()">Cache Images</a>
-                        </li> {% endcomment %}
                     </div>
                 </div>
             </div>
-
-            <!-- Middle Column (Order Details) -->
             <div class="col-3 p-0 rounded">
                 <div class="bg-white text-dark h-100 d-flex flex-column rounded border">
                     <h5 class="fw-bold text-center border-bottom pb-2 pt-3 px-3">Order Details</h5>
@@ -413,7 +404,6 @@
             </div>
         </div>
     </div>
-
 
     <div class="modal fade" id="addProductioNPlanModal" tabindex="-1" aria-labelledby="addProductioNPlanModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
