@@ -131,7 +131,7 @@
                             autocomplete="new-password"
                             required>
                     </div>
-                    <button id="cash_upbutton" onclick="cashUp()" type="button" class="btn btn-outline-dark w-100">Authenticate</button>
+                    <button id="pos_cash_upbutton" onclick="cashUp()" type="button" class="btn btn-outline-dark w-100">Authenticate</button>
                 </form>
             </div>
         </div>
@@ -207,7 +207,7 @@
                             autocomplete="new-password"
                             required>
                     </div>
-                    <button id="cash_upbutton" onclick="authorization()" type="button" class="btn btn-outline-dark w-100">Authenticate</button>
+                    <button id="pos_auth_button" onclick="authorization()" type="button" class="btn btn-outline-dark w-100">Authenticate</button>
                 </form>
             </div>
         </div>
@@ -1501,8 +1501,7 @@
         const changeAmount = parseFloat(document.getElementById('change_amount').value);
         document.getElementById('balance').value = changeAmount - amountGiven;
     })
-    
-    cashupButton.addEventListener('click', ()=>{
+    document.getElementById('cashup').addEventListener('click', ()=>{
         authenticateModal.show()
     })
     
@@ -1899,7 +1898,8 @@ function generateAccountantCashUp(userId) {
             staff_total,
             finished_product,
             eco_cash_total,
-            eco_cash_tax
+            eco_cash_tax,
+            collected_changes = 0
         } = cashUpData; 
         
         //finished products
@@ -2051,19 +2051,6 @@ function generateAccountantCashUp(userId) {
                 "
                 >
                 <h3 style="text-align: center;">Parsles Investments (Urban Eats)</h3>
-                <h4 style="text-align: center;">Cash Up</h4>
-                <hr>
-                <p>Cashier: {{ request.user.first_name }}</p>
-                <p>Date: ${new Date().toLocaleDateString()}</p>
-                <p>Time: ${new Date().toLocaleTimeString()}</p>
-                <div class="totals">
-                    <hr>
-                    <h2>Sales per Dish</h2>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Portions</th>
                                 <th>Price</th>
                                 <th>Total</th>
                             </tr>
@@ -2177,12 +2164,16 @@ function generateAccountantCashUp(userId) {
                         <span>-$${total_expenses}</span>
                     </div>
                     <div class="line">
-                        <span>Todays Change:</span>
+                        <span>Today's Change:</span>
                         <span>+$${total_change}</span>
+                    </div>
+                    <div class="line">
+                        <span>Collected Changes:</span>
+                        <span>-$${collected_changes || '0.00'}</span>
                     </div>
                     <hr>
                     <div class="line">
-                        <span style="font-weight:bold; font-size:14;">Chash In Hand:</span>
+                        <span style="font-weight:bold; font-size:14;">Cash In Hand:</span>
                         <span style="font-weight:bold; font-size:14;">$${cash_in_hand}</span>
                     </div>
                     <hr>
