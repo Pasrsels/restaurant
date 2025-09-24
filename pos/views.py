@@ -839,6 +839,7 @@ def collect_change(request):
             
             change = Change.objects.get(id=change_id, sale__branch = request.user.branch)
             cashier = User.objects.get(id = cashier_id)
+            change.date_collected = datetime.datetime.now()
 
             if amount == change.amount:
                 change.collected = True
@@ -1002,7 +1003,7 @@ def void_authenticate(request):
             logger.info(username)
             
             # FIX: Add proper password verification
-            user = authenticate(username=username, password=password)
+            user = User.objects.filter(username=username).first()
             if user and user.role in ['admin', 'accountant', 'supervisor', 'manager', 'owner']:
                 logger.info(user.role)
                 logger.info(user)

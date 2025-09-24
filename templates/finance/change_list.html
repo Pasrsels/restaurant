@@ -47,12 +47,13 @@
             <thead>
                 <tr>
                     <th>Date</th>
+                    <th>Receipt Number</th>
                     <th>Name</th>
                     <th>Cashier In</th>
                     <th>Cashier Out</th>
                     <th>Phone number</th>
                     <th>Amount</th>
-                    <th>Receipt Number</th>
+                    <th>Date Collected</th>
                     <th>Status</th>
                 </tr>
             </thead>
@@ -60,12 +61,13 @@
                 {% for change in page_obj %}
                   <tr>
                         <td><small>{{ change.timestamp }}</small></td>
+                        <td><small>{{ change.receipt_number }}</small></td>
                         <td><small>{{ change.name }}</small></td>
                         <td><small>{{ change.cashier.username }}</small></td>
                         <td><small>{{ change.cashier_give.username }}</small></td>
                         <td><small>{{ change.phonenumber}}</small></td>
                         <td><small>{{ change.amount }}</small></td>
-                        <td><small>{{ change.receipt_number }}</small></td>
+                        <td><small>{{ change.date_collected }}</small></td>
                         <td>
                             {% if change.collected %}
                                 <small>
