@@ -12,10 +12,7 @@ from collections import defaultdict
 import decimal
 from permisions.permisions import admin_required
 import csv
-import pandas as pd
-from matplotlib import pyplot as plt
 import numpy as np
-from sklearn.linear_model import LinearRegression
 
 @admin_required
 def analytics_view(request):
@@ -281,41 +278,7 @@ def analysis(request):
             writer.writeheader()
             writer.writerows(sales_list)
     
-    try:
-        df = pd.read_csv('analytics.csv')
-        print(df.head())
-
-        X = df.iloc[0:,0].values
-        print(X[0:5])
-
-        y = df.iloc[0:,1].values
-        print(y[0:5])
-
-        plt.scatter(X,y)
-        plt.title('Income: Sales')
-        plt.savefig('Sales_plot.png')
-
-        df['Date'] = pd.to_datetime(df['Date'], format='%m-%Y')
-        df['Month_Index'] = (df['Date'] - df['Date'].min()).dt.days // 30
-
-        X= df[['Month_Index']]
-        y = df['Total_Amount']
-
-        model = LinearRegression()
-        model.fit(X,y)
-
-        future_dates = pd.to_datetime(['08-2025', '09-2025', '10-2025'], format='%m-%Y')
-
-        future_months = (future_dates - df['Date'].min()).days // 30
-
-        future_predictions = model.predict(np.array(future_months).reshape(-1, 1))
-
-        for date, pred in zip(future_dates.strftime('%m-%Y'), future_predictions):
-            print(f"Predicted earnings for {date}: ${pred:.2f}")
-
-        return JsonResponse({'success': True})
-    except Exception as e:
-        return JsonResponse({'success': False})
+ 
 
 
 def analysisExpenses(request):
@@ -358,36 +321,36 @@ def analysisExpenses(request):
             writer.writerows(expenses_list)
     
     try:
-        df = pd.read_csv('analytics_expenses.csv')
-        print(df.head())
+        # df = pd.read_csv('analytics_expenses.csv')
+        # print(df.head())
 
-        X = df.iloc[0:,0].values
-        print(X[0:5])
+        # X = df.iloc[0:,0].values
+        # print(X[0:5])
 
-        y = df.iloc[0:,1].values
-        print(y[0:5])
+        # y = df.iloc[0:,1].values
+        # print(y[0:5])
 
-        plt.scatter(X,y)
-        plt.title('Expenses')
-        plt.savefig('Expense_plot.png')
+        # plt.scatter(X,y)
+        # plt.title('Expenses')
+        # plt.savefig('Expense_plot.png')
 
-        df['Date'] = pd.to_datetime(df['Date'], format='%d-%m-%Y')
-        df['Month_Index'] = (df['Date'] - df['Date'].min()).dt.days // 30
+        # df['Date'] = pd.to_datetime(df['Date'], format='%d-%m-%Y')
+        # df['Month_Index'] = (df['Date'] - df['Date'].min()).dt.days // 30
 
-        X= df[['Month_Index']]
-        y = df['Total_Amount']
+        # X= df[['Month_Index']]
+        # y = df['Total_Amount']
 
-        model = LinearRegression()
-        model.fit(X,y)
+        # model = LinearRegression()
+        # model.fit(X,y)
 
-        future_dates = pd.to_datetime(['01-08-2025', '01-09-2025', '01-10-2025'], format='%d-%m-%Y')
+        # future_dates = pd.to_datetime(['01-08-2025', '01-09-2025', '01-10-2025'], format='%d-%m-%Y')
 
-        future_months = (future_dates - df['Date'].min()).days // 30
+        # future_months = (future_dates - df['Date'].min()).days // 30
 
-        future_predictions = model.predict(np.array(future_months).reshape(-1, 1))
+        # future_predictions = model.predict(np.array(future_months).reshape(-1, 1))
 
-        for date, pred in zip(future_dates.strftime('%d-%m-%Y'), future_predictions):
-            print(f"Predicted earnings for {date}: ${pred:.2f}")
+        # for date, pred in zip(future_dates.strftime('%d-%m-%Y'), future_predictions):
+        #     print(f"Predicted earnings for {date}: ${pred:.2f}")
 
         return JsonResponse({'success': True})
     except Exception as e:

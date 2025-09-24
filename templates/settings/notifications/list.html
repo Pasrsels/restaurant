@@ -33,7 +33,6 @@
                         {% endif %}
                     {% endfor %}
                 </ul>
-                <!-- Placeholder for the form to add email -->
                 <div id="email-form-{{ module.id }}" class="email-form d-none mt-2">
                     <form method="post" action="{% url 'settings:add_email_notification' %}" class="border p-2">
                         {% csrf_token %}

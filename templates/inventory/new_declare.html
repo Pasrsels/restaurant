@@ -18,37 +18,35 @@
     table {
         width: 100%;
     }
-
     .sticky-header {
         position: sticky;
         top: 0;
         z-index: 2;
     }
-    .bg-suc{
-        background: #8ef2a0 !important;
+    .background-blue{
+        background: #f2fbff !important;
+    }
+    tr, tboody, tfoot{
+        border: 1px solid #f2fbff !important;
     }
 </style>
 
 
 <div class="container-fluid">
-
     <div class='production-plan mt-2 d-flex justify-content-between align-items-center'>
         <div>
-             <h5 class="fw-bold">Dishes</h5>
-            <!-- <a href='{% url "inventory:production_plans" %}' class='border btn bx bx-arrow-back fs-5'></a>
-            <a href='/' class='bx bx-home btn border fs-5 mx-2'></a> -->
-            <!-- <span class='mt-2 fs-5'>Production Plan : {{ p_plan.production_plan_number }} Declaration</span> -->
+             <h5 class="fw-bold text-blue" style="color:#055c9d;">Dishes</h5>
         </div>
         <div class="d-flex justify-content-end align-items-center">
             <span>
                 <input type="text" id="dishSearch" class="form-control w-100" placeholder="Search for a dish...">
             </span>
-            <ul class="list-unstyled mt-3 d-flex align-items-center">
+            <ul class="list-unstyled me-1 ms-1 mt-3 d-flex align-items-center">
                 <li>
-                    <a onclick="showModal()" class="mx-2 btn border bg-danger text-light">Add Production</a>
+                    <a onclick="showModal()" class="btn border bg-success text-light">+ Production</a>
                 </li>
                 <li>
-                    <a href="{% url 'inventory:production_plans' %}" class="mx-2 btn border bg-danger text-light">Production Plan</a>
+                    <a href="{% url 'inventory:production_plans' %}" class="btn border btn-primary text-light">Production Plan</a>
                 </li>
             </ul>
         </div>
@@ -66,15 +64,15 @@
     </div> -->
     
     <div class="table_container_dish table-responsive">
-        <table class="table bg-light table-hover">
-            <thead class="sticky-header bg-color">
+        <table class="table background-blue table-bordereless">
+            <thead class="background-blue">
                 <tr class="">
                     <th class="bg-suc">Dish</th>
                     <th class="bg-suc">Planned Portions</th>
                     <th class="bg-suc d-none">Value(Price)</th>
                     <th class="bg-suc">
                         Declared Portions
-                        <span class="badge bg-info text-dark">
+                        <span class="badge bg-primary text-light">
                             <strong id="dishCount"></strong>
                         </span>
                     </th>
@@ -84,27 +82,27 @@
             </thead>
             <tbody id="dishTableBody">
                 {% for dish in production_plan %}
-                    <tr class="py-0 px-0">
+                    <tr class="py-0 px-0 background-blue">
                         
-                        <td class="dish-name py-0">
+                        <td class="dish-name py-0 background-blue">
                             <small>
                                 {{ dish.dish.name }}@${{ dish.dish.price}}
                             </small>
                         </td>
-                        <td class="py-0">
+                        <td class="py-0 background-blue">
                             <small>
                                 <div class="d-flex align-items-center gap-1">
                                     <span class="dish-portions fw-bold">{{ dish.portions }}</span>
                                     <input
                                         type="text"
                                         value="{% for price in total_price %}{% if price.name == dish.dish.name %} ${{price.total_price}}{% endif %}{% endfor %}"
-                                        class="rounded border border-2 w-25 text-center text-dark mt-1"
+                                        class="border-0 rounded w-25 text-center text-dark mt-1"
                                         disabled
                                     >
                                 </div>
                             </small>
                         </td>
-                        <td class="dish-price d-none">
+                        <td class="dish-price d-none background-blue">
                             <small>
                                 {% for price in total_price %}
                                     {% if price.name == dish.dish.name %}
@@ -113,64 +111,69 @@
                                 {% endfor %}
                             </small>
                         </td>
-                        <td class="onchange py-0">
-                            <small>
-                                <input type="number" class="rounded border text-center text-dark declared-portions fs-6 w-50 mt-1" onkeydown="declared(this, event)">
-                            </small>
+                        <td class="onchange py-0 background-blue">
+                            {{ dish.declared_quantity}}
+                            {% if dish.declared_quantity >= 0  %}
+                                <small>
+                                    <input type="number" value={{ dish.declared_quantity }} class="rounded border text-center text-dark declared-portions fs-6 w-50 mt-1" onkeydown="declared(this, event)">
+                                </small>
+                            {% else %}
+                                <small>
+                                    <input type="number" class="rounded border text-center text-dark declared-portions fs-6 w-50 mt-1" onkeydown="declared(this, event)">
+                                </small>
+                            {% endif %}
                         </td>
-                        <td class="note-portions py-0">
-                            <small class="note-text">
-
-                            </small>
+                        <td class="note-portions py-0 background-blue">
+                            <small class="note-text"> </small>
                         </td>
-                        <td class="py-0">
+                        <td class="py-0 background-blue">
                             <small>
                                 <a class="disable-btn d-none" onclick="declared(this)">
-                                    <i class="btn btn-primary bx bx-check-circle fs-6 "> Declare</i>
+                                    <i class="btn btn-primary bx bx-check-circle fs-6 ">Declare</i>
                                 </a>
                             </small>
                             <small>
                                 <a class="disabled-btn-edit d-none" onclick="Edit(this)">
-                                    <i class="btn btn-primary bx bx-edit fs-6 "> Edit</i>
+                                    <i class="btn btn-primary bx bx-edit fs-6 "></i>
                                 </a>
                             </small>
                             <small>
                                 <a class="disabled-btn-add-portions d-none" onclick="addPM(this)">
-                                    <i class="btn btn-primary bx bx-plus-circle fs-6 "> Add Portions</i>
+                                    <i class="btn btn-primary bx bx-plus-circle fs-6 "></i>
                                 </a>
                             </small>
                         </td>
                     </tr>
                 {% endfor %}
                 <tr class="dish-total-rows sticky-header">
-                    <td class="bg-secondary text-light">
+                    <td class="background-blue">
                         <strong>
                             Totals
                         </strong>
                     </td>
-                    <td class="bg-secondary text-light">
+                    <td class="background-blue">
                         <small>
                             <div class="d-flex align-items-center gap-1">
                                 <span class="dish-portions fw-bold">{{total_portions}}</span>
                                 <input
                                     type="text"
                                     value="${{price}}"
-                                    class="rounded border border-2 w-25 text-center text-dark"
+                                    class="rounded border-0 w-25 text-center text-dark"
                                     disabled
                                 >
                             </div>
                         </small>
                     </td>
-                    <td class="bg-secondary text-light d-none">
+                    <td class="d-none">
                         <small>
                             <strong>
                                 ${{price}}
                             </strong>
                         </small>
                     </td>
-                    <td class="bg-secondary text-light"></td>
-                    <td class="bg-secondary text-light"></td>
-                    <td class="bg-secondary text-light"></td>
+                    <td class="background-blue"></td>
+                    <td class="background-blue"></td>
+                    <td class="background-blue"></td>
                 </tr>
             </tbody>
         </table>
@@ -179,19 +182,19 @@
     <!-- Ingredients Table -->
     <div>
         <div class="text-start text-dark py-2 mb-1">
-            <h5 class="fw-bold">Ingredients</h5>
+            <h5 class="fw-bold" style="color:#055c9d;">Ingredients</h5>
         </div>
 
-        <div class="table_container_ing">
-            <table class="table bg-light table-hover">
-                <thead>
+        <div class="table_container_ing background-blue">
+            <table class="table tablackground-blue">
+                <thead class="background-blue">
                     <tr>
                         <th class="bg-suc">Ingredients</th>
-                        <th class="text-center bg-suc">Allocated Units</th>
+                        <th class="text-center bg-suc">Kitchen Inventory</th>
                         <th class="text-center d-none">Planned Cost</th>
-                        <th class="text-center bg-suc">Units To Expect</th>
+                        <th class="text-center bg-suc">Auto Expected Usage</th>
                         <th class="text-center d-none">System Cost</th>
-                        <th class="text-center bg-suc">Actual Units</th>
+                        <th class="text-center bg-suc">Actual Usage</th>
                         <th class="text-center d-none">Actual Cost</th>
                         <th class="text-center bg-suc">Variance Units</th>
                         <th class="text-center d-none">Variance Cost</th>
@@ -200,17 +203,17 @@
                 </thead>
                 <tbody id="table_ing">
                     {% for ing in ingridients %}
-                        <tr class="py-1 px-1">
-                            <td class="ing-name">
+                        <tr class="py-1 px-1 background-blue">
+                            <td class="ing-name background-blue">
                                 <small>
                                     {{ing.name}}
                                 </small>
                             </td>
                             
-                            <td class="">
-                                <small>
-                                    <div class="d-flex justify-content-center align-items-center gap-3">
-                                        <span class="text-success fw-bold w-25">
+                            <td class="background-blue">
+                                <small class="background-blue">
+                                    <div class="d-flex justify-content-center align-items-center gap-3 background-blue">
+                                        <span class="text-success fw-bold w-25 background-blue">
                                             {% for item in allocated %}
                                                 {% if item.id == ing.id %}
                                                     {{ item.quantity|floatformat:"3" }}{{item.unit}}
@@ -220,30 +223,18 @@
                                         <input
                                             type="text"
                                             value="{% for item in allocated %}{% if item.id == ing.id %}${{ item.cost }}{% endif %}{% endfor %}"
-                                            class="rounded border border-2 w-25 text-center text-dark"
+                                            class="rounded border-0 w-25 text-center text-dark"
                                             disabled
-                                            style="appearance: none; -moz-appearance: textfield; background-color: rgb(228, 226, 226);"
                                         />
-                                        <style>
-                                            /* Remove arrows in input number for Chrome, Safari, Edge, Opera */
-                                            input[type=number].rounded::-webkit-inner-spin-button,
-                                            input[type=number].rounded::-webkit-outer-spin-button {
-                                                -webkit-appearance: none;
-                                                margin: 0;
-                                            }
-                                            /* Remove arrows in input number for Firefox */
-                                            input[type=number].rounded {
-                                                -moz-appearance: textfield;
-                                            }
-                                        </style>
+                                        
                                     </div>
                                 </small>
                             </td>
-                            <td class=" text-center d-none">
+                            <td class=" text-center d-none background-blue">
                                 <small>
                                     <div class="d-flex justify-content-center" style="gap:2px;">
                                         <span class="text-success fw-bold ing-qnty">{{ ing.quantity|floatformat:"3" }}@{{ing.unit}}</span>
-                                        <input type="text" value="${{ing.cost}}" class="ing-cost rounded border border-2 w-25 text-center text-dark" disabled style="appearance: none; -moz-appearance: textfield; background-color: rgb(228, 226, 226);">
+                                        <input type="text" value="${{ing.cost}}" class="ing-cost rounded border-0 w-25 text-center text-dark" disabled>
                                         <style>
                                             /* Remove arrows in input number for Chrome, Safari, Edge, Opera */
                                             input[type=number].rounded::-webkit-inner-spin-button,
@@ -259,7 +250,7 @@
                                     </div>
                                 </small>
                             </td>
-                            <td class=" text-center d-none">
+                            <td class=" text-center d-none background-blue">
                                 <small>
                                     ${{ing.cost}}
                                 </small>
@@ -270,87 +261,69 @@
                                         <span class="ing-pop w-25">
 
                                         </span>
-                                        <input type="text" value="" class="ing-a-costs rounded border border-2 w-25 text-center" style="background-color: rgb(228, 226, 226)" disabled>
+                                        <input type="text" value="" class="ing-a-costs rounded border-0 w-25 text-center"  disabled>
                                     </div>
                                 </small>
                             </td>
-                            <td class=" text-center text-success d-none">.</td>
-                            <td class="ing-sys text-center">
+                            <td class=" text-center text-success d-none background-blue">.</td>
+                            <td class="ing-sys text-center background-blue">
                                 <small>
                                     <div class="d-flex justify-content-center align-items-center ing-center-content">
-                                        <!--First show text box then-->
                                         <input type="number" class="rounded border border-2 w-100 text-center ing-sys-input" placeholder="Enter Quantity and press enter">
-                                        <!--Show span with entered value green bold text-->
                                         <span class="text-success fw-bold ing-sys-input-new d-none"></span>
-
-                                        <!--First show span with text then-->
                                         <span class="text-success fw-bold ing-sys-cost"></span>
-                                        <!--Show text box with ing-sys-cost-->
-                                        <input type="text" value="" class="ing-sys-cost-new rounded border border-2 w-25 text-center text-dark d-none" disabled style="background-color: rgb(228, 226, 226);">
+                                        <input type="text" value="" class="ing-sys-cost-new rounded order-0 w-25 text-center text-dark d-none" disabled>
                                     </div>
                                 </small>
                             </td>
-                            <td class=" text-center text-success d-none">.</td>
-                            <td class=" text-center">
+                            <td class=" text-center text-success d-none background-blue">.</td>
+                            <td class=" text-center background-blue">
                                 <div class="d-flex justify-content-center align-items-center gap-3">
                                     <span class="ing-variance w-25"></span>
-                                    <input type="text" value="" class="w-25 rounded border border-2 text-center ing-v-costs" style="background-color: rgb(228, 226, 226)" disabled>
+                                    <input type="text" value="" class="w-25 rounded border-0 text-center ing-v-costs" disabled>
                                 </div>
                             </td>
-                            <td class=" text-center text-danger d-none">.</td>
-                            <td class="">
+                            <td class=" text-center text-danger d-none background-blue">.</td>
+                            <td class="background-blue">
                                 <i class="btn btn-outline-primary bx bx-edit rounded" onclick="editIng(this)"></i>
                             </td>
                         </tr>
                     {% endfor %} 
                     <tr class="ing-total-rows">
-                        <td class="bg-secondary text-light">
+                        <td class="background-blue">
                             <strong>
                                 Totals
                             </strong>
                         </td>
-                        <td class="planned-cost text-center bg-secondary text-light">
+                        <td class="planned-cost text-center background-blue">
                             <small>
                                 <div class="d-flex justify-content-center align-items-center gap-3">
                                     <span class="text-white fw-bold w-25">
-                                        {{all_r_m_qnty|floatformat:'3'}}
+                                       
                                     </span>
                                     <input
                                         type="text"
                                         value="${{all_r_m_cost}}"
-                                        class="rounded border border-2 w-25 text-center text-dark"
+                                        class="rounded border-0 disabled w-25 text-center text-dark"
                                         disabled
-                                        style="appearance: none; -moz-appearance: textfield; background-color: rgb(228, 226, 226);"
                                     />
-                                    <style>
-                                        /* Remove arrows in input number for Chrome, Safari, Edge, Opera */
-                                        input[type=number].rounded::-webkit-inner-spin-button,
-                                        input[type=number].rounded::-webkit-outer-spin-button {
-                                            -webkit-appearance: none;
-                                            margin: 0;
-                                        }
-                                        /* Remove arrows in input number for Firefox */
-                                        input[type=number].rounded {
-                                            -moz-appearance: textfield;
-                                        }
-                                    </style>
                                 </div>
                             </small>
                         </td>
-                        <td class="text-center bg-secondary text-light d-none">
+                        <td class="text-center background-blue d-none">
                             <small>
                                 <strong>
                                     ${{total}}
                                 </strong>
                             </small>
                         </td>
-                        <td class="bg-secondary d-none"></td>
-                        <td class="actual-cost text-center text-light bg-secondary"></td>
-                        <td class="bg-secondary"></td>
-                        <td class="bg-secondary d-none"></td>
-                        <td class="bg-secondary d-none"></td>
-                        <td class="variance-cost text-center text-danger bg-secondary"></td>
-                        <td class="bg-secondary"></td>
+                        <td class="d-none background-blue"></td>
+                        <td class="actual-cost text-center background-blue"></td>
+                        <td class="background-blue"></td>
+                        <td class="background-blue"></td>
+                        <td class="background-blue"></td>
+                        <td class="variance-cost text-center text-danger background-blue"></td>
+                        <td class="background-blue"></td>
                     </tr>
                 </tbody>
             </table>
@@ -423,8 +396,6 @@
         </div>
     </div>
 
-
-<!--JS-->
 <script>
 
     const productionModal = new bootstrap.Modal(document.getElementById('addProductioNPlanModal'));
@@ -954,16 +925,14 @@
         varianceCostCell.innerHTML = `<small><div class="d-flex justify-content-center align-items-center gap-3"><span class="text-white fw-bold w-25"></span><input
             type="text"
             value="$${totalVarianceCost.toFixed(2)}"
-            class="rounded border border-2 w-25 text-center text-dark"
+            class="rounded border-0 w-25 text-center text-dark"
             disabled
-            style="appearance: none; -moz-appearance: textfield; background-color: rgb(228, 226, 226);"
         /></div></small>`;
         actualCostCell.innerHTML = `<small><div class="d-flex justify-content-center align-items-center gap-3"><span class="text-white fw-bold w-25"></span><input
             type="text"
             value="$${totalActualCost.toFixed(2)}"
-            class="rounded border border-2 w-25 text-center text-dark"
+            class="rounded border-0 w-25 text-center text-dark"
             disabled
-            style="appearance: none; -moz-appearance: textfield; background-color: rgb(228, 226, 226);"
         /></div></small>`;
     }
 
@@ -1443,7 +1412,6 @@
             let value = quantityVal - (lfVal + rmVal);
             actual.value = value < 0 ? 0 : value;
             actual.readOnly = true;
-            actual.style.backgroundColor = 'lightgray';
         });
     
         // Calculate total cost based on dish and portion size

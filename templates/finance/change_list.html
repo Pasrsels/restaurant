@@ -4,10 +4,10 @@
 {% block title%} Change list {% endblock%}
 {% block content %}
 <div class="Finance">
-    <nav class="d-flex justify-content-between align-items-center rounded mb-3 py-3 border-bottom">
-        <div>
-            <a href='{% url "pos:pos"%}' class='border btn bx bx-arrow-back fs-5'></a>
-            <span class='mt-2 fs-5 mx-2'>Change list</span>
+    <nav class="d-flex justify-content-between align-items-center rounded mb-2 py-2">
+        <div class='d-flex justify-content-center'>
+            <a href='{% url "pos:pos"%}' class='btn bx bx-arrow-back fs-5'></a>
+            <span class='h4 ms-2'>Change list</span>
         </div>
         <div>
             <div class="d-flex justify-content-between mt-1">
@@ -43,44 +43,51 @@
         </ul>
     </div>
     <div class='mt-3'>
-        <table class="table table-hover table=-stripped" id="change_table" style="width: 100%;">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Receipt Number</th>
-                    <th>Name</th>
-                    <th>Cashier In</th>
-                    <th>Cashier Out</th>
-                    <th>Phone number</th>
-                    <th>Amount</th>
-                    <th>Date Collected</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for change in page_obj %}
-                  <tr>
-                        <td><small>{{ change.timestamp }}</small></td>
-                        <td><small>{{ change.receipt_number }}</small></td>
-                        <td><small>{{ change.name }}</small></td>
-                        <td><small>{{ change.cashier.username }}</small></td>
-                        <td><small>{{ change.cashier_give.username }}</small></td>
-                        <td><small>{{ change.phonenumber}}</small></td>
-                        <td><small>{{ change.amount }}</small></td>
-                        <td><small>{{ change.date_collected }}</small></td>
-                        <td>
-                            {% if change.collected %}
-                                <small>
-                                     Collected
-                                </small>
-                                {% else %}
-                                    <button onclick='displayAmount({{ change.id }})' class='btn btn-outline-dark btn-sm w-100'>collect</button>
-                            {% endif %}
-                        </td>
-                  </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="d-flex mb-2">
+            <input id="change_search" type="text" class="form-control w-100" placeholder="Search..." oninput="filterTable('change_table','change_search')">
+        </div>
+        <div style="height: 70vh; min-height: 400px; overflow: auto;">
+            <table class="table table-hover table-borderless p-1 mb-0" id="change_table" style="width: 100%; table-layout: fixed;">
+                <thead class="bg-primary-subtle text-white" style="position: sticky; top: 0; z-index: 2;">
+                    <tr>
+                        <th style="min-width: 110px;">Date</th>
+                        <th>Name</th>
+                        <th>Cashier In</th>
+                        <th>Cashier Out</th>
+                        <th>Phone number</th>
+                        <th>Amount</th>
+                        <th>Amount Collected</th>
+                        <th>Balance</th>
+                        <th>Receipt Number</th>
+                        <th>Date Collected</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for change in page_obj %}
+                      <tr>
+                            <td><small>{{ change.timestamp }}</small></td>
+                            <td><small>{{ change.name }}</small></td>
+                            <td><small>{{ change.cashier.username }}</small></td>
+                            <td><small>{{ change.cashier_give.username }}</small></td>
+                            <td><small>{{ change.phonenumber}}</small></td>
+                            <td><small>{{ change.amount }}</small></td>
+                            <td><small>{{ change.amount_collected }}</small></td>
+                            <td><small>{{ change.balance }}</small></td>
+                            <td><small>{{ change.receipt_number }}</small></td>
+                            <td><small>{{ change.date_collected|default:'' }}</small></td>
+                            <td>
+                                {% if change.collected %}
+                                    <small>Collected</small>
+                                    {% else %}
+                                        <button onclick='displayAmount({{ change.id }})' class='btn btn-outline-dark btn-sm w-100'>collect</button>
+                                {% endif %}
+                            </td>
+                      </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
 
         <div class="modal fade" id="amountModal" tabindex="-1" aria-labelledby="chargeModalLabel" aria-hidden="true">
             <div class="modal-dialog bg modal-dialog-centered">
@@ -130,7 +137,7 @@
                                 autocomplete="new-password"
                                 required>
                         </div>
-                        <button id="cash_upbutton" onclick="authorization()" type="button" class="btn btn-outline-dark w-100">Authenticate</button>
+                        <button id="finance_cash_upbutton" onclick="authorization()" type="button" class="btn btn-outline-dark w-100">Authenticate</button>
                     </form>
                 </div>
             </div>
@@ -138,9 +145,18 @@
     </div>
     
    <script>
-        new DataTable('#change_table')
-
+        function filterTable(tableId, inputId){
+            const q = document.getElementById(inputId).value.toLowerCase();
+            const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+            rows.forEach(tr => {
+                const text = tr.innerText.toLowerCase();
+                tr.style.display = text.includes(q) ? '' : 'none';
+            });
+        }
+        
         let changeId = null;
+        let currentBalance = 0;
+        let currentCollected = 0;
         let authorized = true;
 
          const authModal = new bootstrap.Modal(document.getElementById('AuthorizationModal'));
@@ -243,45 +259,60 @@
                 amount:parseFloat(document.getElementById('id_amount').value)
             };
 
-            console.log(data)
-        
-            fetch('/pos/collect_change/', { 
+            fetch('/pos/collect_change/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': getCSRFToken() 
+                    'X-CSRFToken': getCSRFToken()
                 },
                 body: JSON.stringify(data)
             })
-            .then(response => response.json().then(data => ({
-                status: response.status,
-                data: data
-            })))
-            .then(res => {
-                if (res.status === 200) {
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('Network response was not ok.');
+                }
+            })
+            .then(data => {
+                if (data.success) {
                     Swal.fire({
                         icon: 'success',
                         title: 'Success!',
                         text: 'Change has been collected successfully.',
                         confirmButtonText: 'OK'
                     }).then(() => {
-                        location.reload(); 
+                        location.reload();
                     });
                 } else {
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
-                        text: res.data.message,
+                        text: data.message,
                         confirmButtonText: 'OK'
                     });
                 }
             })
             .catch(error => {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Request Failed',
-                    text: error.toString(),
-                    confirmButtonText: 'OK'
+                console.error('Fetch error:', error);
+                saveCollection(data).then(() => {
+                    return navigator.serviceWorker.ready;
+                }).then(swRegistration => {
+                    return swRegistration.sync.register('sync-pending-collections');
+                }).then(() => {
+                    Swal.fire({
+                        title: "Offline",
+                        text: "Collection saved locally. It will be synced when you're back online.",
+                        icon: "info"
+                    });
+                    $('#amountModal').modal('hide');
+                }).catch(error => {
+                    console.error('Error saving collection offline:', error);
+                    Swal.fire({
+                        title: "Error",
+                        text: "Could not save collection locally.",
+                        icon: "error"
+                    });
                 });
             });
         }

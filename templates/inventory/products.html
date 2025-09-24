@@ -2,213 +2,155 @@
 {% load static %}
 {% block title %}Products{% endblock title %}
 {% block content %}
-<div class="products">
-    <nav class='border-bottom d-flex align-items-center justify-content-between mt-2'>
-        <div>
-            <ul class="list-unstyled d-flex align-items-center">
-                <li><a href='/' class='bx bx-home btn border fs-5 mt-1'></a></li>
-                <li class='mx-2 fs-5'>Admin Inventory
-                    (<span class='mx-2 fw-bold'>{{ count }} items</span>)
-                </li>
-            </ul>
+<style>
+    .nav-back-btn{
+        background:rgba(14, 134, 212, 0.10);
+    }
+</style>
+<div class="products container-fluid">
+    <div class="d-flex flex-wrap justify-content-between my-3 gap-2">
+        <div class="d-flex align-items-center">
+            {% comment %} <a href='{% url "finance:finance"%}' class='border btn bx bx-arrow-back nav-back-btn fs-5'></a> {% endcomment %}
+            <a href='/' class='bx bx-home btn nav-back-btn fs-5 ms-1'></a>
+            <h2 class='fw-bold ms-1'>Inventory Dashboard</h2>
         </div>
-        <div>
-            <ul class="list-unstyled d-flex">
-                <li>
-                    <a href="{% url 'inventory:create_purchase_order' %}" class="btn btn-outline-dark mx-2">Add Inventory</a>
-                </li>
-                <li>
-                    <a href="{% url 'inventory:purchase_orders' %}" class="btn btn-outline-dark">Purchase Orders</a>
-                </li>
-                <li>
-                    <a href="{% url 'inventory:stocktake' %}" class="btn btn-outline-dark">Stocktake</a>
-                </li>
-                <li>
-                    <a href="{% url 'inventory:order_list' %}" class="btn btn-outline-dark mx-2">Reorder List</a>
-                </li>
-                <li>
-                    <a href="{% url 'inventory:budget' %}" class="btn btn-outline-dark mx-2">Budgets</a>
-                </li>
-            </ul>
+       <div>
+            <a href="{% url 'inventory:create_purchase_order' %}" class="btn btn-primary">
+                <i class="bx bx-plus"></i> Add New Product
+            </a>
+            <a href="{% url 'inventory:order_list' %}" class="btn btn-primary">
+                <i class="bx bx-list-ul"></i> Reorder List
+            </a>
+            <a href="{% url 'inventory:create_purchase_order' %}" class="btn btn-primary">
+                <i class="bx bx-cart-add"></i> Purchase Orders
+            </a>
+            <a href="{% url 'inventory:suppliers' %}" class="btn btn-primary">
+                <i class="bx bx-user"></i> Suppliers
+            </a>
+            <a href="{% url 'inventory:stocktake' %}" class="btn btn-primary">
+                <i class="bx bx-check-square"></i> Stocktake
+            </a>
+            <button class="btn bg-success-subtle">
+                <i class="bx bx-export"></i> Export Excel
+            </button>
         </div>
-    </nav>
-    <div class="d-flex justify-content-between mt-2 mb-2 w-100">
-        <h5>Raw Materials</h35>
-        <button onclick="printTable()" class="btn btn-primary btn-sm">Print Table</button>
     </div>
-    
-    <div class="tables">
-        <table class="table table-hover table-responsive table-bordered table-striped" id="raw_materials_table" style="width: 100%;">
-            <thead class="bg-primary">
-                <th>Name</th>
-                <th>Cost per unit</th>
-                <th>Quantity</th>
-                <th>Action</th>
-            </thead>
-            <tbody>
-                {% for raw_material in raw_materials  %}
-                    <tr>
-                        <td><small>{{ raw_material.name }}</small></td>
-                        <td><small>{{ raw_material.cost | floatformat:3 }}</small></td>
-                        <td><small>{{ raw_material.quantity | floatformat:3 }} {{ raw_material.unit }}</small></td>
-                        <td>
-                            <small>
-                                <span>
-                                    <a href="{% url 'inventory:product_detail' raw_material.id %}" class='text-dark'>
-                                        <i class='bx bx-show'></i>
-                                    </a>
-                                </span> 
-                                <span class='mx-3'>
-                                    <a href="{% url 'inventory:edit_inventory' raw_material.id %}" class="text-dark">
-                                        <i class='bx bx-edit-alt'></i>
-                                    </a>
-                                </span>
-                                
-                                <span>
-                                    <span id='delete' data-id="" onclick="productId({{raw_material.id}})" class="text-dark">
-                                        <i class='bx bx-trash-alt'></i>
-                                    </span>
-                                </span>
-                            </small>
-                        </td>
-                    </tr>
+
+    <div class="row my-3">
+        <div class="col-md-6">
+            <div class="card p-3 text-center">
+                <h6 class="text-muted">TOTAL INVENTORY COST</h6>
+                <h4 class="fw-bold">USD {{ total_inventory_cost|default:"0" }}</h4>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card p-3 text-center">
+                <h6 class="text-muted">TOTAL INVENTORY PRICE</h6>
+                <h4 class="fw-bold">USD {{ total_inventory_price|default:"0" }}</h4>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center my-3">
+        <div class="input-group w-100">
+            <input type="text" class="form-control" placeholder="Search products..." id="searchInput">
+        </div>
+        <div class="dropdown ms-1">
+            <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                All Categories
+            </button>
+            <ul class="dropdown-menu">
+                {% for category in categories %}
+                    <li>
+                        <a class="dropdown-item" href="?category={{ category.id }}">{{ category.name }}</a>
+                    </li>
                 {% endfor %}
-            </tbody>
+            </ul>
+        </div>
+    </div>
+
+    <div class="">
+        <table class="table table-hover table-responsive" id="raw_materials_table" style="width: 100%;"> 
+        <thead class="bg-primary-subtle">
+            <th>Name</th>
+            <th>Cost per unit</th> 
+            <th>Quantity</th> 
+            <th>Action</th> 
+        </thead> 
+        <tbody> 
+            {% for raw_material in raw_materials %}
+                <tr>
+                <td>{{ raw_material.name }}</td> 
+                <td>{{ raw_material.cost | floatformat:3 }}</td> 
+                <td>{{ raw_material.quantity | floatformat:3 }} {{ raw_material.unit }}</td> 
+                <td>
+                    <span>
+                        <a href="javascript:void(0);" data-id={{ raw_material.id }} class='text-dark view-product-btn'> <i class='bx bx-show'></i></a>
+                    </span> 
+                    <span class='mx-3'> 
+                        <a href="{% url 'inventory:edit_inventory' raw_material.id %}" class="text-dark"> <i class='bx bx-edit-alt'></i></a>
+                    </span> 
+                    <span id='delete' data-id="" onclick="productId({{raw_material.id}})" class="text-dark"> <i class='bx bx-trash-alt'></i></span> 
+                </td>
+                </tr> 
+                {% endfor %} 
+            </tbody> 
         </table>
     </div>
+
+    <div class="modal fade" id="productDetailModal" tabindex="-1" aria-labelledby="productDetailModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="productDetailModalLabel">Product Details</h5>
+                    <button type="button" class="btn-close bg-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="productDetailContent" class="p-3">
+                        <p class="text-center text-muted">Loading...</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
         </div>
+    </div>
+
 </div>
-<!-- <script>
-    new DataTable('#raw_materials_table')
-    // new DataTable('#products_table')
 
-    function printTable() {
-        // Select the table
-        const table = document.querySelector('#raw_materials_table');
-
-        // Open a new window
-        const printWindow = window.open('', '_blank');
-
-        // Write the table content to the new window
-        printWindow.document.write(`
-            <html>
-            <head>
-                <title>Print Table</title>
-                <link rel="stylesheet" href="{% static 'path/to/your/styles.css' %}">
-            </head>
-            <body>
-                <table style="width: 100%; border-collapse: collapse;">
-                    ${table.outerHTML}
-                </table>
-            </body>
-            </html>
-        `);
-
-        // Close the document to trigger rendering
-        printWindow.document.close();
-
-        // Wait for styles to load, then print
-        printWindow.onload = () => {
-            printWindow.print();
-            printWindow.close();
-        };
-    }
-
-</script> -->
 <script>
-    new DataTable('#raw_materials_table')
-    new DataTable('#inventory', {
-        searchable: true,
-        sortable: true,
-        paging:false
-    })
+    document.querySelectorAll('.view-product-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const productId = this.getAttribute('data-id');
+            const modalContent = document.getElementById('productDetailContent');
+            modalContent.innerHTML = '<p class="text-center text-muted">Loading...</p>';
 
-    function printTable() {
-        const rows = document.querySelectorAll('#raw_materials_table tr');
-
-        let printContent = `
-            <table style="width: 100%; border-collapse: collapse; border: 1px solid black;">
-                <thead>
-                    <tr style="background-color: #007bff; color: white; text-align: left;">
-                        <th style="padding: 8px; border: 1px solid black;">Name</th>
-                        <th style="padding: 8px; border: 1px solid black;">Cost per unit</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
-
-        rows.forEach((row, index) => {
-            if (index > 0) { // Skip the header row
-                const cells = row.querySelectorAll('td');
-                if (cells.length > 0) {
-                    const name = cells[0].innerText.trim(); 
-                    const cost = cells[1].innerText.trim(); 
-                    printContent += `
-                        <tr>
-                            <td style="padding: 8px; border: 1px solid black;">${name}</td>
-                            <td style="padding: 8px; border: 1px solid black;">${cost}</td>
-                        </tr>
+            fetch(`/inventory/product-detail/${productId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    modalContent.innerHTML = `
+                        <h2>${data.name.charAt(0).toUpperCase() + data.name.slice(1)}</h2>
+                        <p class='fs-5 text-muted'>Cost per unit: USD ${data.cost}</p>
+                        <p class'fs-5 text-muted'>Quantity: ${data.quantity} ${data.unit}</p>
+                        <h6 class="mt-4">Recent Logs</h6>
+                        <ul class="list-group">
+                            ${data.logs.map(log => `
+                                <li class="list-group-item">
+                                    ${log.timestamp} - ${log.action} by ${log.user} (Qty: ${log.quantity})
+                                </li>
+                            `).join('')}
+                        </ul>
                     `;
-                }
-            }
+                })
+                .catch(() => {
+                    modalContent.innerHTML = '<p class="text-danger text-center">Failed to load product details.</p>';
+                });
+
+            const modal = new bootstrap.Modal(document.getElementById('productDetailModal'));
+            modal.show();
         });
-
-        printContent += `
-                </tbody>
-            </table>
-        `;
-
-        const printWindow = window.open('', '_blank');
-
-        printWindow.document.write(`
-            <html>
-            <head>
-                <title>Print Name and Cost</title>
-                <style>
-                    table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        font-family: Arial, sans-serif;
-                    }
-                    th, td {
-                        border: 1px solid black;
-                        padding: 8px;
-                        text-align: left;
-                    }
-                    th {
-                        background-color: #007bff;
-                        color: white;
-                    }
-                </style>
-            </head>
-            <body>
-                ${printContent}
-            </body>
-            </html>
-        `);
-
-        printWindow.document.close();
-
-        printWindow.onload = () => {
-            printWindow.print();
-            printWindow.close();
-        };
-    }
-    
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== "") {
-          const cookies = document.cookie.split(";");
-          for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === name + "=") {
-              cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-              break;
-            }
-          }
-        }
-        return cookieValue;
-      } 
+    });
 </script>
 
 {% endblock content %}

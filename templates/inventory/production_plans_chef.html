@@ -7,26 +7,7 @@
 <script>
     // Define loadPage function immediately when script loads
     function loadPage(url, clickedElement) {
-        console.log('Loading page:', url, 'clickedElement:', clickedElement);
-        console.log('clickedElement class:', clickedElement.className) // Debug log
-
-        // Reset all request boxes to normal state
-        const allRequestBoxes = document.querySelectorAll('.request-box, .request-box-active');
-        allRequestBoxes.forEach(box => {
-            box.classList.remove('request-box-active');
-            box.classList.add('request-box');
-            box.style.transform = '';
-        });
-
-        // Set the clicked element to active state
-        if (clickedElement && clickedElement.classList.contains('request-box')) {
-            clickedElement.classList.remove('request-box');
-            clickedElement.classList.add('request-box-active');
-            clickedElement.style.transform = 'scale(0.98)';
-            console.log('Request box activated');
-        } else {
-            console.log('clickedElement is not a request-box');
-        }
+        console.log('Loading page:', url);
         const contentContainer = document.querySelector('.dynamic-content-wrapper');
         if (!contentContainer) {
             console.error('Dynamic content wrapper not found!');
@@ -268,33 +249,41 @@
     .request-box {
         background: white;
         padding: 12px;
-        border-radius: 8px;
+        border-radius: 8px 8px 0 0;
         text-decoration: none;
         color: #333;
-        transition: all 0.3s ease;
         border: 1px solid #e0e0e0;
+        border-bottom: none;
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         cursor: pointer;
+        position: relative;
+        transition: all 0.2s ease;
     }
     
-    .request-box:hover {
-        background-color: #f0f7ff;
-        border-color: #b3d7ff;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-    
-    .request-box-active {
-        background-color: #e6f2ff;
+    .request-box.active {
+        background: #f8f9fa;
         border-bottom: 4px solid #0066cc;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        transform: scale(1.02);
+        margin-bottom: -4px;
+        z-index: 1;
     }
-
-    .request-box-active h4,
-    .request-box-active .request-count,
-    .request-box-active i {
-        transform: scale(0.98);
+    
+    /* Ensure text sizes remain consistent */
+    .request-box h4,
+    .request-box-active h4 {
+        font-size: 14px !important;
+        margin: 0 0 5px 0;
+        color: #2c3e50;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .request-box .request-count,
+    .request-box-active .request-count {
+        font-size: 24px !important;
+        font-weight: 700;
+        color: #007bff;
+        transition: none !important;
     }
     
     .request-box h4 {
@@ -698,16 +687,14 @@
                     <h4><i class="fas fa-eye"></i> View Chef Requests</h4>
                     <div class="request-count chef-requests">{{ plans.count }}</div>
                 </a>
-                {% if request.user.role == 'stores_person' %}
                 <a href="#" class="request-box" onclick="loadPage('{% url 'inventory:production_declaration_table_ajax' %}', this)">
-                    <h4><i class="fas fa-eye"></i> View Declarations</h4>
+                    <h4><i class="fas fa-clipboard-check"></i> View Declarations</h4>
                     <div class="request-count declare-dishes">
                         {% with pending_declarations=declaration_plans|length %}
                             {% if pending_declarations > 0 %}{{ pending_declarations }}{% else %}0{% endif %}
                         {% endwith %}
                     </div>
                 </a>
-                {% endif %}
                 <a href="#" class="request-box" onclick="loadPage('{% url 'inventory:production_analysis_api' %}', this)">
                     <h4><i class="fas fa-chart-line"></i> Production Analysis</h4>
                     <div class="request-count" style="color: #20c997;">
@@ -841,69 +828,64 @@
     
     // Request box click functionality
     document.addEventListener('DOMContentLoaded', function() {
-        const requestBoxes = document.querySelectorAll('.request-box');
-        const contentContainer = document.querySelector('.dynamic-content-wrapper');
-        
-        requestBoxes.forEach(box => {
-            box.addEventListener('click', function(e) {
-                // Remove active class from all request boxes
-                const allRequestBoxes = document.querySelectorAll('.request-box, .request-box-active');
-                allRequestBoxes.forEach(b => {
-                    b.classList.remove('request-box-active');
-                    b.classList.add('request-box');
-                    b.style.transform = ''; // Reset transform
-                });
-                
-                // Add active class to clicked box and apply transform
-                this.classList.remove('request-box');
-                this.classList.add('request-box-active');
-                this.style.transform = 'scale(0.98)';
-                
-                // Store the active state in sessionStorage with a more specific key
-                const boxText = this.querySelector('h4').textContent.trim();
+        // Function to set active tab
+        function setActiveTab(clickedBox) {
+            // Remove active class from all boxes
+            document.querySelectorAll('.request-box').forEach(b => {
+                b.classList.remove('active');
+            });
+            
+            // Add active class to clicked box
+            if (clickedBox) {
+                clickedBox.classList.add('active');
+                // Store active state in sessionStorage
+                const boxText = clickedBox.querySelector('h4').textContent.trim();
                 sessionStorage.setItem('activeRequestBox', boxText);
-                
-                // Add a small delay to allow the active state to be visible
-                setTimeout(() => {
-                    this.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                }, 100);
-            });
-            
-            // Add hover effect
-            box.addEventListener('mouseenter', function() {
-                if (!this.classList.contains('request-box-active')) {
-                    this.style.transform = 'translateY(-2px)';
-                }
-            });
-            
-            box.addEventListener('mouseleave', function() {
-                if (!this.classList.contains('request-box-active')) {
-                    this.style.transform = '';
-                } else {
-                    this.style.transform = 'scale(0.98)';
-                }
+            }
+        }
+
+        // Set up click handlers for all request boxes
+        document.querySelectorAll('.request-box').forEach(box => {
+            box.addEventListener('click', function(e) {
+                e.preventDefault();
+                setActiveTab(this);
+                // Load the page content
+                const url = this.getAttribute('onclick').match(/loadPage\('([^']+)'/)[1];
+                loadPage(url, this);
             });
         });
         
         // Restore active state on page load
         const activeRequestBox = sessionStorage.getItem('activeRequestBox');
         if (activeRequestBox) {
-            requestBoxes.forEach(box => {
+            document.querySelectorAll('.request-box').forEach(box => {
                 const boxText = box.querySelector('h4').textContent.trim();
                 if (boxText === activeRequestBox) {
-                    box.classList.remove('request-box');
-                    box.classList.add('request-box-active');
-                    box.style.transform = 'scale(0.98)';
+                    box.classList.add('active');
                 }
             });
+        } else {
+            // Set first tab as active by default if none is active
+            const firstBox = document.querySelector('.request-box');
+            if (firstBox) firstBox.classList.add('active');
         }
     });
     
         // Override the loadPage function to track active tabs
     const originalLoadPage = window.loadPage;
     window.loadPage = function(url, clickedElement) {
-        // If clickedElement is provided, use the new system
+        // If clickedElement is provided, update active tab
         if (clickedElement) {
+            // Set the clicked tab as active
+            document.querySelectorAll('.request-box').forEach(box => {
+                box.classList.remove('active');
+            });
+            clickedElement.classList.add('active');
+            
+            // Store active state
+            const boxText = clickedElement.querySelector('h4').textContent.trim();
+            sessionStorage.setItem('activeRequestBox', boxText);
+            
             return originalLoadPage(url, clickedElement);
         }
         
@@ -916,13 +898,12 @@
                 requestBoxes.forEach(b => {
                     b.classList.remove('request-box-active');
                     b.classList.add('request-box');
-                    b.style.transform = ''; // Reset transform
                 });
                 // Add active class to the matching box
                 console.log('box', box)
                 box.classList.remove('request-box');
                 box.classList.add('request-box-active');
-                box.style.transform = 'scale(0.98)';
+               
                 
                 // Store the active state
                 const boxText = box.querySelector('h4').textContent.trim();

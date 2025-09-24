@@ -1,31 +1,9 @@
-from django.shortcuts import render, get_object_or_404, redirect
-from django.http import JsonResponse
-from .models import NotificationEmails, Modules
-from .forms import NotificationEmailForm
-from users.models import User
+from django.shortcuts import redirect, get_object_or_404, render
 from django.contrib import messages
-from loguru import logger
+from django.views.decorators.http import require_POST
+from .models import EmailNotifications, Module, User
 from django.contrib.auth.decorators import login_required
-
-
-def connection_error_view(request):
-    status = getattr(request, 'connection_time_status', None)
-    if not status:
-        from . middleware import ConnectionTimeMiddleware
-        middleware = ConnectionTimeMiddleware(lambda r: None)
-        status = middleware.verify()
-    
-    context = {
-        'status': status,
-        'internet_connected': status['internet']['connected'],
-        'internet_message': status['internet']['message'],
-        'time_accurate': status['time']['accurate'],
-        'time_message': status['time']['message'],
-        'time_difference': status['time']['difference_seconds']
-    }
-    
-    return render(request, 'connection_error.html', context)
-
+from django.http import JsonResponse
 
 @login_required
 def settings(request):
@@ -33,83 +11,78 @@ def settings(request):
 
 @login_required
 def list_emails(request):
-    emails = NotificationEmails.objects.all()
-    modules = Modules.objects.all()
-    users = User.objects.all()
+    context = {
+        'modules': Module.objects.all(),
+        'system_users': User.objects.all(),
+        'notifications': EmailNotifications.objects.select_related('module', 'user')
+    }
+    return render(request, 'settings/notifications/list.html', context)
+    
+@require_POST
+def add_email_notification(request):
+    module_id = request.POST.get("module_id")
+    email = request.POST.get("email")
+    user_id = request.POST.get("user")
 
-    logger.info(emails)
-    logger.info(modules)
-    return render(request, 'settings/notifications/list.html', 
-        {
-            'notifications': emails,
-            'modules':modules,
-            'system_users':users
-        }
+    module = get_object_or_404(Module, id=module_id)
+
+    if not email and not user_id:
+        messages.error(request, "Please provide an email or select a user.")
+        return redirect("settings:email_list")
+
+    if user_id:
+        user = get_object_or_404(User, id=user_id)
+        email = user.email
+    else:
+        user = None
+
+    existing_notification = EmailNotifications.objects.filter(
+        module=module,
+        email=email
+    ).first()
+    if existing_notification:
+        messages.warning(request, "This email is already registered for this module.")
+        return redirect("settings:email_list")
+
+    EmailNotifications.objects.create(
+        module=module,
+        email=email,
+        user=user,
+        notification_type=request.POST.get("notification_type", "create"),
+        is_active=True,
     )
 
-def create_email(request):
-    if request.method == 'POST':
-        form = NotificationEmailForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return JsonResponse({'status': 'success'})
-    else:
-        form = NotificationEmailForm()
-    return render(request, 'settings/notifications/create.html', {'form': form})
+    messages.success(request, "Email notification added successfully!")
+    return redirect("settings:email_list")
 
-def update_email(request, pk):
-    email = get_object_or_404(NotificationEmails, pk=pk)
-    if request.method == 'POST':
-        form = NotificationEmailForm(request.POST, instance=email)
-        if form.is_valid():
-            form.save()
-            return JsonResponse({'status': 'success'})
-    else:
-        form = NotificationEmailForm(instance=email)
-    return render(request, 'settings/notifications/update.html', {'form': form, 'email': email})
 
-def delete_email(request, pk):
-    email = get_object_or_404(NotificationEmails, pk=pk)
-    if request.method == 'POST':
-        email.delete()
-        return JsonResponse({'status': 'success'})
-    return render(request, 'settings/notifications/delete.html', {'email': email})
-
-@login_required
-def add_email_notification(request):
-    if request.method == 'POST':
-        module_id = request.POST.get('module_id')
-        email = request.POST.get('email')
-        user_id = request.POST.get('user')
-
-        # validation 
-        if not module_id or not email and not user_id:
-            messages.warning(request, 'Please select a user or Either fill in the email field.')
-            return redirect('settings:list_emails')
-
-        module = get_object_or_404(Modules, id=module_id)
-
-        if user_id:
-            user = get_object_or_404(User, id=user_id)
-            email = user.email
-        
-        if NotificationEmails.objects.filter(module=module, email=email).exists():
-            messages.warning(request, f'Email: {email} for module: {module.name} exists.')
-            return redirect('settings:list_emails')
-
-        NotificationEmails.objects.create(module=module, email=email)
-
-        messages.success(request, f'Email: {email} for module: {module.name} successfully added.')
-
-        return redirect('settings:list_emails') 
-    return redirect('settings:list_emails')
-
-@login_required
+@require_POST
 def remove_email_notification(request, email_id):
     try:
-        logger.info(email_id)
-        email = NotificationEmails.objects.get(id=email_id)
-        email.delete()
+        notification = get_object_or_404(EmailNotifications, id=email_id)
+        notification.delete()
         return JsonResponse({'status': 'success'}, status=200)
-    except NotificationEmails.DoesNotExist:
-        return JsonResponse({'error': 'Email not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+from django.views.decorators.http import require_http_methods
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def add_module(request):
+    if request.method == "POST":
+        name = request.POST.get("name")
+
+        if not name:
+            messages.error(request, "Module name cannot be empty.")
+            return redirect("settings:add_module")
+
+        if Module.objects.filter(name__iexact=name).exists():
+            messages.warning(request, "This module already exists.")
+            return redirect("settings:add_module")
+
+        Module.objects.create(name=name)
+        messages.success(request, f"Module '{name}' added successfully!")
+        return redirect("settings:email_list")
+
+    return render(request, "settings/modules/add_module.html")

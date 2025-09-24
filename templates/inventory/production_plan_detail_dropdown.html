@@ -1,7 +1,23 @@
 {% load static %}
+{% load humanize %}
 
 <!-- Production Plan Detail Dropdown - Full Width -->
 <div class="production-detail-dropdown">
+    {% if error %}
+    <div class="alert alert-danger">
+        <strong>Error:</strong> {{ error }}
+        {% if request.user.is_staff %}
+            <div class="mt-2">
+                <small class="text-muted">Technical details: {{ error.details|default:'' }}</small>
+            </div>
+        {% endif %}
+    </div>
+    {% else %}
+    {% if not plan %}
+    <div class="alert alert-warning">
+        No production plan data available.
+    </div>
+    {% endif %}
     <!-- Header Section -->
     <div class="dropdown-header">
         <div class="header-left">
@@ -20,10 +36,12 @@
                 <span class="status-badge {% if plan.declared %}declared{% else %}not-declared{% endif %}">
                     {% if plan.declared %}✓ Declared{% else %}✗ Not Declared{% endif %}
                 </span>
+                <a href="{% url 'inventory:production_plan_pdf_template' plan.id %}" class="btn btn-primary btn-sm" style="margin-left: 10px; text-decoration: none;" target="_blank" rel="noopener" onclick="event.stopPropagation();">
+                    <i class="fas fa-file-pdf"></i> View/Download PDF
+                </a>
             </div>
         </div>
     </div>
-
     <!-- Summary Stats -->
     <div class="summary-stats">
         <div class="stat-item">
@@ -49,68 +67,194 @@
             <div class="stat-label">Variance</div>
         </div>
     </div>
-
-                <!-- Production Tracking Table -->
-    <div class="main-content">
-            <div class="content-section">
-                    <h3 class="section-title">Production Tracking & Variance Analysis</h3>
-                <div class="data-table">
-                    <div class="table-header">
-                            <div class="header-cell">Ingredient</div>
-                            <div class="header-cell">Planned Production</div>
-                            <div class="header-cell">Expected Production</div>
-                            <div class="header-cell">Declared</div>
-                            <div class="header-cell">Actual Production</div>
-                            <div class="header-cell">Variance</div>
-                        </div>
-                        {% for material in raw_materials %}
-                    <div class="table-row">
-                            <div class="table-cell dish-name">
-                                <strong>{{ material.name }}</strong>
-                    </div>
-                            <div class="table-cell">
-                                <strong>${{ material.planned_amount|floatformat:2 }} ({{ material.quantity|floatformat:1 }})</strong>
-                </div>
-                            <div class="table-cell">
-                                <strong>${{ material.expected_amount|floatformat:2 }} ({{ material.quantity|floatformat:1 }})</strong>
-            </div>
-                            <div class="table-cell">
-                                {% if plan.declared %}
-                                    <strong>${{ material.declared_amount|floatformat:2 }} ({{ material.expected_quantity|floatformat:1 }})</strong>
-                                {% else %}
-                                    <strong>$0.00 (0)</strong>
-                                {% endif %}
-                        </div>
-                            <div class="table-cell">
-                                {% if plan.declared %}
-                                    <strong>${{ material.actual_amount|floatformat:2 }} ({{ material.expected_quantity|floatformat:1 }})</strong>
-                                {% else %}
-                                    <strong>$0.00 (0)</strong>
-            {% endif %}
+    
+    <!-- Dish List -->
+    <div class="dishes-section" style="margin: 20px 0; padding: 0 20px;">
+        <h3 style="color: #333; margin: 0 0 15px 0; font-size: 16px; font-weight: 600;">Dishes in this Plan</h3>
+        {% if not plan_items %}
+        <div class="alert alert-info">
+            No dishes found in this production plan.
         </div>
-                            <div class="table-cell">
-                                {% if plan.declared %}
-                                    {% with production_variance=material.expected_quantity|add:0|add:"-"|add:material.quantity %}
-                                        {% if production_variance > 0 %}
-                                            <span class="variance-positive"><strong>+${{ material.variance_amount|floatformat:2 }}</strong></span> <strong>({{ production_variance|floatformat:1 }})</strong>
-                                        {% elif production_variance < 0 %}
-                                            <span class="variance-negative"><strong>${{ material.variance_amount|floatformat:2 }}</strong></span> <strong>({{ production_variance|floatformat:1 }})</strong>
-                                        {% else %}
-                                            <span class="variance-neutral"><strong>$0.00</strong></span> <strong>(0)</strong>
-                                        {% endif %}
-                                    {% endwith %}
+        {% else %}
+        <table class="production-table" style="width: 100%; margin-bottom: 25px;">
+            <thead>
+                <tr>
+                    <th style="text-align: left; padding: 12px; border-bottom: 1px solid #e0e0e0;">Dish</th>
+                    <th style="text-align: right; padding: 12px; border-bottom: 1px solid #e0e0e0;">Planned Portions</th>
+                    <th style="text-align: right; padding: 12px; border-bottom: 1px solid #e0e0e0;">Actual Portions</th>
+                    <th style="text-align: right; padding: 12px; border-bottom: 1px solid #e0e0e0;">Dish Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in plan_items %}
+                <tr>
+                    <td style="padding: 12px; border-bottom: 1px solid #f0f0f0;">
+                        {{ item.dish.name }}
+                    </td>
+                    <td style="text-align: right; padding: 12px; border-bottom: 1px solid #f0f0f0;">
+                        <div class="quantity-box" style="display: inline-block; padding: 5px 10px; background-color: #f8f9fa; border-radius: 4px; font-weight: 500;">
+                            {{ item.portions|default:0 }}
+                        </div>
+                    </td>
+                    <td style="text-align: right; padding: 12px; border-bottom: 1px solid #f0f0f0;">
+                        <div class="quantity-box" style="display: inline-block; padding: 5px 10px; background-color: #f8f9fa; border-radius: 4px; font-weight: 500;">
+                            {{ item.portions_sold|default:0 }}
+                        </div>
+                    </td>
+                    <td style="text-align: right; padding: 12px; border-bottom: 1px solid #f0f0f0;">
+                        <div class="quantity-box" style="display: inline-block; padding: 5px 10px; background-color: #f8f9fa; border-radius: 4px; font-weight: 500;">
+                            ${{ item.dish.price|default:0|floatformat:2 }}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" style="padding: 15px; text-align: center; color: #666;">No dishes found in this plan</td>
+                </tr>
+                {% endfor %}
+                <!-- Totals Row -->
+                <tr style="background-color: #f8f9fa; font-weight: 600;">
+                    <td style="padding: 12px; border-top: 2px solid #e0e0e0;">Totals</td>
+                    <td style="text-align: right; padding: 12px; border-top: 2px solid #e0e0e0;">
+                        <div class="quantity-box" style="display: inline-block; padding: 5px 10px; background-color: #f0f0f0; border-radius: 4px; font-weight: 600;">
+                            {{ total_planned_portions|default:0 }}
+                        </div>
+                    </td>
+                    <td style="text-align: right; padding: 12px; border-top: 2px solid #e0e0e0;">
+                        <div class="quantity-box" style="display: inline-block; padding: 5px 10px; background-color: #f0f0f0; border-radius: 4px; font-weight: 600;">
+                            {{ total_actual_portions|default:0 }}
+                        </div>
+                    </td>
+                    <td style="text-align: right; padding: 12px; border-top: 2px solid #e0e0e0;">
+                        <div class="quantity-box" style="display: inline-block; padding: 5px 10px; background-color: #f0f0f0; border-radius: 4px; font-weight: 600;">
+                            ${{ plan.total_cost|default:0|floatformat:2 }}
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+
+    {% if ingredients %}
+    <!-- Consolidated Ingredients Summary -->
+    <div class="ingredients-section" style="margin: 30px 0; padding: 0 20px;">
+        <h3 style="color: #333; margin: 0 0 15px 0; font-size: 16px; font-weight: 600;">Consolidated Ingredients</h3>
+        <table class="production-table" style="width: 100%;">
+            <thead style="position:sticky; top:0; background:#fff; z-index:1;">
+                <tr>
+                    <th style="text-align: left; padding: 12px; border-bottom: 1px solid #e0e0e0;">Ingredient</th>
+                    <th style="text-align: right; padding: 12px; border-bottom: 1px solid #e0e0e0;">Allocated Units | Price</th>
+                    <th style="text-align: right; padding: 12px; border-bottom: 1px solid #e0e0e0;">Units To Expect | Price</th>
+                    <th style="text-align: right; padding: 12px; border-bottom: 1px solid #e0e0e0;">Declared Units | Price</th>
+                    <th style="text-align: right; padding: 12px; border-bottom: 1px solid #e0e0e0;">Variance ($)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ing in ingredients %}
+                    <tr>
+                        <td style="padding: 12px; border-bottom: 1px solid #f0f0f0;">{{ ing.name }}</td>
+                        <td style="text-align: right; padding: 12px; border-bottom: 1px solid #f0f0f0;">
+                            {{ ing.allocated_quantity|floatformat:3 }} {{ ing.unit }} | ${{ ing.allocated_cost|floatformat:2 }}
+                        </td>
+                        <td style="text-align: right; padding: 12px; border-bottom: 1px solid #f0f0f0;">
+                            {{ ing.quantity_required|floatformat:3 }} {{ ing.unit }} | ${{ ing.total_cost|floatformat:2 }}
+                        </td>
+                        <td style="text-align: right; padding: 12px; border-bottom: 1px solid #f0f0f0;">
+                            {{ ing.declared_quantity|floatformat:3 }} {{ ing.unit }} | ${{ ing.declared_cost|floatformat:2 }}
+                        </td>
+                        <td style="text-align: right; padding: 12px; border-bottom: 1px solid #f0f0f0;">
+                            {% with variance=ing.variance_amount %}
+                                {% if variance > 0 %}
+                                    <span style="background:#d4edda;color:#0f5132; padding:2px 6px; border-radius:4px;">+${{ variance|floatformat:2 }}</span>
+                                {% elif variance < 0 %}
+                                    <span style="background:#f8d7da;color:#842029; padding:2px 6px; border-radius:4px;">${{ variance|floatformat:2 }}</span>
                                 {% else %}
-                                    <span class="variance-neutral"><strong>-</strong></span>
+                                    <span style="color:#6c757d;">$0.00</span>
                                 {% endif %}
-                </div>
-                    </div>
-                    {% endfor %}
-            </div>
+                            {% endwith %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                <!-- Calculate totals -->
+                {% with '' as dummy %}
+                    {% with total_allocated=0 total_cost=0 total_declared=0 total_variance=0 %}
+                        {% for ing in ingredients %}
+                            {% with total_allocated=ing.allocated_quantity|add:total_allocated %}
+                            {% with total_cost=ing.total_cost|add:total_cost %}
+                            {% with total_declared=ing.declared_quantity|add:total_declared %}
+                            {% with total_variance=ing.variance_amount|add:total_variance %}
+                            {% endwith %}{% endwith %}{% endwith %}{% endwith %}
+                        {% endfor %}
+                        <!-- Totals Row -->
+                        <tr style="background-color: #e9ecef; font-weight: 700;">
+                            <td style="padding: 12px; border-top: 2px solid #dee2e6;">Grand Total</td>
+                            <td style="text-align: right; padding: 12px; border-top: 2px solid #dee2e6;">
+                                {{ total_allocated|floatformat:3 }} {{ ingredients.0.unit }}
+                            </td>
+                            <td style="text-align: right; padding: 12px; border-top: 2px solid #dee2e6;">
+                                ${{ total_cost|floatformat:2 }}
+                            </td>
+                            <td style="text-align: right; padding: 12px; border-top: 2px solid #dee2e6;">
+                                {{ total_declared|floatformat:3 }} {{ ingredients.0.unit }}
+                            </td>
+                            <td style="text-align: right; padding: 12px; border-top: 2px solid #dee2e6;">
+                                {% if total_variance > 0 %}
+                                    <span style="background:#d4edda;color:#0f5132; padding:2px 6px; border-radius:4px;">+${{ total_variance|floatformat:2 }}</span>
+                                {% elif total_variance < 0 %}
+                                    <span style="background:#f8d7da;color:#842029; padding:2px 6px; border-radius:4px;">${{ total_variance|floatformat:2 }}</span>
+                                {% else %}
+                                    <span style="color:#6c757d;">$0.00</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endwith %}
+                {% endwith %}
+                </tbody>
+            </table>
+        </div>
+            </table>
         </div>
     </div>
+    {% else %}
+    <div class="alert alert-info" style="margin: 20px;">
+        No raw materials data available for this production plan.
+        {% if not plan_items %}
+            <div class="mt-2">
+                <i class="fas fa-info-circle"></i> This production plan doesn't contain any dishes or items.
+            </div>
+        {% endif %}
+    </div>
+    {% endif %}
 </div>
+{% endif %}
 
 <style>
+    .alert {
+        padding: 15px;
+        margin-bottom: 15px;
+        border: 1px solid transparent;
+        border-radius: 4px;
+    }
+    
+    .alert-danger {
+        color: #721c24;
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+    }
+    
+    .alert-warning {
+        color: #856404;
+        background-color: #fff3cd;
+        border-color: #ffeeba;
+    }
+    
+    .alert-info {
+        color: #0c5460;
+        background-color: #d1ecf1;
+        border-color: #bee5eb;
+    }
+    
     .production-detail-dropdown {
         width: 100%;
         background: white;
@@ -371,12 +515,10 @@
 
     .variance-negative {
         color: #000000 !important;
-        font-weight: 700;
     }
-
+    
     .variance-neutral {
-        color: #000000 !important;
-        font-weight: 700;
+        color: #6c757d !important;
     }
 
     /* Summary Grid */

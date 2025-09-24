@@ -131,6 +131,7 @@
             <button class="header-btn" onclick="window.location.href='{% url 'inventory:end_of_day_detail' end_of_day.id %}?download=download'" title="Download PDF">
                 <i class="bx bx-download"></i> Download PDF
             </button>
+            <a href="{% url 'inventory:generate-report' end_of_day.id %}">d</a>
         </div>
     </div>
     <div class="search-container border mt-2">

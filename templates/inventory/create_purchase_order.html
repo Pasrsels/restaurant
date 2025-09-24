@@ -329,6 +329,13 @@
                                 Finished Product
                             </label> 
                           </div> 
+                          <div class="mb-3"> 
+                            <div id="div_id_packaging" class="form-check"> 
+                              <input type="checkbox" name="packaging" class="checkboxinput form-check-input" id="id_packaging"> 
+                              <label for="id_service" class="form-check-label">
+                                Packaging
+                            </label> 
+                          </div> 
                         </div>
                         <p class='text-danger' id='error'></p>
                           <div class="d-flex justify-content-end">
@@ -642,7 +649,8 @@
             min_stock_level: parseInt(document.getElementById('id_min_stock_level').value),
             description: document.getElementById('id_description').value,
             raw_material: document.getElementById('id_raw_material').checked,
-            finished_product: document.getElementById('id_finished_product').checked
+            finished_product: document.getElementById('id_finished_product').checked,
+            packaging: document.getElementById('id_packaging').checked,
         };
 
         console.log(data);

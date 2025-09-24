@@ -15,7 +15,6 @@
                 <div>
                     <img src="{% static 'assets/pngs/sell.png'%}" alt="sell_icon" width="100rem">
                 </div>
-                <p class="mt-1">Point Of Sale</p>
             </div>
         </div>
     </a>
@@ -25,7 +24,6 @@
                 <div>
                     <img src="{% static 'assets/pngs/dashboard.png'%}" alt="dashboard_icon" width="100rem">
                 </div>
-                <p class="mt-1">Analytics</p>
             </div>
         </div>
     </a>
@@ -35,7 +33,6 @@
                 <div>
                     <img src="{% static 'assets/pngs/product.png'%}" alt="product_icon" width="100rem">
                 </div>
-                <p class="mt-1">Products</p>
             </div>
         </div>
     </a>
@@ -45,7 +42,6 @@
                 <div>
                     <img src="{% static 'assets/pngs/plan.png'%}" alt="plan_icon" width="100rem">
                 </div>
-                <p class="mt-1">Production</p>
             </div>
         </div>
     </a>
@@ -55,7 +51,6 @@
                 <div>
                     <img src="{% static 'assets/pngs/bars.png'%}" alt="plan_icon" width="100rem">
                 </div>
-                <p class="mt-1">Finance</p>
             </div>
         </div>
     </a>
@@ -65,7 +60,6 @@
                 <div>
                     <img src="{% static 'assets/pngs/users.png'%}" alt="plan_icon" width="100rem">
                 </div>
-                <p class="mt-1">Users</p>
             </div>
         </div>
     </a>
@@ -75,7 +69,6 @@
                 <div>
                     <img src="{% static 'assets/pngs/settings.png'%}" alt="plan_icon" width="100rem">
                 </div>
-                <p class="mt-1">Settings</p>
             </div>
         </div>
     </a>
@@ -85,9 +78,30 @@
                 <div>
                     <img src="{% static 'assets/pngs/reports.jpg'%}" alt="plan_icon" width="100rem">
                 </div>
-                <p class="mt-1">End Of Day List</p>
             </div>
-        </div>
-    </a>
+        </a>
+    </div>
 </div>
+
+<script>
+    const socket = new WebSocket('ws://' + window.location.host + '/ws/sales/');
+
+    socket.onopen = function() {
+        console.log('WebSocket connection established');
+    };
+
+    socket.onerror = function(error) {
+        console.error('WebSocket error:', error);
+    };
+
+    socket.onmessage = function(e) {
+        const message = JSON.parse(e.data);
+        console.log(message['data'], 'web socket data');
+        
+        const totalSalesElement = document.getElementById('total-sales');
+        if (totalSalesElement) {
+            totalSalesElement.innerText = `$${message['data']['total_sales']}`;
+        }
+    };
+</script>
 {% endblock content %}

@@ -9,10 +9,13 @@ urlpatterns = [
     path('products/', products, name='products'),
     path('create/product/', product, name='product'),
     path('edit/product/<int:product_id>/', edit_inventory, name='edit_inventory'),
-    path('product/detail/<int:product_id>/', product_detail, name='product_detail'),
+    path('product-detail/<int:product_id>/', product_detail, name='product-detail'),
     path('add/product/category/', add_product_category, name='add_product_category'),
     path('raw_material_json/', raw_material_json, name='raw_material_json'),
     path('product-history/', productHistory, name='product_history'),
+    path('inventory/stock-movement/', stock_movement_view, name='stock_movement'),
+    path('inventory/filter-products/', filter_products, name='filter_products'),
+    # path('inventory/stock-detail/<int:product_id>/', views.product_detail, name='product_detail'),
 
     path('inventory/', inventory, name='inventory_list'),
     
@@ -21,10 +24,11 @@ urlpatterns = [
     
     # production plan 
     path('production/plan/list', production_plans, name='production_plans'),
+    path('production-plan/<int:pp_id>/detail/', production_detail, name='production_detail'),
     path('production/plan/ajax', production_plans_ajax, name='production_plans_ajax'),
     path('production/plan/admin', production_plans_admin, name='production_plans_admin'),
     path('production/declaration/table/ajax', production_declaration_table_ajax, name='production_declaration_table_ajax'),
-    path('production_plan/detail/<int:plan_id>/ajax', production_plan_detail_ajax, name='production_plan_detail_ajax'),
+    path('production_plan/detail/<int:plan_id>/ajax/', production_plan_detail_ajax, name='production_plan_detail_ajax'),
     path('production_plan/allocations/<int:plan_id>/', production_plan_allocations_ajax, name='production_plan_allocations_ajax'),
     path('create/production/plan/ajax', create_production_plan_ajax, name='create_production_plan_ajax'),
     path('dishes/ajax', dish_list_ajax, name='dish_list_ajax'),
@@ -34,7 +38,7 @@ urlpatterns = [
     path('confirm_declaration/', confirm_declaration, name='confirm_declaration'),
     path('create/production/plan', create_production_plan, name='create_production_plan'),
     path('yesterdays/left/overs/', yeseterdays_left_overs, name='yeseterdays_left_overs'),
-    path('declared/production/plan/', yeseterdays_left_overs, name='declared_production_plan'),
+    path('declared/production_plan/', yeseterdays_left_overs, name='declared_production_plan'),
     path('update_production_plan/<int:pp_id>/', update_production_plan, name='update_production_plan'),
     path('production_plan/detail/<int:pp_id>/', production_plan_detail, name='production_plan_detail'),
     path('view/production/plan/<int:pp_id>/', view_production_plan, name='view_production_plan'),
@@ -57,6 +61,9 @@ urlpatterns = [
     path('production-plan/delete/<int:id>/', production_plan_delete, name="production_plan_delete"),
     path('declare-production-plan/<int:pp_id>/', new_declare_production, name="declare_production"),
     path('latest-declare-production-plan/', latest_declare_production, name="latest_declare_production"),
+
+    # PDF download
+    path('production_plan/<int:plan_id>/pdf-template/', production_plan_pdf_template, name='production_plan_pdf_template'),
 
     # Store Checklist URLs
     path('store/checklist/ajax', store_checklist_ajax, name='store_checklist_ajax'),
@@ -155,5 +162,8 @@ urlpatterns = [
     path('stocktake/detail/<int:stocktake_id>/', stocktake_detail, name='stock_take_detail'),
     path('recorder/stocktake/', record_stock_take, name='record_stock_take'),
     path('stocktake/accept-variance/', accept_variance, name='accept_variance'),
-    path('stocktake/undo/recording/', undo_record_stock_take, name='undo_record_stock_take')
+    path('stocktake/undo/recording/', undo_record_stock_take, name='undo_record_stock_take'),
+    
+    # report
+    path('generate/report/<int:eod_id>/', generate_report, name='generate-report')
 ]

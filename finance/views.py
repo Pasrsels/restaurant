@@ -21,6 +21,7 @@ from django.contrib.auth.decorators import login_required
 from inventory.models import Logs
 from permisions.permisions import admin_required
 from collections import defaultdict
+from .utilities import *
 
 def get_previous_month():
     first_day_of_current_month = datetime.datetime.now().replace(day=1)
@@ -69,7 +70,7 @@ def get_expense(request, expense_id):
         'amount': expense.amount,
         'description': expense.description,
         'category': expense.category.id,
-        'branch_name': expense.branch.name,
+        'branch_name': expense.branch.branch_name,
         'branch_id':expense.branch.id
     }
     return JsonResponse({'success': True, 'data': data})
@@ -212,7 +213,8 @@ def expenses(request):
             return JsonResponse({'success': False, 'message': str(e)}, status=400)
 
 @admin_required
-@login_required      
+@login_required
+@login_required
 def add_or_edit_expense(request):
     if request.method == 'POST':
         try:
@@ -223,35 +225,52 @@ def add_or_edit_expense(request):
             expense_id = data.get('id')
 
             if not amount or not description or not category_id:
-                return JsonResponse({'success': False, 'message': 'Missing fields: amount, description, category.'})
-            
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Missing fields: amount, description, category.'
+                }, status=400)
+
             category = get_object_or_404(ExpenseCategory, id=category_id)
 
-            if expense_id:  
+            if expense_id:
+                # Update existing expense
                 expense = get_object_or_404(Expense, id=expense_id)
                 before_amount = expense.amount
-                
+
                 expense.amount = amount
                 expense.description = description
                 expense.category = category
                 expense.save()
                 message = 'Expense successfully updated'
-                
+
                 try:
                     cashbook_expense = CashBook.objects.get(expense=expense)
                     expense_amount = Decimal(expense.amount)
                     if cashbook_expense.amount < expense_amount:
                         cashbook_expense.amount = expense_amount
-                        cashbook_expense.description = cashbook_expense.description + f'Expense (update from {before_amount} to {cashbook_expense.amount})'
+                        cashbook_expense.description += f' Expense (update from {before_amount} to {cashbook_expense.amount})'
                     else:
                         cashbook_expense.amount -= cashbook_expense.amount - expense_amount
-                        cashbook_expense.description = cashbook_expense.description + f'(update from {before_amount} to {cashbook_expense.amount})'
+                        cashbook_expense.description += f' (update from {before_amount} to {cashbook_expense.amount})'
                     cashbook_expense.save()
                 except Exception as e:
                     return JsonResponse({'success': False, 'message': str(e)}, status=400)
+            else:
+                # Create new expense
+                expense = Expense.objects.create(
+                    amount=amount,
+                    description=description,
+                    category=category
+                )
+                message = 'Expense successfully created'
+
             return JsonResponse({'success': True, 'message': message}, status=201)
+
         except Exception as e:
+            # Debugging line
+            print("DEBUG ERROR:", str(e))
             return JsonResponse({'success': False, 'message': str(e)}, status=400)
+
     return JsonResponse({'success': False, 'message': 'Invalid request method'}, status=400)
 
 
@@ -736,6 +755,7 @@ def cash_up(request):
               cashed_amount:float,  
             } 
         """
+        from inventory.models import EndOfDay, EndOfDayCashier
         
         try:
             data = json.loads(request.body)
@@ -745,14 +765,37 @@ def cash_up(request):
             if cashed_amount < 0:
                 return JsonResponse({'success':False, 'message':f'Cashed amount cannot be less than zero.'}, status=400)
             
-            cash_up = CashUp.objects.get(cashier__id=cashier, cashed=False, branch=request.user.branch)
-            cash_up.cashed_amount = Decimal(cashed_amount)
+            with transaction.atomic():
+                cash_up = CashUp.objects.get(cashier__id=cashier, cashed=False, branch=request.user.branch)
+                cash_up.cashed_amount = Decimal(cashed_amount)
 
-            cash_up.difference = cash_up.cashed_amount - (cash_up.sales - cash_up.void_amount - cash_up.expenses + cash_up.change)
-            cash_up.cashed = True
-            cash_up.save()
-
+                cash_up.difference = cash_up.cashed_amount - (cash_up.sales - cash_up.void_amount - cash_up.expenses + cash_up.change)
+                cash_up.cashed = True
+                
+                end_of_day = EndOfDay.objects.filter(branch=request.user.branch, date=cash_up.date).first()
+                
+                logger.info(f' End of day: {end_of_day}')
+                
+                sales = calculate_cashier_sales(cash_up.cashier, cash_up.date, request.user.branch)
+                expense = calculate_cashier_expenses(cash_up.cashier, cash_up.date, request.user.branch)
+                
+                logger.info(f'sales {sales}')
+                
+                EndOfDayCashier.objects.create(
+                    end_of_day = end_of_day,
+                    cashier = cash_up.cashier,
+                    cashed_amount = Decimal(cashed_amount),
+                    sales = sales['normal_sales'],
+                    voids = sales['void_sales'],
+                    expenses = expense['expenses_total'],
+                    variance = Decimal(sales['normal_sales']) - Decimal(cashed_amount)
+                )
+        
+                end_of_day.save()
+                cash_up.save()
+                logger.success(f'Cash up recorded successfully!')
         except Exception as e:
+            logger.error(f'Error processing cashup {e}')
             return JsonResponse({'success':False, 'message':f'{e}'}, status=400)
         return JsonResponse({'success':True, 'message':f'Cash Up successfully created'}, status=201)
     return JsonResponse({'success':False, 'message':f'Invalid request'}, status=405)
@@ -944,13 +987,95 @@ def days_data(request):
 
 @login_required
 def transaction_logs(request):
-    transactions = Logs.objects.filter(sale__date = datetime.date.today(), sale__branch = request.user.branch)
-    sale_items = SaleItem.objects.filter(sale__date = datetime.date.today(), sale__branch = request.user.branch)
+    """Transaction logs with date filters and pagination (supports JSON for infinite scroll)."""
+    filter_option = request.GET.get('filter', 'today')
+    start_date_param = request.GET.get('start_date')
+    end_date_param = request.GET.get('end_date')
+    page = int(request.GET.get('page', 1))
+    page_size = int(request.GET.get('page_size', 30))
+    fmt = request.GET.get('format') 
 
-    return render(request, 'transaction_logs.html', {
-        'sale_items':sale_items,
-        'transactions':transactions
-    })
+    now = datetime.datetime.now()
+    end_date = now
+
+    if filter_option == 'today':
+        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    elif filter_option == 'this_week':
+        start_date = now - timedelta(days=now.weekday())
+    elif filter_option == 'yesterday':
+        start_date = (now - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    elif filter_option == 'this_month':
+        start_date = now.replace(day=1)
+    elif filter_option == 'last_month':
+        start_date = (now.replace(day=1) - timedelta(days=1)).replace(day=1)
+        end_date = (now.replace(day=1) - timedelta(days=1)).replace(hour=23, minute=59, second=59, microsecond=999999)
+    elif filter_option == 'this_year':
+        start_date = now.replace(month=1, day=1)
+    elif filter_option == 'custom' and start_date_param and end_date_param:
+        start_date = datetime.datetime.strptime(start_date_param, '%Y-%m-%d')
+        end_date = datetime.datetime.strptime(end_date_param, '%Y-%m-%d')
+    else:
+        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_date = now
+
+    qs = Logs.objects.select_related('sale', 'user').filter(
+        sale__date__gte=start_date.date(),
+        sale__date__lte=end_date.date(),
+        sale__branch=request.user.branch
+    ).order_by('-timestamp')
+    
+    print('transactions', qs)
+
+    total_count = qs.count()
+    start_index = (page - 1) * page_size
+    end_index = start_index + page_size
+    page_qs = qs[start_index:end_index]
+    has_next = end_index < total_count
+
+    sale_ids = [log.sale_id for log in page_qs if log.sale_id]
+    sale_items_qs = SaleItem.objects.select_related('sale', 'meal', 'dish', 'product').filter(
+        sale_id__in=sale_ids,
+        sale__branch=request.user.branch
+    )
+    sale_id_to_items = {}
+    for si in sale_items_qs:
+        label = None
+        if getattr(si, 'meal_id', None):
+            label = f"{si.meal} x {si.quantity}"
+        elif getattr(si, 'dish_id', None):
+            label = f"{si.dish} x {si.quantity}"
+        elif getattr(si, 'product_id', None):
+            label = f"{si.product.name} x {si.quantity}"
+        if label:
+            sale_id_to_items.setdefault(si.sale_id, []).append(label)
+
+    if fmt == 'json':
+        items = []
+        for log in page_qs:
+            if not log.sale_id:
+                continue
+            items.append({
+                'timestamp': log.timestamp.strftime('%Y-%m-%d %H:%M:%S') if hasattr(log.timestamp, 'strftime') else str(log.timestamp),
+                'cashier': getattr(getattr(log, 'user', None), 'username', ''),
+                'receipt_number': getattr(log.sale, 'receipt_number', ''),
+                'products': sale_id_to_items.get(log.sale_id, []),
+                'total_amount': str(getattr(log.sale, 'total_amount', '')),
+                'change': str(getattr(log.sale, 'change', '')),
+            })
+        return JsonResponse({'success': True, 'items': items, 'has_next': has_next, 'next_page': page + 1 if has_next else None})
+    
+    print(page_qs)
+
+    context = {
+        'transactions': page_qs,
+        'sale_items': sale_items_qs,
+        'has_next': has_next,
+        'page_size': page_size,
+        'filter_option': filter_option,
+        'start_date': start_date.date(),
+        'end_date': end_date.date(),
+    }
+    return render(request, 'transaction_logs.html', context)
 
 @login_required
 def cashier_expenses(request, cashier_id):
