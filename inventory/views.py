@@ -64,6 +64,7 @@ from utils.supplier_best_price import best_price
 from utils.utils import render_to_pdf
 from permisions.permisions import admin_required, chef_only_required, stores_person_only_required, chef_or_stores_view_required
 from loguru import logger
+from inventory.models import *
 
 def is_ajax(request):
     """Check if the request is an AJAX request"""
@@ -166,7 +167,6 @@ def products(request):
 
 
 def finishedProduct(cashier_id):
-    PurchaseOrder = get_purchase_order_model()
     product_info = Product.objects.filter(finished_product=True)
 
     today = datetime.datetime.today()
@@ -243,7 +243,7 @@ def finishedProduct(cashier_id):
 
     logger.info({'final_stock_data': product_list})
 
-    sendProductHistory.delay(product_list)
+    # sendProductHistory.delay(product_list)
 
     return product_list
 

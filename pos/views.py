@@ -32,9 +32,6 @@ from inventory.models import (
     Dish,
     Ingredient
 )
-
-def get_purchase_order_model():
-    return apps.get_model('inventory', 'PurchaseOrder')
 from inventory.views import finishedProduct
 from .models import SaleAuthorization
 from finance.models import SaleItem, Sale
@@ -84,7 +81,17 @@ def lowStockNotification(request):
 @login_required
 def pos(request):
     form = ProductionPlanInlineForm()
-    low_stock = DailyLowStockFlag.objects.filter(is_active=True)
+    low_stock_qs = DailyLowStockFlag.objects.filter(is_active=True)
+    low_stock = []
+    for flag in low_stock_qs:
+        low_stock.append({
+            'meal': {'name': flag.meal.name} if flag.meal else None,
+            'dish': {'name': flag.dish.name} if flag.dish else None,
+            'message': flag.message if hasattr(flag, 'message') else '',
+            'threshold': flag.threshold if hasattr(flag, 'threshold') else '',
+            'current_portions': flag.current_portions if hasattr(flag, 'current_portions') else '',
+        })
+        
     meals = Meal.objects.filter(deactivate=False, branch = request.user.branch).select_related('branch', 'category')
     products = Product.objects.filter(raw_material=False, branch = request.user.branch).select_related('branch', 'category')
     dishes = Dish.objects.filter(branch = request.user.branch).select_related('branch')
@@ -852,7 +859,7 @@ def void_authenticate(request):
         
 @login_required
 def cash_up(request, cashier_id):
-    PurchaseOrder = get_purchase_order_model()
+    # PurchaseOrder = get_purchase_order_model()
     logger.info(f'Cash up requested for cashier_id: {cashier_id} by user: {request.user.username}')
     
     if request.method == 'GET':

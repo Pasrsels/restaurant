@@ -12,11 +12,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RenameField(
-            model_name="endofday",
-            old_name="cashed_amount",
-            new_name="variance",
-        ),
         migrations.AddField(
             model_name="product",
             name="updated_at",

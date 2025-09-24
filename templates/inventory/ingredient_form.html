@@ -4,7 +4,7 @@
 {% block title %}Create Dish{% endblock title %}
 
 {% block content %}
-<div class="mt-5">
+<div class="mt-">
   <div class="card border-0">
     <div class="card-body">
       <h4 class="card-title mb-4">Create New Dish</h4>
@@ -13,7 +13,6 @@
         <div class="progress-bar bg-primary" id="progress-bar" style="width: 33%">Step 1 of 3</div>
       </div>
 
-      <!-- Step 1 -->
       <div class="step" id="step-1">
         <h5 class="mb-3">Step 1: Dish Information</h5>
         <form id="dish-info-form">
@@ -34,13 +33,39 @@
           <div class="d-flex justify-content-between align-content-center gap-2">
             <div class="mb-3 w-100">
               <label for="id_category" class="form-label requiredField">Category<span class="asteriskField">*</span></label>
-              <select name="category" class="select form-select" required id="id_category">
-                <option value="" selected>---------</option>
-                <option value="Fast food">Fast food</option>
-                <option value="Meat">Meat</option>
-                <option value="Starch">Starch</option>
-                <option value="Salad">Salad</option>
-              </select>
+              <div class="input-group">
+                <select name="category" class="select form-select" required id="id_category">
+                  <option value="" selected>---------</option>
+                  <option value="Fast food">Fast food</option>
+                  <option value="Meat">Meat</option>
+                  <option value="Starch">Starch</option>
+                  <option value="Salad">Salad</option>
+                </select>
+                <button type="button" class="btn btn-outline-success" id="add-category-btn" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+                  <i class="bx bx-plus"></i>
+                </button>
+              </div>
+<!-- Add Category Modal -->
+<div class="modal fade" id="addCategoryModal" tabindex="-1" aria-labelledby="addCategoryModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addCategoryModalLabel">Add New Category</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label for="new-category-name" class="form-label">Category Name</label>
+          <input type="text" class="form-control" id="new-category-name" placeholder="Enter category name">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="save-category-btn">Add Category</button>
+      </div>
+    </div>
+  </div>
+</div>
             </div>
 
             <div class="mb-3 w-100">
@@ -49,40 +74,28 @@
             </div>
           </div>
 
-          <!-- Low Stock with Time and Quantity -->
           <div class="mb-3">
             <label class="form-label requiredField">Low Stock Levels & Time Ranges<span class="asteriskField">*</span></label>
-            <div class="row g-2">
-              <!-- Input 1 -->
-              <div class="col-md-4">
+            <div class="row g-2" id="low-stock-rows">
+              <div class="col-md-4 low-stock-row">
                 <input type="number" value="10" class="form-control low-stock-qty" placeholder="Quantity" required>
-                <div class="mt-1">
-                  <input type="time" class="form-control mb-1 low-stock-from" placeholder="From" required>
-                  <input type="time" class="form-control low-stock-to" placeholder="To" required>
-                </div>
-              </div>
-
-              <!-- Input 2 -->
-              <div class="col-md-4">
-                <input type="number" value="10" class="form-control low-stock-qty" placeholder="Quantity" required>
-                <div class="mt-1">
-                  <input type="time" class="form-control mb-1 low-stock-from" placeholder="From" required>
-                  <input type="time" class="form-control low-stock-to" placeholder="To" required>
-                </div>
-              </div>
-
-              <!-- Input 3 -->
-              <div class="col-md-4">
-                <input type="number" value="10" class="form-control low-stock-qty" placeholder="Quantity" required>
-                <div class="mt-1">
-                  <input type="time" class="form-control mb-1 low-stock-from" placeholder="From" required>
-                  <input type="time" class="form-control low-stock-to" placeholder="To" required>
+                <div class="mt-1 row">
+                  <div class="col-6">
+                    <label class="form-label">From</label>
+                    <input type="time" class="form-control mb-1 low-stock-from" placeholder="From" required>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label">To</label>
+                    <input type="time" class="form-control low-stock-to" placeholder="To" required>
+                  </div>
                 </div>
               </div>
             </div>
+            <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="add-low-stock-row">
+              <i class="bx bx-plus"></i> Add Time Range
+            </button>
           </div>
 
-          <!-- Dish Image Upload -->
           <div class="mb-3">
             <label for="id_image" class="form-label requiredField">Image<span class="asteriskField">*</span></label>
             <div id="image-drop-zone" class="border border-dashed p-3 rounded d-flex flex-column align-items-center justify-content-center" 
@@ -149,7 +162,6 @@
         </div>
       </div>
 
-      <!-- Step 3 -->
       <div class="step d-none" id="step-3">
         <h5 class="mb-3">Step 3: Assign Supplies</h5>
         <div class="row g-3">
@@ -192,6 +204,32 @@
 </div>
 
 <script>
+
+  $('#save-category-btn').on('click', function() {
+    const newCategory = $('#new-category-name').val().trim();
+    if (!newCategory) {
+      Swal.fire('Error', 'Please enter a category name.', 'error');
+      return;
+    }
+
+    let exists = false;
+    $('#id_category option').each(function() {
+      if ($(this).val().toLowerCase() === newCategory.toLowerCase()) {
+        exists = true;
+      }
+    });
+    if (exists) {
+      Swal.fire('Error', 'Category already exists.', 'error');
+      return;
+    }
+
+    $('#id_category').append(`<option value="${newCategory}">${newCategory}</option>`);
+    $('#id_category').val(newCategory);
+    {% comment %} $('#addCategoryModal').modal('hide'); {% endcomment %}
+    $('#new-category-name').val('');
+    Swal.fire('Success', 'Category added!', 'success');
+  });
+
 $(document).ready(function() {
   let currentStep = 1;
   let cart = [];
@@ -376,9 +414,28 @@ $(document).ready(function() {
     updateSupplyTable();
   };
 
+
+  // Add button for low stock time/qty rows
+  $('#add-low-stock-row').on('click', function() {
+    const newRow = `<div class="col-md-4 low-stock-row">
+      <input type="number" value="10" class="form-control low-stock-qty" placeholder="Quantity" required>
+      <div class="mt-1 row">
+        <div class="col-6">
+          <label class="form-label">From</label>
+          <input type="time" class="form-control mb-1 low-stock-from" placeholder="From" required>
+        </div>
+        <div class="col-6">
+          <label class="form-label">To</label>
+          <input type="time" class="form-control low-stock-to" placeholder="To" required>
+        </div>
+      </div>
+    </div>`;
+    $('#low-stock-rows').append(newRow);
+  });
+
   $('#id_submit').on('click', function() {
     let lowStockData = [];
-    $('.col-md-4').each(function() {
+    $('#low-stock-rows .low-stock-row').each(function() {
       const qty = $(this).find('.low-stock-qty').val();
       const from = $(this).find('.low-stock-from').val();
       const to = $(this).find('.low-stock-to').val();

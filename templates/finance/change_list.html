@@ -46,45 +46,48 @@
         <div class="d-flex mb-2">
             <input id="change_search" type="text" class="form-control w-100" placeholder="Search..." oninput="filterTable('change_table','change_search')">
         </div>
-        <table class="table p-1" id="change_table" style="width: 100%;">
-            <thead class="bg-primary-subtle text-white">
-                <tr>
-                    <th>Date</th>
-                    <th>Name</th>
-                    <th>Cashier In</th>
-                    <th>Cashier Out</th>
-                    <th>Phone number</th>
-                    <th>Amount</th>
-                    <th>Amount Collected</th>
-                    <th>Balance</th>
-                    <th>Receipt Number</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for change in page_obj %}
-                  <tr>
-                        <td><small>{{ change.timestamp }}</small></td>
-                        <td><small>{{ change.name }}</small></td>
-                        <td><small>{{ change.cashier.username }}</small></td>
-                        <td><small>{{ change.cashier_give.username }}</small></td>
-                        <td><small>{{ change.phonenumber}}</small></td>
-                        <td><small>{{ change.amount }}</small></td>
-                        <td><small>{{ change.amount_collected }}</small></td>
-                        <td><small>{{ change.balance }}</small></td>
-                        <td><small>{{ change.receipt_number }}</small></td>
-                        <td><small>{{ change.date_collected|default:'' }}</small></td>
-                        <td>
-                            {% if change.collected %}
-                                <small>Collected</small>
-                                {% else %}
-                                    <button onclick='displayAmount({{ change.id }})' class='btn btn-outline-dark btn-sm w-100'>collect</button>
-                            {% endif %}
-                        </td>
-                  </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div style="height: 70vh; min-height: 400px; overflow: auto;">
+            <table class="table table-hover table-borderless p-1 mb-0" id="change_table" style="width: 100%; table-layout: fixed;">
+                <thead class="bg-primary-subtle text-white" style="position: sticky; top: 0; z-index: 2;">
+                    <tr>
+                        <th style="min-width: 110px;">Date</th>
+                        <th>Name</th>
+                        <th>Cashier In</th>
+                        <th>Cashier Out</th>
+                        <th>Phone number</th>
+                        <th>Amount</th>
+                        <th>Amount Collected</th>
+                        <th>Balance</th>
+                        <th>Receipt Number</th>
+                        <th>Date Collected</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for change in page_obj %}
+                      <tr>
+                            <td><small>{{ change.timestamp }}</small></td>
+                            <td><small>{{ change.name }}</small></td>
+                            <td><small>{{ change.cashier.username }}</small></td>
+                            <td><small>{{ change.cashier_give.username }}</small></td>
+                            <td><small>{{ change.phonenumber}}</small></td>
+                            <td><small>{{ change.amount }}</small></td>
+                            <td><small>{{ change.amount_collected }}</small></td>
+                            <td><small>{{ change.balance }}</small></td>
+                            <td><small>{{ change.receipt_number }}</small></td>
+                            <td><small>{{ change.date_collected|default:'' }}</small></td>
+                            <td>
+                                {% if change.collected %}
+                                    <small>Collected</small>
+                                    {% else %}
+                                        <button onclick='displayAmount({{ change.id }})' class='btn btn-outline-dark btn-sm w-100'>collect</button>
+                                {% endif %}
+                            </td>
+                      </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
 
         <div class="modal fade" id="amountModal" tabindex="-1" aria-labelledby="chargeModalLabel" aria-hidden="true">
             <div class="modal-dialog bg modal-dialog-centered">

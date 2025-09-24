@@ -24,7 +24,14 @@
     {% endblock css %}
 
     <style>
-        /* Mobile sidebar styles */
+
+        body{
+            height: 100%;
+            margin: 0;
+            font-family: Arial, sans-serif !important;
+            background-color: #f0f2f5 !important;
+        }
+
         .mobile-sidebar {
             position: fixed;
             top: 0;
@@ -40,8 +47,8 @@
         .mobile-sidebar.show {
             left: 0;
         }
+        
 
-        /* Floating buttons - always fixed at bottom right */
         .floating-controls {
             position: fixed;
             bottom: 20px;
