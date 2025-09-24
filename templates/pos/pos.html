@@ -223,7 +223,7 @@
             <ul class="nav flex-column">
                   <li class="nav-item">
                     <a class="nav-link" href="{% url 'inventory:end_of_day_view' %}" >
-                        <i class="bx bx-wallet"></i>
+                        <i class="bx bx-time"></i>
                         End Of Day
                     </a>
                 </li>
@@ -251,6 +251,7 @@
                         Void
                     </a>
                 </li>
+                
             </ul>
         </div>
         <div class="mt-auto">
@@ -261,8 +262,11 @@
                         Settings
                     </a>
                 </li> {% endcomment %}
+                <li class='nav-item'>
+                    <a href="javascript:void(0);" class="btn border w-100" id="chargeStaff">Staff</a>
+                </li>
                 <li class="nav-item">
-                    <a class="nav-link text-danger" href="#" id="logoutBtn">
+                    <a class="nav-link text-danger btn border" href="#" id="logoutBtn">
                         <i class="bx bx-log-out"></i>
                         Log Out
                     </a>
@@ -297,7 +301,7 @@
                     {% if item.image %}
                         <img src="{{ item.image }}" alt="{{ item.name }}">
                     {% else %}
-                        <img src="https://placehold.co/200x120?text=No+Image" alt="{{ item.name }}">
+                        <i class="bx bx-image bx-lg" style="padding: 40px; color: #ccc;"></i>
                     {% endif %}
                     <div class="product-card-body">
                         <h6>{{ item.name }}</h6>
@@ -317,7 +321,8 @@
             <h5 class="mb-0">Notifications & Messages</h5>
             <div class="d-flex align-items-center">
                 <i class="bx bx-bell bx-sm me-2"></i>
-                <img src="https://via.placeholder.com/50.png?text=User" alt="User Profile" class="user-avatar">
+                <i class="bx bx-user bx-lg" style="color: #ccc;"></i>
+                {{ request.user.get_full_name }}
             </div>
         </div>
         <div class="notifications" id="notificationsPanel">
@@ -516,6 +521,19 @@
         </div>
     </div>
 
+    <!--Staff Modal-->
+    <div class="modal fade" id="staffModal" tabindex="-1" aria-labelledby="chargeModalLabel" aria-hidden="true">
+        <div class="modal-dialog bg modal-dialog-centered">
+            <div class="modal-content p-4 shadow">
+                <h5 class="fw-bold">Confirm Sale For Staff</h5>
+                <div class="d-flex justify-content-end mt-4">
+                    <button class="btn btn-outline-dark mx-2" data-bs-dismiss="modal">No</button>
+                    <button class="btn btn-outline-secondary" id="staff">Yes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -526,6 +544,34 @@
     let changeData = [];
     let selectedOrderType = null;
     const VAT_RATE = 0.15; // VAT to be Dynamic
+
+    // buttons
+    const chargeButton = document.getElementById('chargeButton');
+    const sittingButton = document.getElementById('sitting-btn');
+    const takeawayButton = document.getElementById('takeaway-btn');
+    const cancelBtn = document.getElementById('cancelBtn');
+
+    const sittingBtn = document.getElementById("sitting-btn");
+    const takeawayBtn = document.getElementById("takeaway-btn");
+    const ecocashBtn = document.getElementById("eco-cash");
+    const solidcashBtn = document.getElementById("solid-cash");
+    const chargeBtn = document.querySelector(".btn-primary");
+    const orderTypeInput = document.getElementById("order-type-input");
+    const cashTypeInput = document.getElementById("cash-type-input");
+    const totalAmountInput = document.getElementById("totalAmountInput");
+    const proceedBtn = document.getElementById('btn_proceed');
+    const cashupButton = document.getElementById('cashup');
+    const voidButton = document.getElementById('void');
+    const staffChargeButton = document.getElementById('chargeStaff');
+    const staffBtn = document.getElementById('staff');
+
+    // modals
+    const chargeModal = new bootstrap.Modal(document.getElementById('chargeModal'));
+    const changeModal = new bootstrap.Modal(document.getElementById('changeModal'));
+    const cashupModal = new bootstrap.Modal(document.getElementById('cashupModal'));
+    const voidModal = new bootstrap.Modal(document.getElementById('voidModal'));
+    const staffModal = new bootstrap.Modal(document.getElementById('staffModal'));
+
 
     //  Low Stock Notifications 
     document.addEventListener('DOMContentLoaded', function() {
@@ -597,32 +643,33 @@
         });
     });
 
-    // buttons
-    const chargeButton = document.getElementById('chargeButton');
-    const sittingButton = document.getElementById('sitting-btn');
-    const takeawayButton = document.getElementById('takeaway-btn');
-    const cancelBtn = document.getElementById('cancelBtn');
+    // staff functionality
+    staffChargeButton.addEventListener('click', ()=>{
+        if (cart.length === 0){
+            Swal.fire({
+                title: "Error",
+                text: "Empty Order",
+                icon: "error"
+            });
+        }else{
+            staffModal.show()
+        }
+    })
 
-    const sittingBtn = document.getElementById("sitting-btn");
-    const takeawayBtn = document.getElementById("takeaway-btn");
-    const ecocashBtn = document.getElementById("eco-cash");
-    const solidcashBtn = document.getElementById("solid-cash");
-    const chargeBtn = document.querySelector(".btn-primary");
-    const orderTypeInput = document.getElementById("order-type-input");
-    const cashTypeInput = document.getElementById("cash-type-input");
-    const totalAmountInput = document.getElementById("totalAmountInput");
-    const proceedBtn = document.getElementById('btn_proceed');
-    const cashupButton = document.getElementById('cashup');
-    const voidButton = document.getElementById('void');
-
-    // modals
-    const chargeModal = new bootstrap.Modal(document.getElementById('chargeModal'));
-    const changeModal = new bootstrap.Modal(document.getElementById('changeModal'));
-    const cashupModal = new bootstrap.Modal(document.getElementById('cashupModal'));
-    const voidModal = new bootstrap.Modal(document.getElementById('voidModal'));
+    staff.addEventListener('click', ()=>{
+        staffModal.hide();
+        orderType = 'sitting';
+        selectedOrderType = 'sitting';
+        document.getElementById('order-type-input').value = 'sitting';
+        selectedCashType = 'cash';
+        document.getElementById('cash-type-input').value = 'cash';
+        document.getElementById('totalAmountInput').value = parseFloat(document.getElementById('total').innerText.slice(1));
+        finalizeSale(true);
+    })
 
 
-    // order making
+
+    // order functionality
     function addToCart(id, name, price, type, meal, dish) {
         console.log('dish ID', id)
 
@@ -1337,11 +1384,16 @@
                 "
                 >
                 <h3 style="text-align: center;">Parsles Investments (Urban Eats)</h3>
-                                <th>Price</th>
-                                <th>Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Sold</th>
+                            <th>Price</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
                             ${salesPortionsRows}
                             <tr>
                                 <td colspan="3" style="font-weight: bold;">Total Sales</td>
@@ -1400,21 +1452,6 @@
                         </tbody>
                     </table>
                     <hr>
-                    <h2>variance</h2>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Sold</th>
-                                <th>LO | WA</th>
-                                <th>Expected</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${varianceDetail}
-                        </tbody>
-                    </table>
-                    <hr>
                     <h2>Cashier Expenses</h2>
                     <table>
                         <thead>
@@ -1455,7 +1492,7 @@
                     </div>
                     <div class="line">
                         <span>Collected Changes:</span>
-                        <span>-$${collected_changes || '0.00'}</span>
+                        <span>-$${collected_changes.toFixed(2) || '0.00'}</span>
                     </div>
                     <hr>
                     <div class="line">

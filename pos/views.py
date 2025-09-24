@@ -563,7 +563,7 @@ def change_list(request):
 @login_required
 def download_change_report(request):
     filter_option = request.GET.get('filter', 'this_week')
-    now = datetime.now()
+    now = datetime.datetime.now()
     end_date = now
     
     if filter_option == 'today':
@@ -581,8 +581,8 @@ def download_change_report(request):
     elif filter_option == 'custom':
         start_date = request.GET.get('start_date')
         end_date = request.GET.get('end_date')
-        start_date = datetime.strptime(start_date, '%Y-%m-%d')
-        end_date = datetime.strptime(end_date, '%Y-%m-%d')
+        start_date = datetime.datetime.strptime(start_date, '%Y-%m-%d')
+        end_date = datetime.datetime.strptime(end_date, '%Y-%m-%d')
     else:
         start_date = now - timedelta(days=now.weekday())
         end_date = now
@@ -998,7 +998,6 @@ def cash_up(request, cashier_id):
             change = Change.objects.filter(
                 cashier__id=cashier_id,
                 timestamp__date=datetime.datetime.today(),
-                collected=False,
                 sale__branch=request.user.branch
             ).values('amount')
             
@@ -1026,6 +1025,7 @@ def cash_up(request, cashier_id):
                 date=datetime.datetime.today(),
                 branch=request.user.branch
             )
+            
            
             expenses_list = []
             for item in expenses:
@@ -1036,11 +1036,9 @@ def cash_up(request, cashier_id):
             total_sales = sum(sale['total_amount'] for sale in sales if not sale['staff'])
             total_staff_sales = sum(sale['total_amount'] for sale in sales if sale['staff'])
             total_void_sales = sum(void_sale['total_amount'] for void_sale in void_sales)
-            
-            # Calculate total change from the change queryset
+            total_expenses = expenses.aggregate(Sum('amount'))['amount__sum'] or 0
             total_change = change.aggregate(Sum('amount'))['amount__sum'] or 0
             
-            # Calculate collected changes for the cashier today
             collected_changes = Change.objects.filter(
                 cashier__id=cashier_id,
                 timestamp__date=datetime.datetime.today(),
@@ -1048,13 +1046,8 @@ def cash_up(request, cashier_id):
                 sale__branch=request.user.branch
             ).aggregate(Sum('amount'))['amount__sum'] or 0
             
-            # Calculate total expenses
-            total_expenses = 0  # Add your expenses calculation here if needed
-            
-            # Calculate cash in hand
-            cash_in_hand = total_sales - total_expenses - total_void_sales + total_change
-            
-            # Calculate total accumulated change
+            cash_in_hand = total_sales - total_expenses - total_void_sales + total_change - collected_changes
+
             total_accumulated_change = accumulated_change.aggregate(Sum('amount'))['amount__sum'] or 0
             
             cashier = User.objects.get(id=cashier_id)
