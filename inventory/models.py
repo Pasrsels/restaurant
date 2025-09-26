@@ -117,6 +117,19 @@ class ProductionItems(models.Model):
     allocated = models.BooleanField(default=False)
     end_of_day_status = models.BooleanField(default=False)
     declared_quantity = models.FloatField(default=0, null=True, blank=True)
+    
+class ProductionIngriedients(models.Model):
+    production = models.ForeignKey(Production, on_delete=models.CASCADE)
+    ingredient = models.ForeignKey(Product, on_delete=models.CASCADE)
+    total_quantity_per_kg = models.FloatField()
+    planned_quantity = models.FloatField()
+    expected_quantity = models.FloatField()
+    actual_quantity = models.FloatField(null=True)
+    cost_per_kg = models.DecimalField(max_digits=10, decimal_places=2, default=1) 
+    total_cost = models.DecimalField(max_digits=10, decimal_places=2, default=1) 
+    
+    def __str__(self) -> str:
+        return f'{self.ingredient}'
 
 class MinorProductionItems(models.Model):
     production = models.ForeignKey(Production, on_delete=models.CASCADE)

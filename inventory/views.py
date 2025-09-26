@@ -2260,8 +2260,8 @@ def new_declare_production(request, pp_id):
 
         try:
             dish_ing = Ingredient.objects.filter(dish__name = dish_name, minor_raw_material__branch=request.user.branch)
+            
             ingridient_list = []
-
             for ingridient in dish_ing:
                 portion_m = ingridient.dish.portion_multiplier
                 qnty = ingridient.quantity
