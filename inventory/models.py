@@ -19,7 +19,7 @@ class UnitOfMeasurement(models.Model):
         return self.unit_name
 
 class Supplier(models.Model):
-    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True) 
     name = models.CharField(max_length=255)
     contact_name = models.CharField(max_length=255)
     email = models.EmailField()
