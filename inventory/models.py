@@ -339,10 +339,22 @@ class EndOfDay(models.Model):
     date = models.DateField(auto_now_add=True)
     done = models.BooleanField(default=False)
     total_sales = models.DecimalField(max_digits=10, decimal_places=2, null=True)
-    cashed_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True)
     
     def __str__(self) -> str:
         return f'{self.total_sales}'
+
+
+class EndOfDayCashier(models.Model):
+    end_of_day = models.ForeignKey(EndOfDay, on_delete=models.CASCADE)
+    cashier = models.ForeignKey('users.User', on_delete=models.CASCADE)
+    cashed_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True)
+
+    class Meta:
+        unique_together = ('end_of_day', 'cashier')
+
+    def __str__(self):
+        return f'{self.cashier} - {self.cashed_amount} on {self.end_of_day.date}'
+    
     
 class EndOfDayItems(models.Model):
     end_of_day = models.ForeignKey(EndOfDay, on_delete=models.CASCADE)
