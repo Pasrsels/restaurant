@@ -1,44 +1,80 @@
-# signals.py
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
-from django.template.loader import render_to_string
 from django.core.mail import send_mail
-from .models import Product
-from .models import Notification  
-from asgiref.sync import async_to_sync
-from channels.layers import get_channel_layer
+from django.conf import settings
+from .models import Product, InventoryNotificationLog
 from loguru import logger
+from settings.models import EmailNotifications
 
-# @receiver(post_save, sender=Product)
-# def check_stock_level(sender, instance, **kwargs):
-#     logger.info('here')
-#     logger.info(instance)
-#     logger.info(f'quantity: {instance.quantity}, threshold: {instance.min_stock_level}')
-#     if instance.quantity < instance.min_stock_level:
-#         Notification.objects.create(
-#             product=instance,
-#             message=f"The stock level of {instance.name} is below the minimum threshold. {instance.quantity}."
-#         )
+def send_notification_email(subject, message, action_type):
+    """
+        Send email to all users subscribed to this action type.
+    """
+    # recipients = list(
+    #     EmailNotifications.objects.filter(
+    #         is_active=True, notification_type=action_type
+    #     ).values_list('email', flat=True)
+    # )
+    
+    recipients = ['cassymyo@gmail.com']
 
-#         subject = 'Stock Alert'
-#         message = render_to_string('email/stock_alert.html', {
-#             'product': instance,
-#             'message': f"The stock level of {instance.name} is below the threshold."
-#         })
-#         send_mail(
-#             subject,
-#             message,
-#             'admin@techcity.co.zw',  
-#             ['cassymyo@gmail.com'],  
-#             fail_silently=False,
-#         )
+    if recipients:
+        send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            recipients,
+            fail_silently=False,
+        )
 
-#         channel_layer = get_channel_layer()
-#         async_to_sync(channel_layer.group_send)(
-#             f'user_{instance.name}',
-#             {
-#                 'type': 'send_notification',
-#                 'message': f"The stock level of {instance.name} is below the minimum threshold."
-#             }
-#         )
-#         logger.info('done')
+@receiver(post_save, sender=Product)
+def inventory_create_update_notification(sender, instance, created, **kwargs):
+    """
+        Handle notifications for CREATE and UPDATE actions.
+    """
+    if created:
+        action_type = 'create'
+        subject = f"New Product Added: {instance.name}"
+        message = (
+            f"A new product '{instance.name}' was added to the inventory.\n"
+            f"Quantity: {instance.quantity}"
+        )
+        logger.success(f'Email succesfully send for product creation: {instance.name}')
+        
+        InventoryNotificationLog.objects.create(
+            inventory_item=instance,
+            action_type=action_type,
+            message=message
+        )
+        send_notification_email(subject, message, action_type)
+    else: pass
+        # action_type = 'update'
+        # subject = f"Product Updated: {instance.name}"
+        # message = (
+        #     f"The product '{instance.name}' was updated.\n"
+        #     f"New Quantity: {instance.quantity}\n"
+        #     f"Last Updated: {instance.updated_at.strftime('%Y-%m-%d %H:%M:%S')}"
+        # )
+        
+        # logger.success(f'Email succesfully send for product update: {instance.name}')
+        
+
+@receiver(post_delete, sender=Product)
+def inventory_delete_notification(sender, instance, **kwargs):
+    """
+        Handle notifications for DELETE action.
+    """
+    action_type = 'delete'
+    subject = f"Product Deleted: {instance.product_name}"
+    message = (
+        f"The product '{instance.name}' was removed from inventory.\n"
+        f"Last known quantity: {instance.quantity}"
+    )
+
+    InventoryNotificationLog.objects.create(
+        inventory_item=instance,
+        action_type=action_type,
+        message=message
+    )
+
+    send_notification_email(subject, message, action_type)

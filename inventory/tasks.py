@@ -14,8 +14,7 @@ from . models import (
 from django.core.mail import EmailMessage
 from utils.supplier_best_price import best_price
 from loguru import logger
-from settings.models import NotificationEmails
-from utils.email_notification import modules_list
+# from utils.email_notification import modules_list
 from celery import shared_task
 from decimal import Decimal
 from django.core.mail import send_mail
@@ -37,7 +36,7 @@ def sendProductHistory(product_list):
                 Remaining: {product.get('Current')} \n
             """
 
-            recipients = ['cassymyo@gmail.com', 'teddychinomona@gmail.com', 'mirackletec@gmail.com']
+            recipients = ['cassymyo@gmail.com', 'teddychinomona@gmail.com']
 
             subject = f"End of Day {product.get('Product_Name')} Report:"
 

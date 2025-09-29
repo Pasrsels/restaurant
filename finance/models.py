@@ -149,12 +149,15 @@ class Change(models.Model):
     name = models.CharField(max_length=100)
     phonenumber = models.CharField(max_length=20)
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=0) 
+    amount_collected = models.DecimalField(max_digits=10, decimal_places=2, default=0) 
+    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0) 
     receipt_number = models.CharField(max_length=100)
     collected = models.BooleanField(default=False)
     timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
     cashier = models.ForeignKey(User, on_delete=models.CASCADE, related_name="users")
     cashier_give = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name="cashiers")
     claimed = models.BooleanField(default=False)
+    data_collected = models.DateTimeField(auto_now_add=True, null=True)
     
     def __str__(self) -> str:
         return f'{self.cashier.username} ({self.amount})'

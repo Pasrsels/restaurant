@@ -12,10 +12,11 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.hashers import make_password
 from .models import Company, User, Branch
 from .forms import CompanyForm, CustomUserCreationForm
-from settings.models import Modules
+from settings.models import Module
 from django.db import transaction
 from permisions.permisions import admin_required
 import json
+from django.core.paginator import Paginator
 
 def create_company(request):
     if Company.objects.exists():
@@ -29,28 +30,25 @@ def create_company(request):
         if company_form.is_valid() and user_form.is_valid() and branch_form.is_valid():
             logger.info(request.POST)
             with transaction.atomic():
-                # Save the company and branch
                 company = company_form.save()
 
                 branch = branch_form.save(commit=False)
                 branch.company = company
                 branch.save()
-
-                # Create the user with the company
+                
                 user = user_form.save(commit=False)
                 user.company = company
                 user.branch = branch
                 user.role = 'owner'
                 user.save()
-                
-                # create modules
+       
                 modules = ['Sales', 'Finance', 'Inventory', 'Production']
                 bulk_modules = []
 
                 for m in modules:
-                    bulk_modules.append(Modules(name=m))
+                    bulk_modules.append(Module(name=m))
 
-                Modules.objects.bulk_create(bulk_modules)
+                Module.objects.bulk_create(bulk_modules)
             return redirect('users:login')
         else:
             messages.warning(request, f'Company registration form not valid.')
@@ -64,8 +62,31 @@ def create_company(request):
 
 def users(request):
     search_query = request.GET.get('q', '')
-    users = User.objects.filter(Q(username__icontains=search_query) | Q(email__icontains=search_query), branch = request.user.branch).order_by(
-        'first_name', 'last_name')
+    role = request.GET.get('role', '')
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    page = int(request.GET.get('page', 1))
+    page_size = int(request.GET.get('page_size', 25))
+
+    qs = User.objects.filter(branch=request.user.branch)
+    if search_query:
+        qs = qs.filter(Q(username__icontains=search_query) | Q(email__icontains=search_query) | Q(first_name__icontains=search_query) | Q(last_name__icontains=search_query))
+    if role:
+        qs = qs.filter(role=role)
+    if start_date and end_date:
+        try:
+            from datetime import datetime as _dt
+            start_dt = _dt.strptime(start_date, '%Y-%m-%d')
+            end_dt = _dt.strptime(end_date, '%Y-%m-%d')
+            qs = qs.filter(date_joined__date__gte=start_dt.date(), date_joined__date__lte=end_dt.date())
+        except Exception:
+            pass
+
+    qs = qs.order_by('first_name', 'last_name')
+
+    paginator = Paginator(qs, page_size)
+    page_obj = paginator.get_page(page)
+
     form = UserRegistrationForm()
     user_details_form = UserDetailsForm2()
     branch_form = BranchForm()
@@ -75,17 +96,26 @@ def users(request):
         if form.is_valid():
             user = form.save(commit=False)
             user.password = make_password(form.cleaned_data['password'])
-            
-            # Auto-assign to current user's branch if no branch is specified
             if not user.branch:
                 user.branch = request.user.branch
-
             user.save()
             messages.success(request, 'User successfully added')
         else:
             messages.warning(request, 'Invalid form data')
 
-    return render(request, 'auth/users.html', {'users': users, 'form': form, 'user_details_form': user_details_form, 'branch':branch_form})
+    return render(request, 'auth/users.html', {
+        'users': page_obj.object_list,
+        'page_obj': page_obj,
+        'paginator': paginator,
+        'form': form,
+        'user_details_form': user_details_form,
+        'branch': branch_form,
+        'filter_role': role,
+        'search_query': search_query,
+        'start_date': start_date,
+        'end_date': end_date,
+        'page_size': page_size,
+    })
 
 
 def login_view(request):
@@ -130,13 +160,15 @@ def login_view(request):
 
 def user_edit(request, user_id):
     user = User.objects.get(id=user_id)
+    
     logger.info(f'User details: {user.first_name + " " + user.email}')
+    
     if request.method == 'POST':
         form = UserDetailsForm2(request.POST, instance=user)
         if form.is_valid():
             form.save()
             messages.success(request, 'User details updated successfully')
-            return redirect('users:user_detail', user_id=user.id)
+            logger.success(f'User successfully edited: {user.first_name} by {request.user}')
         else:
             messages.error(request, 'Invalid form data')
     else:
@@ -215,15 +247,14 @@ def createBranch(request):
             branch.save()
 
             messages.success(request, f'Successfully saved {branch.name}')
-            return redirect('users:create_branch') #create url with name = 'create_branch'
+            return redirect('users:create_branch') 
         
-        #invalid form
         messages.warning(request, f'Failed to save')
-        return redirect('users:create_branch')#create url with name = 'create_branch'
+        return redirect('users:create_branch')
     elif request.method == 'PUT':
         try:
             data = json.loads(request.body)
-            branch_id = data.get('id')  # Or use 'name' if you're identifying by name
+            branch_id = data.get('id') 
             if not branch_id:
                 messages.warning(request, 'No branch ID provided')
                 return redirect('users:create_branch')

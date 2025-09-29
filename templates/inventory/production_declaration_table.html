@@ -2,16 +2,16 @@
 
 <style>
     .declaration-table-container {
-        background: white;
-        border-radius: 0;
-        padding: 20px;
-        box-shadow: none;
-        margin: 0;
-        width: 100%;
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 40px 30px 30px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+        margin: 20px;
+        width: calc(100% - 40px);
         max-width: 100%;
         box-sizing: border-box;
-        border: none;
-        min-height: 100vh;
+        border: 1px solid #e9ecef;
+        min-height: calc(100vh - 40px);
     }
 
     /* Ensure dynamic content wrapper and left content container have consistent width */
@@ -50,30 +50,90 @@
         line-height: 1.4;
     }
 
-    /* Style the search input only */
+    /* Modern search input styling */
     .search-container input[type="text"] {
-        padding: 12px 16px;
-        border: 1px solid #e9ecef;
-        border-radius: 6px;
-        font-size: 14px;
-        margin-left: 10px;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 8px 0 0 8px;
+        font-size: 15px;
+        transition: all 0.3s ease;
+        height: 48px;
+        background-color: transparent;
+        color: #4a5568;
     }
 
     .search-container input[type="text"]:focus {
         outline: none;
-        border-color: #0066cc;
-        box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+        border-color: #4a90e2;
+        box-shadow: 0 0 0 4px rgba(74, 144, 226, 0.15);
     }
     
     .declaration-header {
         display: flex;
         justify-content: space-between;
+        align-items: flex-start;
+        margin: 1.5rem 0 2.5rem;
+        padding: 0 8px;
+    }
+    
+    .search-container {
+        flex-grow: 1;
+        max-width: 600px;
+        margin-right: 1.5rem;
+        margin-top: 0;
+        padding: 4px 0;
+    }
+    
+    .search-container .input-group {
+        height: auto;
+        box-shadow: none;
+        border-radius: 8px;
+        background: transparent;
+        border: 1px solid #e2e8f0;
+        overflow: hidden;
+        margin-left: 15px;
+    }
+    
+    .search-container .btn {
+        height: 48px;
+        width: 50px;
+        display: flex;
         align-items: center;
-        margin-bottom: 25px;
-        padding: 25px 20px;
-        border-bottom: 2px solid #e9ecef;
-        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        justify-content: center;
+        padding: 0;
+        background: #4a90e2;
+        color: white;
+        border: none;
+        border-radius: 0 8px 8px 0;
+        transition: all 0.2s ease;
+    }
+
+    .search-container .btn:hover {
+        background: #3a7bc8;
+    }
+    
+    .search-container .form-control {
+        height: 48px;
+        border: none;
         border-radius: 0;
+        padding-left: 20px;
+        background-color: #f8fafc;
+        box-shadow: none;
+    }
+    
+    .add-production-btn {
+        height: 48px;
+        min-width: 200px;
+        padding: 0 32px;
+        border-radius: 30px;
+        font-weight: 500;
+        font-size: 15px;
+        letter-spacing: 0.3px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        white-space: nowrap;
         margin: 0 0 25px 0;
     }
     
@@ -400,22 +460,17 @@
      }
      
      .declaration-table thead th {
-         background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-         padding: 15px 12px;
-         border: 1px solid #e9ecef;
-         color: #2c3e50;
-         font-weight: 700;
-         text-transform: uppercase;
-         font-size: 12px;
-         letter-spacing: 0.5px;
-         text-align: left;
-         position: sticky;
-         top: 0;
-         z-index: 10;
-         white-space: nowrap;
-         overflow: hidden;
-         text-overflow: ellipsis;
-         line-height: 1.4;
+        background-color: #f8f9fa;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-weight: 500;
+        font-size: 13px;
+        letter-spacing: 0.3px;
+        padding: 14px 16px;
+        border-bottom: 2px solid #dee2e6;
+        color: #4a5568;
+        text-transform: none;
+    }
+     
      }
 
      /* Column width specifications for consistent sizing */
@@ -526,10 +581,14 @@
      }
 
      .expand-icon-btn.expanded i {
+         -webkit-transform: rotate(90deg);
+         -ms-transform: rotate(90deg);
          transform: rotate(90deg);
      }
 
      .fas.fa-chevron-down.rotated {
+         -webkit-transform: rotate(90deg);
+         -ms-transform: rotate(90deg);
          transform: rotate(90deg);
      }
      
@@ -549,15 +608,30 @@
 
  <div class="declaration-table-container">
      <div class="declaration-header">
-         <div>
-             <h2 class="declaration-title">Production Plan Declaration</h2>
-             <p class="declaration-subtitle">Manage and track production plan declarations</p>
-         </div>
+         <!-- Search Container -->
          <div class="search-container">
-             <button class="add-production-btn" onclick="loadPage('{% url 'inventory:declare_production' pp_id=0 %}', this)">
-                 <i class="fas fa-plus"></i> Add Production
+             <div class="input-group input-group-sm">
+                 <input type="text" 
+                        id="searchInput" 
+                        class="form-control form-control-sm" 
+                        placeholder="Search plans..."
+                        aria-label="Search production plans">
+                 <button class="btn btn-outline-secondary" 
+                         type="button"
+                         aria-label="Search">
+                     <i class="fas fa-search"></i>
+                 </button>
+             </div>
+         </div>
+         
+         <!-- Add Production Button -->
+         <div>
+             <button type="button" 
+                     class="btn btn-primary btn-sm add-production-btn" 
+                     onclick="window.loadPage('{% url 'inventory:declare_production' pp_id=0 %}', this);">
+                 <i class="fas fa-plus me-1"></i>
+                 <span>Add Production</span>
              </button>
-             <input type="text" id="planSearch" class="search-input" placeholder="Search production plans...">
          </div>
      </div>
     
@@ -566,12 +640,12 @@
                          <table class="declaration-table" id="declarationTable">
                  <thead>
                      <tr>
-                         <th>Plan Number & Date</th>
-                         <th>Planned Production</th>
-                         <th>Actual Production</th>
-                         <th>Production Cost</th>
-                         <th>Negative Variance</th>
-                         <th>Positive Variance</th>
+                         <th>Plan number & date</th>
+                         <th>Planned production</th>
+                         <th>Actual production</th>
+                         <th>Production cost</th>
+                         <th>Negative variance</th>
+                         <th>Positive variance</th>
                          <th>Status</th>
                          <th>Actions</th>
                      </tr>

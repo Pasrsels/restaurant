@@ -50,20 +50,9 @@ class UserDetailsForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Filter branches based on selected company
-        if 'company' in self.fields:
-            self.fields['company'].queryset = Company.objects.all()
+        
         if 'branch' in self.fields:
-            self.fields['branch'].queryset = Branch.objects.none()
-            if 'company' in self.data:
-                try:
-                    company_id = int(self.data.get('company'))
-                    self.fields['branch'].queryset = Branch.objects.filter(company_id=company_id)
-                except (ValueError, TypeError):
-                    pass
-            elif self.instance.pk and self.instance.company:
-                self.fields['branch'].queryset = self.instance.company.branch_set.all()
-
+            self.fields['branch'].queryset = Branch.objects.all()
 
 class UserDetailsForm2(forms.ModelForm):
    
@@ -81,9 +70,9 @@ class UserDetailsForm2(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Filter branches based on current user's company
+        
         if 'branch' in self.fields:
-            self.fields['branch'].queryset = Branch.objects.filter(company=self.instance.company if self.instance.pk else None)
+            self.fields['branch'].queryset = Branch.objects.all()
 
 
 class CompanyForm(forms.ModelForm):

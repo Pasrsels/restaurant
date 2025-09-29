@@ -68,12 +68,12 @@
         </div>
         <div class="row">
             <div class="table-responsive">
-                <div class="d-flex align-items-center justify-content-between border rounded p-2 bg-dark text-light">
+                <div class="d-flex align-items-center justify-content-between rounded p-2">
                     <h5 class="fw-bold">Dishes</h5>
                     <h5 class="fw-bold">Total Cost: ${{ total_cost_items }}</h5>
                 </div>
                 <table class="table table-hover" id='plan_item_table' style="width:100%;">
-                    <thead class="bg-primary">
+                    <thead class="bg-primary-subtle">
                         <th>Dish</th>
                         <th>Portions</th>
                         <th>Total Cost</th>
@@ -103,12 +103,12 @@
                 </table>
 
                 
-                <div class="d-flex mt-3 align-items-center justify-content-between border rounded p-2 bg-dark text-light">
+                <div class="d-flex mt-3 align-items-center justify-content-between rounded p-2">
                     <h5 class="fw-bold">Raw Materials</h5>
                 </div>
 
                 <table class="table table-hover" id="minor">
-                    <thead class="bg-primary">
+                    <thead class="bg-primary-subtle">
                         <tr>
                             <th>Raw Material</th>
                             {% if confirm %}
@@ -241,7 +241,6 @@
             console.log('Checking inputs...');
 
             inputs_state.forEach((input, index) => {
-                // Check if input is either disabled (processed) or has a value
                 const isEmpty = input.value.trim() === '';
                 const isDisabled = input.disabled;
                 console.log(`Input ${index}: disabled=${isDisabled}, value="${input.value}", isEmpty=${isEmpty}`);
@@ -255,13 +254,13 @@
 
             if (allFilled) {
                 confirmBtn_state.classList.remove('disabled');
-                confirmBtn_state.onclick = null; // allow navigation
-                confirmBtn_state.setAttribute('href', confirmUrl); // restore URL
+                confirmBtn_state.onclick = null; 
+                confirmBtn_state.setAttribute('href', confirmUrl); 
                 console.log('Confirm button enabled');
             } else {
                 confirmBtn_state.classList.add('disabled');
                 confirmBtn_state.onclick = function () { return false; };
-                confirmBtn_state.setAttribute('href', '#'); // prevent accidental follow
+                confirmBtn_state.setAttribute('href', '#');
                 console.log('Confirm button disabled');
             }
         }
@@ -270,10 +269,9 @@
             input.addEventListener('input', checkInputs);
         });
 
-        checkInputs(); // initial validation
+        checkInputs(); 
 
         new DataTable('#plan_item_table');
-        // new DataTable('#minor');
     
         document.querySelectorAll('#minor input[type="number"]').forEach(function (input) {
             input.addEventListener('keydown', function (event) {
@@ -352,7 +350,7 @@
                                     text: "An error occurred during the request.",
                                     icon: "error"
                                 });
-                                input.disabled = false; // Re-enable input in case of a fetch error
+                                input.disabled = false; 
                             })
                             .finally(() => {
                                 input.classList.remove('loading');
@@ -396,18 +394,13 @@
                 input.value = currentValue;
                 input.style.width = '100px';
 
-                // Replace cell content with input field
                 quantityCell.innerHTML = '';
                 quantityCell.appendChild(input);
                 input.focus();
 
-                // Listen for Enter key
                 input.addEventListener('keypress', function (e) {
                     if (e.key === 'Enter') {
-                        const newValue = input.value;
-                        
-                        //quantityCell.innerHTML = `<small>${parseFloat(newValue).toFixed(2)}</small>`;
-                        
+                        const newValue = input.value;                    
                         data = {
                             id: id,
                             new_quantity: newValue,
@@ -439,7 +432,6 @@
                             }
                         });
                         quantityCell.innerHTML = `<small>${parseFloat(newValue).toFixed(2)}</small>`;
-                        //window.location.reload();
                     }
                 });
             });

@@ -1,4 +1,4 @@
-..{% load static i18n %}
+{% load static i18n %}
 {% get_current_language as LANGUAGE_CODE %}
 <!DOCTYPE html>
 <html lang="en">
@@ -7,10 +7,11 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <meta name="description" content="Urban Eats Restaurant Software"/>
-    <meta name="Author"content="casy moyo" />
+    <meta name="Author" content="Casper Moyo" />
     <link rel="icon" href="{% static 'images/favicons/favicon.ico' %}"/>
 
     {% block css %}
+        <link rel="stylesheet" href="{% static 'css/theme.css'%}">
         <link rel="stylesheet" href="{% static 'css/main.css'%}">
         <link rel="stylesheet" href="{% static 'css/bootstrap/css/bootstrap.css'%}">
         <link rel="stylesheet" href="{% static 'assets/hint.css/hint.min.css'%}">
@@ -21,202 +22,216 @@
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
     {% endblock css %}
-    
-    <script src="https://unpkg.com/slim-select@latest/dist/slimselect.min.js"></script>
-    <link href="https://unpkg.com/slim-select@latest/dist/slimselect.css" rel="stylesheet"></link>
 
+    <style>
+
+        body{
+            height: 100%;
+            margin: 0;
+            font-family: Arial, sans-serif !important;
+            background-color: #f0f2f5 !important;
+        }
+
+        .mobile-sidebar {
+            position: fixed;
+            top: 0;
+            left: -260px;
+            width: 250px;
+            height: 100%;
+            background: #fff;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+            transition: left 0.3s ease;
+            z-index: 1050;
+            padding: 15px;
+        }
+        .mobile-sidebar.show {
+            left: 0;
+        }
+        
+
+        .floating-controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column; /* stack vertically */
+            gap: 15px;
+            z-index: 2000;
+        }
+
+        .floating-controls .btn {
+            border-radius: 50%;
+            width: 55px;
+            height: 55px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+
+        .notification-btn {
+            position: relative;
+        }
+
+        .notification-count {
+            background: red;
+            color: white;
+            font-size: 12px;
+            padding: 2px 6px;
+            border-radius: 50%;
+            position: absolute;
+            top: -5px;
+            right: -5px;
+        }
+    </style>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://unpkg.com/slim-select@latest/dist/slimselect.min.js"></script>
+    <link href="https://unpkg.com/slim-select@latest/dist/slimselect.css" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/idb@7/build/umd.js"></script>
+    <script src="{% static 'db.js' %}"></script>
     <script src="{% static 'js/jquery.js'%}"></script>
     <script src="{% static 'css/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
     <script src="{% static 'assets/DataTables/datatables.min.js' %}"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.6.1/toastify.js" integrity="sha512-MnKz2SbnWiXJ/e0lSfSzjaz9JjJXQNb2iykcZkEY2WOzgJIWVqJBFIIPidlCjak0iTH2bt2u1fHQ4pvKvBYy6Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.6.1/toastify.js" crossorigin="anonymous"></script>
     <title>
         {% block title %}{{ request.user.company.name }}{% endblock title %}
     </title>
 </head>
 <body>
+    <div class="floating-controls d-md-none">
+        <button class="btn btn-primary toggle-btn" id="sidebar-toggle-button" title="Toggle Menu">
+            <i class="bx bx-menu"></i>
+        </button>
+
+        <button class="btn btn-secondary notification-btn" title="Notifications">
+            <i class="bx bx-bell"></i>
+            <span class="notification-count">3</span>
+        </button>
+    </div>
     <div class="Urban-Eat">
         <div class="row">
-            <div class=" top-bar">
-                <nav class="p-2 border">
+            <div class="top-bar">
+                <nav class="p-2">
                     {% if request.resolver_match.url_name == 'declare_production' %}
-                    <div class='production-plan mt-2 d-flex justify-content-between align-items-center'>
-                        <div>
-                            <a href='{% url "inventory:production_plans" %}' class='border btn bx bx-arrow-back fs-5'></a>
-                            <a href='/' class='bx bx-home btn border fs-5 mx-2'></a>
-                            <span class='mt-2 fs-5'>Production Plan : {{ p_plan.production_plan_number }} Declaration</span>
-                        </div>
-                    </div>
-                    {% else %}
-                    <div class="d-flex justify-content-between align-items-center w-100">
-                        <div class="text-center py-0 my-0">
-                            <button class="btn btn-secondary d-md-none" id="sidebar-toggle-button">
-                                <i class="bx bx-menu"></i>
-                            </button>
-                            <h4 class="fw-bold">
-                                {{ request.user.company.name }}
-                                <br>
-                                {% if request.user.role == 'admin' or request.user.role == 'owner' or request.user.role == 'accountant' or request.user.role == 'supervisor' or request.user.role == 'chef' or request.user.role == 'stores_person' %}
-                                    <span>
-                                        <button class="btn btn-seconday" onclick="branchSwitch()">
-                                            <i class="bx bx-git-branch"></i>
-                                        </button>
-                                    </span>
-                                {% endif %}
-                                <span>
-                                    {{ request.user.branch.branch_name }}
-                                </span>
-                            </h4>
-                        </div>
-                        <div>
-                            <ul class="list-unstyled d-flex align-items-center">
-                                <!-- Notification Icon with Badge -->
-                                <li class="position-relative mx-3 d-flex align-items-center justify-content-center">
-                                    <i class="bx bx-bell fs-3 cursor-pointer" id="notification-icon"></i>
-                                    <span id="notification-badge" class="badge rounded-pill bg-danger text-dark position-absolute top-0 start-100 translate-middle">
-                                        2
-                                    </span>
-                                    <div class="notifications dropdown-menu dropdown-menu-end p-2 notification-dropdown-style" id="notification-dropdown">
-                                        <ul id="notification-box" class="list-unstyled">
-                                            {% for notification in notifications %}
-                                                <li>
-                                                    <small class='text-muted'>{{ notification.timestamp }}</small>
-                                                    <small>- {{ notification.message }} </small>
-                                                </li>
-                                            {% endfor %}
-                                        </ul>
-                                    </div>
-                                </li>
-                                <!-- Username -->
-                                <li class="mx-2">{{ request.user.username}}</li>
-                                <li class='btn border btn-danger bx bx-log-out-circle mt-1 fs-3 cursor-pointer' data-bs-toggle="modal" data-bs-target="#logoutModal"></li>
-                            </ul>
-                        </div>
-                    </div>
-                    {% endif %}
-                                       
-                </nav>
-                    <div class="row container-fluid">
-                        {% if request.resolver_match.url_name == 'pos' %}
-                        <div id="pos-sidebar" class="col-2 mt-3 d-flex justify-content-center border rounded">
-                            {% include 'base/Possidebar.html' %}
-                        </div>
-                        {% elif request.resolver_match.url_name not in 'declare_production,confirm_production_plan,production_plans,view_production_plan' %}
-                        <div id="main-sidebar" class="col-2 mt-3 d-flex justify-content-center">
-                            {% include 'base/side_bar.html' %}
-                        </div>
-                        {% endif %}
-                        
-                        <div class="{% if request.resolver_match.url_name in 'view_production_plan' %}col-12 p-4{% else %}col-10{% endif %}">
-                            <div class="app-area {% if request.resolver_match.url_name not in 'view_production_plan' %}overflow{% endif %}" {% if request.resolver_match.url_name == 'view_production_plan' %}class="app-area-style"{% endif %}>
-                                {% if messages %}
-                                    {% for message in messages %}
-                                        <div class="alert alert-dismissible {% if message.tags %}alert-{{ message.tags }}{% endif %}">
-                                        {{ message }}
-                                        <button type="button"
-                                            class="btn-close"
-                                            data-bs-dismiss="alert"
-                                            aria-label="Close">
-                                        </button>
-                                        </div>
-                                    {% endfor %}
-                                {% endif %}
-                                {% block content %}{% endblock %}
+                        <div class='production-plan mt-2 d-flex justify-content-between align-items-center'>
+                            <div>
+                                <a href='{% url "inventory:production_plans" %}' class='border btn bx bx-arrow-back fs-5'></a>
+                                <a href='/' class='bx bx-home btn border fs-5 mx-2'></a>
+                                <span class='mt-2 fs-5'>Production Plan : {{ p_plan.production_plan_number }} Declaration</span>
                             </div>
                         </div>
-                        
-                        {% if request.resolver_match.url_name == 'declare_production' or request.resolver_match.url_name == 'confirm_production_plan' or request.resolver_match.url_name == 'production_plans' %}
+                    {% endif %}
+                </nav>
+                <div class="row">
+                    {% if request.resolver_match.url_name == 'pos' %}
+                        <div id="pos-sidebar" class="col-2 d-none d-md-flex justify-content-center border rounded">
+                            {% include 'base/Possidebar.html' %}
+                        </div>
+                    {% elif request.resolver_match.url_name not in 'declare_production,confirm_production_plan,production_plans,view_production_plan' %}
+                        <div id="main-sidebar" class="col-2 d-none d-md-flex justify-content-center main-sideba">
+                            {% include 'base/side_bar.html' %}
+                        </div>
+                    {% endif %}
+                    <div class="{% if request.resolver_match.url_name in 'production_plans' %}{% else %}col-10{% endif %}">
+                        <div class="app-area {% if request.resolver_match.url_name not in 'view_production_plan' %}overflow{% endif %}" {% if request.resolver_match.url_name == 'view_production_plan' %}class="app-area-style"{% endif %}>
+                            {% if messages %}
+                                {% for message in messages %}
+                                    <div class="alert alert-dismissible {% if message.tags %}alert-{{ message.tags }}{% endif %}">
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                            {% block content %}{% endblock %}
+                        </div>
+                    </div>
+                    {% comment %} {% if request.resolver_match.url_name == 'declare_production' or request.resolver_match.url_name == 'confirm_production_plan' or request.resolver_match.url_name == 'production_plans' %}
                         <div class="col-2 checklist-style">
                             {% include 'base/check_list.html' %}
                         </div>
-                        {% endif %}
-                    </div>
+                    {% endif %} {% endcomment %}
+                </div>
             </div>
         </div>
-        <!-- logout modal -->
+
+        <div id="mobile-sidebar" class="mobile-sidebar d-md-none">
+            {% include 'base/side_bar.html' %}
+        </div>
+
         <div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="chargeModalLabel" aria-hidden="true">
             <div class="modal-dialog bg modal-dialog-centered">
                 <div class="modal-content p-5">
                     <h5 class="fw-bold">Are you sure you want to logout?</h5>
                     <div class="d-flex justify-content-end mt-4">
-                        <button class="btn btn-outline-dark">No</button>
-                        <a href="{% url 'users:logout' %}" class="btn btn-seconday">Yes</a>
+                        <button class="btn btn-outline-dark" data-bs-dismiss="modal">No</button>
+                        <a href="{% url 'users:logout' %}" class="btn btn-secondary">Yes</a>
                     </div>
                 </div>
             </div>
         </div>
-        
+
         <div class="modal fade" id="switchBranchModal" tabindex="-1" aria-labelledby="switchBranchModalLabel" aria-hidden="true">
             <div class="modal-dialog bg modal-dialog-centered">
                 <div class="modal-content p-5">
                     <h5 class="fw-bold text-center mb-3">Switch Branch</h5>
                     <div id="branches" class="row gap-2 d-flex justify-content-center">
-                        <!--populate branches-->
+                        <!-- populated dynamically -->
                     </div>
                 </div>
             </div>
-        </div> 
+        </div>
     </div>
-    <script src="{% static 'css/bootstrap/js/bootstrap.bundle.min.js'%}"></script>    
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
-        document.getElementById('notification-icon').addEventListener('click', function() {
-            const dropdown = document.getElementById('notification-dropdown');
-            dropdown.classList.toggle('show');
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileSidebar = document.getElementById('mobile-sidebar');
+            const toggleButton = document.getElementById('sidebar-toggle-button');
+
+            toggleButton.addEventListener('click', function() {
+                mobileSidebar.classList.toggle('show');
+            });
         });
 
-        document.getElementById('sidebar-toggle-button').addEventListener('click', function() {
-            const posSidebar = document.getElementById('pos-sidebar');
-            const mainSidebar = document.getElementById('main-sidebar');
-
-            if (posSidebar) {
-                posSidebar.classList.toggle('d-none');
-            }
-
-            if (mainSidebar) {
-                mainSidebar.classList.toggle('d-none');
-            }
-        });
-        
         const BranchModal = new bootstrap.Modal(document.getElementById('switchBranchModal'));
 
-        function branchSwitch(){
+        function branchSwitch() {
             fetch("{% url 'users:branches' %}", {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': '{csrftoken}'
-                }
-            }).then(response => response.json())
-            .then(data => {
-                if(data.success){
-                    console.log(data)
-                    populateBranchModal(data.branch);
-                    BranchModal.show();
-                }else{
-                    console.log('show', data)
+                    'X-CSRFToken': getCSRFToken()
                 }
             })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    populateBranchModal(data.branch);
+                    BranchModal.show();
+                }
+            });
         }
 
-        function populateBranchModal(branches){
-            console.log(branches);
+        function populateBranchModal(branches) {
             const container = document.getElementById('branches');
             container.innerHTML = '';
 
             branches.forEach(branch => {
                 const branchItem = document.createElement('div');
-                branchItem.className = 'branch-item mb-2 border rounded  text-center col-3 btn btn-primary';
+                branchItem.className = 'branch-item mb-2 border rounded text-center col-3 btn btn-primary';
                 branchItem.textContent = branch.name;
                 branchItem.onclick = () => switchToBranch(branch.id);
                 container.appendChild(branchItem);
             });
         }
 
-        function switchToBranch(id){
-
+        function switchToBranch(id) {
             fetch("{% url 'users:branches' %}", {
                 method: 'POST',
                 headers: {
@@ -224,17 +239,15 @@
                     'X-CSRFToken': getCSRFToken()
                 },
                 body: JSON.stringify(id)
-            }).then(response => response.json())
-            .then(data => {
-                if(data.success){
-                    BranchModal.show();
-                   window.location.reload();
-                }else{
-
-                }
             })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    BranchModal.hide();
+                    window.location.reload();
+                }
+            });
         }
-        
 
         function getCSRFToken() {
             const name = 'csrftoken';
@@ -247,68 +260,6 @@
             }
             return null;
         }
-
-
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== "") {
-            const cookies = document.cookie.split(";");
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === name + "=") {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-                }
-            }
-            }
-            return cookieValue;
-        }  
-        // const ws = new WebSocket('ws://' + window.location.host + '/ws/notifications/');
-
-        // function playNotificationSound() {
-        //     const audio = new Audio('{% static "sounds/ding.mp3" %}'); 
-        //     audio.play();
-        // }
-
-        // ws.onmessage = function(event) {
-        //     const data = JSON.parse(event.data);
-        //     const notificationBox = document.getElementById('notification-box');
-        //     const newNotification = document.createElement('li');
-
-        //     newNotification.textContent = data.message + " - " + new Date().toLocaleTimeString();
-        //     notificationBox.appendChild(newNotification);
-
-        //     const badge = document.getElementById('notification-badge');
-        //     let currentCount = parseInt(badge.textContent) || 0;
-
-        //     badge.textContent = currentCount + 1;
-        //     badge.style.display = 'inline-block'; 
-
-        //     playNotificationSound();
-        // }
-
-    // totals sales websocket
-    const socket = new WebSocket('ws://' + window.location.host + '/ws/sales/');
-
-    socket.onopen = function() {
-        console.log('WebSocket connection established');
-    };
-
-    socket.onerror = function(error) {
-        console.error('WebSocket error:', error);
-    };
-
-    socket.onmessage = function(e) {
-        const message = JSON.parse(e.data);
-        console.log(message['data'], 'web socket data');
-        
-        const totalSalesElement = document.getElementById('total-sales');
-        if (totalSalesElement) {
-            totalSalesElement.innerText = `$${message['data']['total_sales']}`;
-        }
-
-    };
-
     </script>
 </body>
 </html>

@@ -52,9 +52,11 @@ class Product(models.Model):
     min_stock_level = models.FloatField(default=0, null=True)
     raw_material = models.BooleanField(default=False)
     finished_product = models.BooleanField(default=False)
+    packaging = models.BooleanField(default=False)
     description = models.TextField()
     deactivate = models.BooleanField(default=False)
     image = models.ImageField(upload_to='product_images/', default='placeholder1.jpg', null=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True)
     
     def __str__(self) -> str:
         return self.name
@@ -115,6 +117,19 @@ class ProductionItems(models.Model):
     allocated = models.BooleanField(default=False)
     end_of_day_status = models.BooleanField(default=False)
     declared_quantity = models.FloatField(default=0, null=True, blank=True)
+    
+class ProductionIngriedients(models.Model):
+    production = models.ForeignKey(Production, on_delete=models.CASCADE)
+    ingredient = models.ForeignKey(Product, on_delete=models.CASCADE)
+    total_quantity_per_kg = models.FloatField()
+    planned_quantity = models.FloatField()
+    expected_quantity = models.FloatField()
+    actual_quantity = models.FloatField(null=True)
+    cost_per_kg = models.DecimalField(max_digits=10, decimal_places=2, default=1) 
+    total_cost = models.DecimalField(max_digits=10, decimal_places=2, default=1) 
+    
+    def __str__(self) -> str:
+        return f'{self.ingredient}'
 
 class MinorProductionItems(models.Model):
     production = models.ForeignKey(Production, on_delete=models.CASCADE)
@@ -177,11 +192,26 @@ class Dish(models.Model):
         ('Salad', 'Salad')
     ], max_length=255)
     dish = models.BooleanField(default=True)
-    low_stock = models.IntegerField(default=10)
+    low_stock = models.IntegerField(default=10, null=True)
     image = models.ImageField(upload_to='meal_images/', default='placeholder1.jpg', null=True)
+    low_stock_time = models.ForeignKey('inventory.MealDishLowStock', on_delete=models.CASCADE, related_name="dish_notification", null=True, blank=True)
 
     def __str__(self) -> str:
         return self.name
+    
+class Supplies(models.Model):
+    TYPE_CHOICES = (
+        ('dish', 'Dish'),
+        ('meal', 'Meal'),
+    )
+    type = models.CharField(max_length=10, choices=TYPE_CHOICES)
+    dish = models.ForeignKey(Dish, on_delete=models.CASCADE, null=True, blank=True)
+    meal = models.ForeignKey('inventory.Meal', on_delete=models.CASCADE, null=True, blank=True)
+    item = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.IntegerField()
+
+    def __str__(self):
+        return f"{self.item.name} ({self.get_type_display()})"
 
 class Ingredient(models.Model):
     dish = models.ForeignKey(Dish, on_delete=models.CASCADE, null=True)
@@ -208,9 +238,33 @@ class Meal(models.Model):
     deactivate = models.BooleanField(default=False)
     meal = models.BooleanField(default=True)
     image = models.ImageField(upload_to='meal_images/', default='placeholder1.jpg', null=True)
-
+    low_stock_time = models.ForeignKey('inventory.MealDishLowStock', on_delete=models.CASCADE, related_name='meal_notification', null=True, blank=True)
+    
     def __str__(self) -> str:
         return self.name
+    
+class MealDishLowStock(models.Model):
+    dish = models.ForeignKey(Dish, on_delete=models.CASCADE, null=True)
+    meal = models.ForeignKey(Meal, on_delete=models.CASCADE, null=True)
+    time = models.TimeField()
+    end_time = models.TimeField(null=True, blank=True)
+    portions = models.IntegerField()
+    
+
+class DailyLowStockFlag(models.Model):
+    dish = models.ForeignKey('Dish', on_delete=models.CASCADE, null=True, blank=True)
+    meal = models.ForeignKey('Meal', on_delete=models.CASCADE, null=True, blank=True)
+    date = models.DateField()  
+    time_detected = models.TimeField()  
+    current_portions = models.IntegerField()
+    threshold = models.IntegerField()
+    is_active = models.BooleanField(default=True) 
+
+    class Meta:
+        unique_together = ('dish', 'meal', 'date')  
+
+    def __str__(self):
+        return f"{self.dish or self.meal} - {self.date} - Low Stock"
 
 class LeftOvers(models.Model):
     cashier = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -245,7 +299,7 @@ class PurchaseOrder(models.Model):
     other_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
     is_partial = models.BooleanField(default=False)  
     received = models.BooleanField(default=False)
-
+    
     def generate_order_number():
         return f'PO-{uuid.uuid4().hex[:10].upper()}'
 
@@ -315,6 +369,7 @@ class Logs(models.Model):
         ('deactivated', 'deactivated'),
         ('removed', 'removed')
     ]
+    
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     sale = models.ForeignKey('finance.sale', on_delete=models.CASCADE, null=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True)
@@ -334,27 +389,30 @@ class MinorRawMaterials(models.Model):
     def __str__(self) -> str:
         return self.raw_material.name
     
+
 class EndOfDay(models.Model):
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     date = models.DateField(auto_now_add=True)
     done = models.BooleanField(default=False)
     total_sales = models.DecimalField(max_digits=10, decimal_places=2, null=True)
+    variance = models.DecimalField(max_digits=10, decimal_places=2, null=True)
     
     def __str__(self) -> str:
         return f'{self.total_sales}'
-
 
 class EndOfDayCashier(models.Model):
     end_of_day = models.ForeignKey(EndOfDay, on_delete=models.CASCADE)
     cashier = models.ForeignKey('users.User', on_delete=models.CASCADE)
     cashed_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True)
-
+    sales = models.DecimalField(max_digits=10, decimal_places=2, null=True)
+    voids = models.DecimalField(max_digits=10, decimal_places=2, null=True)
+    expenses = models.DecimalField(max_digits=10, decimal_places=2, null=True)
+    variance = models.DecimalField(max_digits=10, decimal_places=2, null=True)
     class Meta:
         unique_together = ('end_of_day', 'cashier')
 
     def __str__(self):
         return f'{self.cashier} - {self.cashed_amount} on {self.end_of_day.date}'
-    
     
 class EndOfDayItems(models.Model):
     end_of_day = models.ForeignKey(EndOfDay, on_delete=models.CASCADE)
@@ -374,6 +432,7 @@ class EndOfDayItems(models.Model):
     purchase_units = models.FloatField(null=True)
     open_stock = models.FloatField(null=True)
     close_stock = models.FloatField(null=True)
+    
     def __str__(self) -> str:
         return f'{self.end_of_day.date}: {self.dish_name}'
     
@@ -490,7 +549,7 @@ class StockTake(models.Model):
     variance = models.IntegerField(default=0)
     notes = models.TextField(null=True, blank=True)
     conductor = models.ForeignKey('users.User', on_delete=models.SET_NULL, null=True)
-    users = models.ManyToManyField('users.User', related_name='stock_users', null=True)
+    users = models.ManyToManyField('users.User', related_name='stock_users')
     
     def __str__(self):
         return self.branch
@@ -507,3 +566,18 @@ class StockTakeItem(models.Model):
     
     def __str__(self):
         return f'{self.product.name} - Recorded: {self.recorded_quantity}, Actual: {self.actual_quantity}, Variance: {self.variance}'
+class InventoryNotificationLog(models.Model):
+    NOTIFICATION_TYPES = [
+        ('create', 'Create'),
+        ('update', 'Update'),
+        ('delete', 'Delete'),
+    ]
+
+    inventory_item = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='notifications')
+    action_type = models.CharField(max_length=10, choices=NOTIFICATION_TYPES)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.action_type.upper()} - {self.inventory_item.product_name} at {self.created_at}"

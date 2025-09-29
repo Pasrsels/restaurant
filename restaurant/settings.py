@@ -23,7 +23,7 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
     '192.168.1.136',
     '196.27.126.114',
-    '127.0.0.1'
+    '192.168.1.254'
 ]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -41,6 +41,7 @@ DJANGO_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.humanize",
 ]
 
 THIRD_PARTY_APPS = [
@@ -78,10 +79,11 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',
     
     # custom
+    'middleware.request_logging.RequestLoggingMiddleware',
     'users.middleware.CompanySetupMiddleware',
     'middleware.sales_middleware.SalesAccessMiddleware',
     'middleware.chef_middleware.ChefAccessMiddleware',
-'middleware.stores_person_middleware.StoresPersonAccessMiddleware',
+    'middleware.stores_person_middleware.StoresPersonAccessMiddleware',
 ]
 
 ROOT_URLCONF = 'restaurant.urls'
@@ -101,7 +103,8 @@ TEMPLATES = [
                 # customm
                 'inventory.context_processors.notification_processor', 
                 'inventory.context_processors.check_list_processor',
-                'inventory.context_processors.all_meals_dishes'
+                'inventory.context_processors.all_meals_dishes',
+                'users.context_processors.branches'
             ],
         },
     },
@@ -116,16 +119,13 @@ LOGIN_URL = "users:login"
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
 DATABASES = {
-    # 'default': dj_database_url.config(
-    #     default='postgresql://postgres:bsgtOvAIFbBQgIcHLvlUFlvIiAiapbHm@autorack.proxy.rlwy.net:44818/railway'
-    # )
-
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'restaurant',  
         'USER': 'postgres',
         'PASSWORD': 'neverfail',
         'PORT': '5432',
+        'HOST': '192.168.1.133'
     }
 }
 

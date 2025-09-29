@@ -3,16 +3,21 @@
 {% load crispy_forms_tags %}
 {% block title %} Expenses {% endblock %}
 {% block content %}
-<div class="Finance container">
-    <nav class="d-flex justify-content-between align-items-center rounded mb-2 py-2 border-bottom mb-1">
-        <div>
-            <a href='{% url "finance:finance"%}' class='border btn bx bx-arrow-back fs-5'></a>
-            <a href='/' class='bx bx-home btn border fs-5 mx-2'></a>
-            <span class='mt-2 fs-5'>Expenses</span>
+<style>
+    .nav-back-btn{
+        background:rgba(14, 134, 212, 0.10);
+    }
+</style>
+<div class="Finance">
+    <nav class="d-flex justify-content-between align-items-center rounded mb-2 py-2 mb-1">
+        <div class='d-flex justify-content-center'>
+            <a href='{% url "finance:finance"%}' class='btn bx bx-arrow-back fs-5 nav-back-btn'></a>
+            <a href='/' class='bx bx-home nav-back-btn btn ms-1 me-1 fs-5 nav-back-btn'></a>
+            <span class='h4'>Expenses</span>
         </div>
         <div class="d-flex justify-content-between mt-1">
-            <button type="button" class="btn btn-outline-dark mx-2" id="id_add_expense">
-                Add Expense
+            <button type="button" class="btn bg-danger-subtle mx-2" id="id_add_expense">
+                + Expense
             </button>
             <div>
                 <select class="form-select" id="filterSelect" onchange="filterCashBook()">
@@ -32,15 +37,16 @@
             <button class="btn btn-secondary" onclick="downloadReport()">Download Report</button>
         </div>
     </nav>
-
-    <table class="table table-hover border table-striped table-bordered p-1" id="expense_table" style="width: 100%;">
-        <thead>
+    
+    <div class="d-flex mb-2">
+        <input id="expense_search" type="text" class="form-control form-control w-100" placeholder="Search..." oninput="filterTable('expense_table','expense_search')">
+    </div>
+    <table class="table table-hover p-1" id="expense_table" style="width: 100%;">
+        <thead class="bg-primary-subtle text-white">
             <tr>
                 <th>Date</th>
                 <th>Description</th>
-                <th>Category</th>
                 <th>Amount</th>
-                <th>By</th>
                 <th>Status</th>
                 <th>Actions</th>
             </tr>
@@ -48,11 +54,20 @@
         <tbody>
             {% for expense in expenses  %}
               <tr>
-                <td class="{% if expense.cancel %}text-decoration-line-through text-danger{% endif %}"><small>{{ expense.date }}</small></td>
-                <td class="{% if expense.cancel %}text-decoration-line-through text-danger{% endif %}"><small>{{ expense.description }}</small></td>
-                <td class="{% if expense.cancel %}text-decoration-line-through text-danger{% endif %}"><small>{{ expense.category.name }}</small></td>
-                <td class="{% if expense.cancel %}text-decoration-line-through text-danger{% endif %}"><small class="amount" id="exp_amount">{{ expense.amount }}</small></td>
-                <td class="{% if expense.cancel %}text-decoration-line-through text-danger{% endif %}"><small>{{ expense.user.username }}</small></td>
+                <td class="{% if expense.cancel %}text-decoration-line-through text-danger{% endif %}">
+                    {{ expense.date }} <br>
+                    <span class='text-muted'>
+                        <i class='bx bx-user'></i> {{ expense.user.first_name }}
+                    </span>
+                </td>
+                <td class="{% if expense.cancel %}text-decoration-line-through text-danger{% endif %}">
+                    {{ expense.description }} <br>
+                    <span class='text-muted'>
+                        <i class="bx bx-package"></i>
+                        {{ expense.category.name }}
+                    </span>
+                </td>
+                <td class="{% if expense.cancel %}text-decoration-line-through text-danger{% endif %}"><span class="amount" id="exp_amount">{{ expense.amount }}</span></td>
                 <td>
                     <input type="checkbox" 
                            onchange="updateExpenseStatus({{ expense.id }})"
@@ -66,12 +81,9 @@
                         <button onclick="openEditModal({{ expense.id }})" class="btn">
                             <i class='bx bx-edit-alt'></i>
                         </button>
-                        </small>
-                        <small>
-                            <button class="btn" id='delete' onclick="deleteExpense({{ expense.id}})" class="text-dark">
-                                <i class='bx bx-trash-alt'></i>
-                            </button>
-                        </small>
+                        <button class="btn" id='delete' onclick="deleteExpense({{ expense.id}})" class="text-dark">
+                            <i class='bx bx-trash-alt'></i>
+                        </button>
                     {% endif %}
                 </td>
               </tr>
@@ -80,7 +92,7 @@
         <tfoot>
             <tr>
                 <td class="fw-bold">Total</td>
-                <td colspan="2"></td>
+                <td colspan="1"></td>
                 <td id="total" class="fw-bold">0.00</td>
                 <td colspan="3"></td>
             </tr>
@@ -190,9 +202,14 @@
     </div>
     
     <script>
-        new DataTable('#expense_table',{
-            paging:false
-        })
+        function filterTable(tableId, inputId){
+            const q = document.getElementById(inputId).value.toLowerCase();
+            const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+            rows.forEach(tr => {
+                const text = tr.innerText.toLowerCase();
+                tr.style.display = text.includes(q) ? '' : 'none';
+            });
+        }
 
         const addModal = new bootstrap.Modal(document.getElementById('AddExpenseModal'))
         const categoryModal = new bootstrap.Modal(document.getElementById('AddCategoryModal'))
