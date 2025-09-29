@@ -76,7 +76,6 @@ class ProductionVariance(models.Model):
     def __str__(self) -> str:
         return f'{self.ingredient.name} - {self.quantity}'
 
-
 class Production(models.Model):
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     date_created = models.DateField(auto_now_add=True)
@@ -86,7 +85,6 @@ class Production(models.Model):
     status = models.BooleanField(default=False)
     production_plan_number = models.CharField(max_length=10, unique=True, default='')
     declared = models.BooleanField(default=False)
-    
     
     def save(self, *args, **kwargs):
         if not self.production_plan_number:
@@ -122,8 +120,8 @@ class ProductionIngriedients(models.Model):
     production = models.ForeignKey(Production, on_delete=models.CASCADE)
     ingredient = models.ForeignKey(Product, on_delete=models.CASCADE)
     total_quantity_per_kg = models.FloatField()
-    planned_quantity = models.FloatField()
-    expected_quantity = models.FloatField()
+    variance_cost = models.FloatField()
+    variance = models.FloatField()
     actual_quantity = models.FloatField(null=True)
     cost_per_kg = models.DecimalField(max_digits=10, decimal_places=2, default=1) 
     total_cost = models.DecimalField(max_digits=10, decimal_places=2, default=1) 
@@ -373,6 +371,7 @@ class Logs(models.Model):
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     sale = models.ForeignKey('finance.sale', on_delete=models.CASCADE, null=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True)
+    kitchen_rawmaterial = models.ForeignKey(ProductionRawMaterials, on_delete=models.CASCADE, null=True)
     user = models.ForeignKey('users.User', on_delete=models.SET_NULL, null=True)
     action = models.CharField(max_length=20, choices=ACTION_CHOICES)
     purchase_order = models.ForeignKey(PurchaseOrder, null=True, blank=True, on_delete=models.SET_NULL)
@@ -388,7 +387,6 @@ class MinorRawMaterials(models.Model):
     
     def __str__(self) -> str:
         return self.raw_material.name
-    
 
 class EndOfDay(models.Model):
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)

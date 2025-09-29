@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import *
 from .store_views import store_checklist, store_checklist_ajax, store_check_list_all_products, store_check_list_finished_products, store_check_list_raw_products
-
+from inventory.views_c.production import *
 
 app_name = 'inventory'
 
@@ -26,7 +26,6 @@ urlpatterns = [
     path('production/plan/list', production_plans, name='production_plans'),
     path('production-plan/<int:pp_id>/detail/', production_detail, name='production_detail'),
     path('production/plan/ajax', production_plans_ajax, name='production_plans_ajax'),
-    path('production/plan/admin', production_plans_admin, name='production_plans_admin'),
     path('production/declaration/table/ajax', production_declaration_table_ajax, name='production_declaration_table_ajax'),
     path('production_plan/detail/<int:plan_id>/ajax/', production_plan_detail_ajax, name='production_plan_detail_ajax'),
     path('production_plan/allocations/<int:plan_id>/', production_plan_allocations_ajax, name='production_plan_allocations_ajax'),
@@ -61,7 +60,8 @@ urlpatterns = [
     path('production-plan/delete/<int:id>/', production_plan_delete, name="production_plan_delete"),
     path('declare-production-plan/<int:pp_id>/', new_declare_production, name="declare_production"),
     path('latest-declare-production-plan/', latest_declare_production, name="latest_declare_production"),
-
+    path('update_ingredient_actuals/', update_ingredient_actuals, name='update_ingredient_actuals'),
+    
     # PDF download
     path('production_plan/<int:plan_id>/pdf-template/', production_plan_pdf_template, name='production_plan_pdf_template'),
 

@@ -5,50 +5,50 @@
         color: #fff;
     }
 </style>
-<div class='w-100'>
-    <div class="card border-0 shadow-sm w-100 p-3 rounded w-100" style='height:100vh; scrol'>
+<div style="width:100%">
+    <div class="card border-0 shadow-sm w-100 p-3 rounded" style='height:100vh;'>
         <div class="d-flex justify-content-between align-items-center mb-2">
             <h4 class="mb-0">
                 <i class="bx bx-line-chart"></i> Stock Movement
             </h4>
         </div>
 
-           {% comment %} <div class="btn-group w-100 mb-3" role="group">
+        <div class="w-100 mb-3 border d-flex justify-content-between" role="group">
             <button type="button" class="btn btn-primary-sm filter-btn active" data-filter="all">All</button>
             <button type="button" class="btn btn-primary-sm filter-btn" data-filter="finished">Finished</button>
             <button type="button" class="btn btn-primary-sm filter-btn" data-filter="rawmaterial">Raw Material</button>
-            <button type="button" class="btn btn-primary-sm filter-btn" data-filter="packaging">Packaging</button>
-        </div> {% endcomment %}
+        </div>
 
-
-       <table class="table table-border-less mb-0" id="stock-list">
-            <tbody>
-                {% for product in products %}
-                <tr>
-                    <td class="d-flex align-items-center">
-                        {{ product.name }}
-                    </td>
-                    <td class="">
-                        <i class="bx bx-info-circle text-secondary ms-2 info-icon"
-                            style="cursor: pointer;"
-                            data-bs-toggle="modal"
-                            data-bs-target="#productModal"
-                            data-id="{{ product.id }}">
-                        </i>
-                        <span class="badge bg-primary rounded-pill">
-                            {{ product.quantity }}
-                        </span>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="2" class="text-center text-muted">
-                        No products available
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div style="height: 80vh; overflow-y: auto;">
+            <table class="table table-borderless mb-0 w-100">
+                <tbody id="stock-list">
+                    {% for product in products %}
+                    <tr>
+                        <td class="d-flex align-items-center">
+                            {{ product.name }}
+                        </td>
+                        <td class="">
+                            <i class="bx bx-info-circle text-secondary ms-2 info-icon"
+                                style="cursor: pointer;"
+                                data-bs-toggle="modal"
+                                data-bs-target="#productModal"
+                                data-id="{{ product.id }}">
+                            </i>
+                            <span class="">
+                                {{ product.quantity }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="2" class="text-center text-muted">
+                            No products available
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
 
     </div>
 </div>
@@ -88,36 +88,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 .then(response => response.json())
                 .then(data => {
                     stockList.innerHTML = '';
-                    console.log(data)
                     if (data.products.length === 0) {
-                        stockList.innerHTML = `<li class="list-group-item text-center text-muted">No products available</li>`;
+                        stockList.innerHTML = `<tr><td colspan="2" class="text-center text-muted">No products available</td></tr>`;
                         return;
                     }
-
                     data.products.forEach(product => {
                         stockList.innerHTML += `
-                           <table class="table table-borderless mb-0">
-                                <tbody>
-                                    <tr>
-                                        <td class="d-flex align-items-center">
-                                            ${product.name}
-                                        </td>
-                                        <td class="text-end">
-                                            <i class="bx bx-info-circle text-secondary ms-2 info-icon"
-                                            style="cursor: pointer;"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#productModal"
-                                            data-id="${product.id}"></i>
-                                            <span class="badge bg-primary rounded-pill">
-                                                ${product.quantity}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                            <tr>
+                                <td class="d-flex align-items-center">
+                                    ${product.name}
+                                </td>
+                                <td class="">
+                                    <i class="bx bx-info-circle text-secondary ms-2 info-icon"
+                                        style="cursor: pointer;"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#productModal"
+                                        data-id="${product.id}"></i>
+                                    <span class="badge bg-primary rounded-pill">
+                                        ${product.quantity}
+                                    </span>
+                                </td>
+                            </tr>
                         `;
                     });
-
                     attachInfoIconListeners();
                 })
                 .catch(error => console.error('Error fetching filtered products:', error));
@@ -126,46 +119,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function run(){
         fetch(`{% url "inventory:filter_products" %}?filter=all`)
-                .then(response => response.json())
-                .then(data => {
-                    stockList.innerHTML = '';
-                    console.log(data)
-                    if (data.products.length === 0) {
-                        stockList.innerHTML = `<li class="list-group-item text-center text-muted">No products available</li>`;
-                        return;
-                    }
-
-                    data.products.forEach(product => {
-                        stockList.innerHTML += `
-                            <table class="table table-borderless mb-0">
-                                <tbody>
-                                    <tr>
-                                        <td class="d-flex align-items-center">
-                                            ${product.name}
-                                        </td>
-                                        <td class="text-end">
-                                            <span class="badge bg-primary rounded-pill">
-                                                ${product.quantity}
-                                            </span>
-                                            <i class="bx bx-info-circle text-secondary ms-2 info-icon"
-                                            style="cursor: pointer;"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#productModal"
-                                            data-id="${product.id}"></i>
-                                            
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        `;
-                    });
-
-                    attachInfoIconListeners();
-                })
-                .catch(error => console.error('Error fetching filtered products:', error));
+            .then(response => response.json())
+            .then(data => {
+                console.log(data)
+                stockList.innerHTML = '';
+                if (data.products.length === 0) {
+                    stockList.innerHTML = `<tr><td colspan="2" class="text-center text-muted">No products available</td></tr>`;
+                    return;
+                }
+                data.products.forEach(product => {
+                    stockList.innerHTML += `
+                        <tr>
+                            <td class="d-flex align-items-center">
+                                ${product.name}
+                            </td>
+                            <td class="">
+                                <i class="bx bx-info-circle text-secondary ms-2 info-icon"
+                                    style="cursor: pointer;"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#productModal"
+                                    data-id="${product.id}"></i>
+                                <span class="badge bg-primary rounded-pill">
+                                    ${product.quantity}
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+                });
+                attachInfoIconListeners();
+            })
+            .catch(error => console.error('Error fetching filtered products:', error));
     }
 
-    run()
+    run();
 
     function attachInfoIconListeners() {
         document.querySelectorAll('.info-icon').forEach(icon => {
