@@ -708,6 +708,9 @@
 
             row.innerHTML = `
                 <div class="item-info">
+                    <span>
+                        <i class="bx bx-trash text-danger mx-2" style="cursor: pointer;" onclick="removeItem('${item.id}')"></i>
+                    </span>
                     <span>${item.name}</span> x 
                     <span class="qty mx-2">${item.quantity}</span>
                 </div>
@@ -732,6 +735,11 @@
         document.getElementById('totalAmountInput').value = total.toFixed(2);
         
         document.getElementById('payModal').innerHTML = `Total Order Amount: <span class'text-bold'>${total.toFixed(2)}</span>`;
+    }
+
+    function removeItem(id) {
+        cart = cart.filter(item => item.id !== id);
+        updateOrderDetails();
     }
 
     // change functionality
@@ -944,16 +952,18 @@
                     title: "Success",
                     text: "Processing Receipt",
                     icon: "success"
+                }).then(() => {
+                   
+                    clearChangeData();
+                    cart = [];
+                    updateOrderDetails();
+                    chargeModal.hide();
+                    const receiptContent = generateReceiptContent(data.data);
+                    printReceiptSilently(receiptContent);
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
                 });
-
-                cart = [];
-                updateOrderDetails();
-                chargeModal.hide();
-                clearChangeData();
-
-                const receiptContent = generateReceiptContent(data.data);
-                printReceiptSilently(receiptContent);
-
             } else {
                 Swal.fire({
                     title: "Error",

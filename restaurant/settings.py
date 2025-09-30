@@ -21,7 +21,7 @@ DEBUG = True
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
-    '192.168.1.136',
+    '192.168.1.133',
     '196.27.126.114',
     '192.168.1.254'
 ]
@@ -125,7 +125,6 @@ DATABASES = {
         'USER': 'postgres',
         'PASSWORD': 'neverfail',
         'PORT': '5432',
-        'HOST': '192.168.1.136'
     }
 }
 

@@ -145,7 +145,7 @@ def pos(request):
 @login_required
 def dashboard(request):
     return render(request, 'dashboard.html')
-
+    
 @login_required
 def check_authorization(request):
     try:
@@ -444,6 +444,35 @@ def check_low_stock(meal=None, dish=None, current_portions=0):
         "message": "Stock level is sufficient.",
         "threshold": None
     }
+
+@login_required
+def remove_duplicates(request):
+    transactions = Change.objects.filter(timestamp__date=datetime.datetime.today()) 
+
+    grouped = defaultdict(list)
+    for tx in transactions:
+        key = (tx.name.strip().lower(), float(tx.amount))
+        grouped[key].append(tx)
+
+    removed_count = 0
+    kept_transactions = []  
+
+    for key, tx_list in grouped.items():
+        collected_txs = [tx for tx in tx_list if tx.collected]
+        not_collected_txs = [tx for tx in tx_list if not tx.collected]
+
+        if collected_txs:
+            to_keep = collected_txs[0]
+        else:
+            to_keep = not_collected_txs[0]
+
+        kept_transactions.append(to_keep) 
+
+        for tx in tx_list:
+            if tx.id != to_keep.id:
+                tx.delete()
+                removed_count += 1
+
     
 @login_required
 def process_sale(request):
@@ -466,6 +495,8 @@ def process_sale(request):
                 'change': sale_data.get('received_amount') - sale.total_amount,
                 'items': list(SaleItem.objects.filter(sale=sale).values('quantity', 'price', 'meal__name', 'dish__name', 'product__name'))
             }
+
+            remove_duplicates(request)
             
             logger.success(f'sale successfully recorded: {sale}')
             
@@ -541,6 +572,10 @@ def change_list(request):
         timestamp__lte=end_date,
         sale__branch = request.user.branch
     ).order_by('-timestamp')
+
+    change_total = changes.aggregate(total=Sum('amount'))['total'] or 0
+    change_collected_total = changes.filter(collected=True).aggregate(total=Sum('amount'))['total'] or 0
+    change_uncollected_total = changes.filter(collected=False).aggregate(total=Sum('amount'))['total'] or 0
     
     paginator = Paginator(changes, 10000) 
     page_number = request.GET.get('page')
@@ -557,6 +592,9 @@ def change_list(request):
             'end_date': end_date,
             'start_date': start_date,
             'total': total_change_amount,
+            'change_total': change_total,
+            'change_collected_total': change_collected_total,
+            'change_uncollected_total': change_uncollected_total
         }
     )
 
@@ -841,9 +879,9 @@ def void_authenticate(request):
                 return JsonResponse({"success": False, "message": "Username and password are required."}, status=400)
             logger.info(username)
             
-            # FIX: Add proper password verification
-            # user = authenticate(username=username, password=password)
+
             user = User.objects.filter(username=username).first()
+            logger.info(f'user role {user.role if user else "No user found"}')
             if user and user.role.lower() in ['admin', 'accountant', 'supervisor', 'manager', 'owner']:
                 if save_data == "save":
                     logger.info('saving')
@@ -861,6 +899,10 @@ def void_authenticate(request):
 def cash_up(request, cashier_id):
     # PurchaseOrder = get_purchase_order_model()
     logger.info(f'Cash up requested for cashier_id: {cashier_id} by user: {request.user.username}')
+
+    cashier_id=17
+    today = datetime.datetime.today().date()
+    yesterday = today - timedelta(days=1)
     
     if request.method == 'GET':
         try:
@@ -878,9 +920,9 @@ def cash_up(request, cashier_id):
                 logger.error('Request user has no branch assigned')
                 return JsonResponse({'success': False, 'message': 'User has no branch assigned'}, status=400)
 
-            sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=False, branch=request.user.branch).values('total_amount', 'cash_type', 'staff')
-            sales_items = SaleItem.objects.filter(sale__cashier__id=cashier_id, sale__date=datetime.datetime.today(), sale__branch=request.user.branch)
-            void_sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=True, branch=request.user.branch).values('total_amount')
+            sales = Sale.objects.filter(cashier__id=cashier_id, date=yesterday, void=False, branch=request.user.branch).values('total_amount', 'cash_type', 'staff')
+            sales_items = SaleItem.objects.filter(sale__cashier__id=cashier_id, sale__date=yesterday, sale__branch=request.user.branch)
+            void_sales = Sale.objects.filter(cashier__id=cashier_id, date=yesterday, void=True, branch=request.user.branch).values('total_amount')
 
             sales_dict = {}
             staff_meals_dict = {}
@@ -1004,6 +1046,7 @@ def cash_up(request, cashier_id):
             accumulated_change = Change.objects.filter(
                 cashier__id=cashier_id,
                 collected=False,
+                timestamp__date=yesterday,
                 sale__branch=request.user.branch
             ).values('amount')
             
@@ -1022,7 +1065,7 @@ def cash_up(request, cashier_id):
 
             expenses = CashierExpense.objects.filter(
                 cashier__id=cashier_id,
-                date=datetime.datetime.today(),
+                date=yesterday,
                 branch=request.user.branch
             )
             
@@ -1037,14 +1080,20 @@ def cash_up(request, cashier_id):
             total_staff_sales = sum(sale['total_amount'] for sale in sales if sale['staff'])
             total_void_sales = sum(void_sale['total_amount'] for void_sale in void_sales)
             total_expenses = expenses.aggregate(Sum('amount'))['amount__sum'] or 0
-            total_change = change.aggregate(Sum('amount'))['amount__sum'] or 0
+            total_change = accumulated_change.aggregate(Sum('amount'))['amount__sum'] or 0
+        
+            today = datetime.datetime.today().date()
             
+
             collected_changes = Change.objects.filter(
-                cashier__id=cashier_id,
-                timestamp__date=datetime.datetime.today(),
                 collected=True,
+                data_collected__date=yesterday,
                 sale__branch=request.user.branch
-            ).aggregate(Sum('amount'))['amount__sum'] or 0
+            ).exclude(
+                cashier__id=cashier_id
+            ).aggregate(
+                Sum('amount')
+            )['amount__sum'] or 0
             
             cash_in_hand = total_sales - total_expenses - total_void_sales + total_change - collected_changes
 
