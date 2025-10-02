@@ -257,7 +257,7 @@
     <div class="sidebar-header">
         <h4>
             <div class="left-info">
-                <i class="bx bx-buildings company-icon"></i>
+                <i class="bx bx-buildings text-primary"></i>
                 <span>{{ request.user.company.name }}</span>
             </div>
             <div class="notification-wrapper">
@@ -293,39 +293,39 @@
 
     <div class="sidebar-menu">
         <a href="{% url 'pos:pos' %}" class="{% if request.resolver_match.url_name == 'pos' %}active{% endif %}">
-            <i class='bx bx-cart-alt'></i>
+            <i class='bx bx-cart-alt text-primary'></i>
             <span>Point Of Sale</span>
         </a>
         <a href="{% url 'analytics_index' %}" class="{% if request.resolver_match.url_name == 'analytics_index' %}active{% endif %}">
-            <i class='bx bx-bar-chart-alt-2'></i>
+            <i class='bx bx-bar-chart-alt-2 text-primary'></i>
             <span>Analytics</span>
         </a>
         <a href="{% url 'inventory:products' %}" class="{% if request.resolver_match.url_name == 'products' %}active{% endif %}">
-            <i class='bx bx-package'></i>
+            <i class='bx bx-package text-primary'></i>
             <span>Inventory</span>
         </a>
         <a href="{% url 'inventory:production_plans' %}" class="{% if request.resolver_match.url_name == 'production_plans' %}active{% endif %}">
-            <i class='bx bx-cog'></i>
+            <i class='bx bx-cog text-primary'></i>
             <span>Production</span>
         </a>
         <a href="{% url 'inventory:transfers' %}" class="{% if request.resolver_match.url_name == 'transfers' %}active{% endif %}">
-            <i class='bx bx-transfer'></i>
+            <i class='bx bx-transfer text-primary'></i>
             <span>Transfers</span>
         </a>
         <a href="{% url 'finance:finance' %}" class="{% if request.resolver_match.url_name == 'finance' %}active{% endif %}">
-            <i class='bx bx-wallet'></i>
+            <i class='bx bx-wallet text-primary'></i>
             <span>Finance</span>
         </a>
         <a href="{% url 'users:users' %}" class="{% if request.resolver_match.url_name == 'users' %}active{% endif %}">
-            <i class='bx bx-user'></i>
+            <i class='bx bx-user text-primary'></i>
             <span>Users</span>
         </a>
         <a href="{% url 'finance:logs' %}" class="{% if request.resolver_match.url_name == 'logs' %}active{% endif %}">
-            <i class='bx bx-file'></i>
+            <i class='bx bx-file text-primary'></i>
             <span>Transaction Logs</span>
         </a>
         <a href="{% url 'settings:settings' %}" class="{% if request.resolver_match.url_name == 'settings' %}active{% endif %}">
-            <i class='bx bx-cog'></i>
+            <i class='bx bx-cog text-primary'></i>
             <span>Settings</span>
         </a>
     </div>

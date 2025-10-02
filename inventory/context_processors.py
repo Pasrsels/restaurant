@@ -30,3 +30,7 @@ def all_meals_dishes(request):
     return {
         "dishes": dishes
     }
+
+def products(request):
+    products = Product.objects.all()
+    return {'products':products}

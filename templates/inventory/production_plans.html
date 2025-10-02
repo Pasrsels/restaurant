@@ -234,7 +234,7 @@
             <input class="form-control w-100" type="text" placeholder="Search production plan ...."/>
         </div>
 
-        <div class="chef-table mt-4">
+        <div class="chef-table mt-4" style="height: 70vh;">
             <table class="table">
                 <thead class="">
                     <tr>
@@ -262,14 +262,11 @@
                             {% if plan.declared %}
                                 <span class="badge bg-success">DECLARED</span>
                             {% else %}
-                                {% if request.user.role == 'admin' or request.user.role == 'chef' %}
-                                    <a href="{% url 'inventory:declare_production_plan' plan.id %}">Declare Production</a>
-                                {% elif request.user.role == 'admin' or request.user.role == 'accountant' or request.user.role == 'owner' %}
-                                    {% if plan.confirm %}
-                                        <a href="">Confirm Production</a>
-                                    {% else %}
-                                        <span class="badge p-2 bg-warning text-dark">PENDING CONFIRMATION</span>
-                                    {% endif %}
+                                {% if request.user.role == 'admin' or request.user.role == 'accountant' or request.user.role == 'owner' and not plan.status %}
+                                    <a href="" class="badge bg-primary-subtle">CONFIRM</a>
+                                {% elif request.user.role == 'admin' or request.user.role == 'chef' and not plan.declared %}
+                                    <a class="badge bg-primary" href="{% url 'inventory:declare_production_plan' plan.id %}">DECLARE</a>
+                                    <span class="badge p-2 bg-warning text-dark">PENDING CONFIRMATION</span>
                                 {% else %}
                                     <span class="badge p-2 bg-warning text-dark">PENDING DECLARATION</span> --- IGNORE ---
                                 {% endif %}
@@ -319,10 +316,10 @@
             const planId = this.dataset.id;
 
             rows.forEach(r => {
-                r.querySelectorAll('td').forEach(td => td.classList.remove('bg-primary'));
+                r.querySelectorAll('td').forEach(td => td.classList.remove('bg-light'));
             });
 
-            this.querySelectorAll('td').forEach(td => td.classList.add('bg-primary'));
+            this.querySelectorAll('td').forEach(td => td.classList.add('bg-light'));
 
             const existingChild = this.nextElementSibling;
             if (existingChild && existingChild.classList.contains('child-row')) {

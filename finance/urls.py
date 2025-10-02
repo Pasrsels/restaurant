@@ -48,5 +48,6 @@ urlpatterns = [
 
     #cashier expenses
     path('cashier-expenses/<int:cashier_id>/', cashier_expenses, name='cashier_expenses'),
-    
+
 ]
+

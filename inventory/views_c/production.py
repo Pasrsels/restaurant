@@ -53,7 +53,6 @@ def production_detail(request, pp_id):
             form = ProductionPlanInlineForm()
             production_plan_items = ProductionItems.objects.filter(production=production_plan)
             allocated_raw_materials = AllocatedRawMaterials.objects.filter(production=production_plan)
-            print(allocated_raw_materials)
             
             raw_materials = []
             dish_details = []
@@ -68,10 +67,10 @@ def production_detail(request, pp_id):
                         {
                             'name': item.dish.name,
                             'cost': item.dish.cost,
-                            'total_price': round(item.dish.price * Decimal(item.portions), 2)
+                            'total_price': round(item.dish.cost * Decimal(item.portions), 2)
                         }
                     )
-                    total_price += round(item.dish.price * Decimal(item.portions), 2)
+                    total_price += round(item.dish.cost * Decimal(item.portions), 2)
                     for ing in Ingredient.objects.filter(dish=item.dish, minor_raw_material__branch=request.user.branch):
                         
                         p_r_m_bf, created = ProductionRawMaterials.objects.get_or_create(
@@ -464,9 +463,9 @@ def new_declare_production(request, pp_id):
                     dish_details.append({
                             'name': item.dish.name,
                             'cost': item.dish.cost,
-                            'total_price': round(item.dish.price * Decimal(item.portions), 2)
+                            'total_price': round(item.dish.cost * Decimal(item.portions), 2)
                         })
-                    total_price += round(item.dish.price * Decimal(item.portions), 2)
+                    total_price += round(item.dish.cost * Decimal(item.portions), 2)
 
                     for ing in Ingredient.objects.filter(dish=item.dish, minor_raw_material__branch=request.user.branch):
                         p_r_m_bf, created = ProductionRawMaterials.objects.get_or_create(

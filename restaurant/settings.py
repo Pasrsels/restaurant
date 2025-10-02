@@ -104,7 +104,8 @@ TEMPLATES = [
                 'inventory.context_processors.notification_processor', 
                 'inventory.context_processors.check_list_processor',
                 'inventory.context_processors.all_meals_dishes',
-                'users.context_processors.branches'
+                'users.context_processors.branches',
+                'inventory.context_processors.products'
             ],
         },
     },

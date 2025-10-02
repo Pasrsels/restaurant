@@ -156,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function attachInfoIconListeners() {
         document.querySelectorAll('.info-icon').forEach(icon => {
             icon.addEventListener('click', function() {
-                const productId = this.getAttribute('data-id');
+                const productId = this.getAttribute('data-id');??.,÷
                 modalBody.innerHTML = `<p class="text-center text-muted">Loading...</p>`;
 
                 fetch(`/inventory/stock-detail/${productId}/`)

@@ -95,8 +95,8 @@
             <p>Process and Detail view</p>
         </div>
         <div class="d-flex gap-2">
-            <a href='{% url "pos:pos" %}' class="header-btn"><i class="bx bx-arrow-back"></i> Back</a>
-            <button class="header-btn" id="confirmreport">Confirm Report</button>
+            <a href='{% url "pos:pos" %}' class="btn btn-primary"><i class="bx bx-arrow-back"></i> Back</a>
+            <button class="btn btn-primary" id="confirmreport">Confirm Report</button>
         </div>
     </div>
     <div class="mt-2 mb-4">
@@ -111,7 +111,7 @@
             <i class="fas fa-search search-icon"></i>
         </div>
         <table class="table table-borderless table-hover" id="endofday_table">
-            <thead class="background">
+            <thead class="bg bg-primary-subtle">
                 <tr>
                     <th>#</th>
                     <th>Sold</th>
@@ -145,7 +145,7 @@
                                         <i class='bx bx-redo'></i> 
                                     </button>
                                 {% else %}
-                                    <button class="header-btn btn btn-sm">Submit</button>
+                                    <button class="btn btn-primary btn-sm">Submit</button>
                                 {% endif %}
                             </td>
                         </tr>

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% load crispy_forms_tags %}
 {% block content %}
 <div class="mt-4">
@@ -10,24 +11,28 @@
       <a href="/" class="btn btn-outline-secondary me-3">
         <i class="bx bx-home"></i>
       </a>
-      <h5 class="mb-0">Create Meal</h5>
+      <h5 class="mb-0 d-flex gap-2">
+        <span class="d-flex">
+          Create Meal
+          <input type="checkbox" class="form-check ms-1" id="meal_m">
+        </span>
+        <span class="ms-2 d-flex">
+          Create Combo
+          <input type="checkbox" class="form-check ms-1" id="combo">
+        </span>
+      </h5>
     </div>
-    <div>
-      <a href="{% url 'inventory:meal_list' %}" class="btn btn-outline-primary">Meals</a>
-    </div>
+
+    <span id="total_cost_el" class="fs-4"></span>
+    <input type="number" step="0.01" name="price" class="form-control w-50" required id="id_price" placeholder="Enter price">
   </div>
 
   <form method="post" class="p-2">
     {% csrf_token %}
     <div class="row g-3">
       <div class="col-md-6">
-        <label for="id_name" class="form-label">Meal Name <span class="text-danger">*</span></label>
+        <label for="id_name" class="form-label">Meal Name <span class="text-danger"></span></label>
         <input type="text" name="name" maxlength="255" class="form-control" required id="id_name" placeholder="Enter meal name">
-      </div>
-
-      <div class="col-md-6">
-        <label for="id_price" class="form-label">Price ($)<span class="text-danger">*</span></label>
-        <input type="number" step="0.01" name="price" class="form-control" required id="id_price" placeholder="Enter price">
       </div>
 
       <div class="col-md-6">
@@ -44,14 +49,38 @@
           </button>
         </div>
       </div>
-
+<!-- 
       <div class="col-md-6">
-        <label for="id_dish" class="form-label">Dishes <span class="text-danger">*</span></label>
-        <select name="dish" class="form-select" required id="id_dish" multiple>
-          {% for dish in dishes %}
-          <option value="{{ dish.id }}">{{ dish.name }} ({{ dish.cost }})</option>
-          {% endfor %}
-        </select>
+        
+      </div> -->
+    <div class="mt-4">
+      <h5 class="border-bottom pb-2 mb-3">Items</h5>
+      <div class="row">
+        <div class="col-10">
+          <table class="table table-borderless table-hover">
+            <thead>
+              <th>Details</th>
+              <th>Quantity</th>
+            </thead>
+            <tbody id="item_table"></tbody>
+          </table>
+        </div>
+        <div class="col-2">
+          <div>
+            <select name="dish" class="form-select" style="border-color: #5398ff;" required id="id_dish">
+                <option value="">Select Dish or Product</option>
+                {% for dish in dishes %}
+                  <option value="{{ dish.id }}">{{ dish.name }} ({{ dish.cost }})</option>
+                {% endfor %}
+            </select>
+          </div>
+          <div class="mt-2">
+            <input type="number" id="item_quantity" placeholder="Quantity" class="form-control">
+          </div>
+          <div class="mt-2">
+            <button class="btn btn-primary w-100" type="button" onclick="addItem()">Add</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -131,14 +160,86 @@
     </div>
   </div>
 </div>
-
 <script>
   new SlimSelect({
     select: '#id_dish',
-    placeholder: 'Select Dishes'
+    placeholder: 'Select Dish or Product'
   });
 
   let supplies = [];
+  let items = [];
+  let selectedOptions = [];
+  let total_cost = 0;
+
+  const mealCheckbox = document.getElementById('meal_m');
+  const comboCheckBox = document.getElementById('combo');
+  const nameElement = document.getElementById('m_name');
+  const dishSelectEment = document.getElementById('items_dish');
+  const productSelectElement = document.getElementById('items_product');
+  const ingrSelectElement = document.getElementById('dish_ingr');
+
+  document.getElementById('id_dish').addEventListener('change', function() {
+    const selectElement = document.getElementById('id_dish');
+    selectedOptions = Array.from(selectElement.selectedOptions).map(option => {
+        return {
+            name: option.text,
+            value: option.value
+        };
+    });
+  });
+
+  // add item
+  function addItem() {
+    const quantity = parseInt(document.getElementById('item_quantity').value);
+
+    let cost = parseFloat(selectedOptions[0]['name'].split(' ')[1].split('(')[1].split(')')[0]);
+    let name = selectedOptions[0]['name'].split(' ')[0]
+    
+    total_cost += quantity * cost
+    items.push({
+      id:selectedOptions[0]['value'],
+      name:name,
+      quantity:quantity,
+      cost:cost
+    });
+    populateItemData(items);
+
+    const totalCostElement = document.getElementById('total_cost_el');
+    totalCostElement.innerHTML = `<span>Cost $${total_cost}</span>`
+  }
+
+  function populateItemData(data){
+    const itemTable = document.getElementById('item_table');
+    
+    itemTable.innerHTML = " ";
+    console.log(data)
+    data.map((data=>{
+      itemTable.innerHTML += `
+        <td>${data.name}</td>
+        <td>${data.quantity}</td>
+      `
+    }))
+  }
+
+  mealCheckbox.addEventListener('change', ()=>{
+    nameElement.textContent=''
+    nameElement.textContent='Meal'
+  })
+
+  comboCheckBox.addEventListener('change', ()=>{
+    nameElement.textContent=''
+    nameElement.textContent='Combo'
+  })
+
+  function toggleSelect(name) {
+    const element = document.getElementById(`${name}`)
+    console.log(name, element)
+    if(element.classList.contains('d-none')){
+      element.classList.remove('d-none')
+    }else{
+      element.classList.add('d-none')
+    }
+  }
 
   document.getElementById('add-supply-btn').addEventListener('click', function () {
     const supplyItem = document.getElementById('id_supply_item');

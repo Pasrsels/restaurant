@@ -561,6 +561,25 @@ def change_list(request):
     )
 
 @login_required
+def change_data(request):
+    data = json.loads(request.body)
+    name = data.get('name').strip().lower()
+
+    name = name.strip().lower() if name else ''
+
+    logger.info(f'looking for change(s) data for: {name}')
+    
+    changes = Change.objects.filter(
+        Q(name__icontains=name) | 
+        Q(receipt_number__icontains=name), 
+        collected=False
+    ).select_related(
+        'branch', 'cashier', 'cashier_give'
+    ).values()
+
+    return JsonResponse({'success':True, 'data':list(changes)})
+
+@login_required
 def download_change_report(request):
     filter_option = request.GET.get('filter', 'this_week')
     now = datetime.datetime.now()
@@ -667,20 +686,23 @@ def collect_change(request):
             change = Change.objects.get(id=change_id, sale__branch = request.user.branch)
             cashier = User.objects.get(id = cashier_id)
 
-            # Calculate new collected amount and balance
+            if amount > change.amount:
+                return JsonResponse({'success':False, 'message': 'Amount cant be be more than the change amount'})
+
             new_collected = change.amount_collected + amount
             new_balance = change.amount - new_collected
+
+            logger.info(change.amount_collected)
 
             if new_balance < 0:
                 return JsonResponse({'success': False, 'message': 'Amount collected exceeds the total change amount'}, status=400)
 
-            # Update the change record
             change.amount_collected = new_collected
             change.balance = new_balance
             change.cashier_give = cashier
             
-            # If full amount is collected, mark as collected
             if new_balance == 0:
+                print('here')
                 change.collected = True
             
             change.save()
@@ -692,6 +714,7 @@ def collect_change(request):
                 'collected': change.collected
             }, status=200)
         except Exception as e:
+            logger.error(f'Error recording change: {e}')
             return JsonResponse({'success':False, 'message':f'{e}'}, status=400)
     return JsonResponse({'success':False, 'message':'Invalid request'}, status=405)
 
@@ -829,44 +852,30 @@ def void_authenticate(request):
     if request.method == "POST":
         try:
             data = json.loads(request.body)
+            print(data)
 
             username = data.get("username")
             password = data.get("password")
-            save_data = data.get('save')
-
-            logger.info(username)
-            logger.info(password)
 
             if not username or not password:
                 return JsonResponse({"success": False, "message": "Username and password are required."}, status=400)
-            logger.info(username)
             
-            # FIX: Add proper password verification
-            # user = authenticate(username=username, password=password)
             user = User.objects.filter(username=username).first()
             if user and user.role.lower() in ['admin', 'accountant', 'supervisor', 'manager', 'owner']:
-                if save_data == "save":
-                    logger.info('saving')
-                    SaleAuthorization.objects.create(
-                        auth_granted = True
-                    )
                 return JsonResponse({"success": True, 'role': user.role, "message": "Authentication successful.", "user_id":user.id}, status=200)
-            else:
-                return JsonResponse({"success": False, "message": "Invalid credentials or insufficient permissions."}, status=401)
 
         except Exception as e:
+            logger.error(f'Error authenticating user: {user.username} -> {e}')
             return JsonResponse({"success": False, "message": f"An error occurred: {str(e)}"}, status=500)
         
 @login_required
 def cash_up(request, cashier_id):
-    # PurchaseOrder = get_purchase_order_model()
     logger.info(f'Cash up requested for cashier_id: {cashier_id} by user: {request.user.username}')
     
     if request.method == 'GET':
         try:
             cash_in_hand = 0
-            
-            # Validate cashier_id
+        
             try:
                 cashier = User.objects.get(id=cashier_id)
                 logger.info(f'Found cashier: {cashier.username}')
@@ -992,8 +1001,6 @@ def cash_up(request, cashier_id):
                 'total_sold',
                 'expected',
             )
-            # logger.info(eod_list)
-            # eod_dict = {name:eod.dish_name for eod in eod_list}
 
             change = Change.objects.filter(
                 cashier__id=cashier_id,
@@ -1001,24 +1008,14 @@ def cash_up(request, cashier_id):
                 sale__branch=request.user.branch
             ).values('amount')
             
-            accumulated_change = Change.objects.filter(
-                cashier__id=cashier_id,
-                collected=False,
-                sale__branch=request.user.branch
-            ).values('amount')
-            
-            previous_change = Change.objects.filter(
+            collected_change = Change.objects.filter(
                 cashier__id=cashier_id,
                 collected=True,
+                date_collected=datetime.datetime.today(),
                 sale__branch=request.user.branch
-            )
-
-            previous_change_given_by_cashier_list = []
-
-            for item in previous_change:
-                name = item.name
-                if name:
-                    previous_change_given_by_cashier_list.append({'Name': item.name, 'Amount': item.amount})
+            ).select_related(
+                'cashier'
+            ).values('amount')
 
             expenses = CashierExpense.objects.filter(
                 cashier__id=cashier_id,
@@ -1026,7 +1023,6 @@ def cash_up(request, cashier_id):
                 branch=request.user.branch
             )
             
-           
             expenses_list = []
             for item in expenses:
                 name = item.name
@@ -1037,18 +1033,22 @@ def cash_up(request, cashier_id):
             total_staff_sales = sum(sale['total_amount'] for sale in sales if sale['staff'])
             total_void_sales = sum(void_sale['total_amount'] for void_sale in void_sales)
             total_expenses = expenses.aggregate(Sum('amount'))['amount__sum'] or 0
-            total_change = change.aggregate(Sum('amount'))['amount__sum'] or 0
             
             collected_changes = Change.objects.filter(
                 cashier__id=cashier_id,
-                timestamp__date=datetime.datetime.today(),
+                collected=True,
+                date_collected=datetime.datetime.today(),
+                sale__branch=request.user.branch
+            ).aggregate(Sum('amount'))['amount__sum'] or 0
+
+            uncollected_change = Change.objects.filter(
+                cashier__id=cashier_id,
                 collected=True,
                 sale__branch=request.user.branch
             ).aggregate(Sum('amount'))['amount__sum'] or 0
             
-            cash_in_hand = total_sales - total_expenses - total_void_sales + total_change - collected_changes
-
-            total_accumulated_change = accumulated_change.aggregate(Sum('amount'))['amount__sum'] or 0
+            cash_in_hand = total_sales - total_expenses - total_void_sales - collected_changes
+            total_accumulated_change = uncollected_change.aggregate(Sum('amount'))['amount__sum'] or 0
             
             cashier = User.objects.get(id=cashier_id)
 
@@ -1060,12 +1060,11 @@ def cash_up(request, cashier_id):
                     # cashed_amount=cashed_amount,
                     void_amount=total_void_sales,
                     sales=total_sales,
-                    change=total_change,
+                    change=collected_change,
                     user=request.user,
                     expenses=total_expenses,
                     status=False,
                     cashed=False,
-                    # staff_meal_total=
                 )
 
             finished_product = finishedProduct(cashier_id)
@@ -1075,11 +1074,11 @@ def cash_up(request, cashier_id):
                     'sales_portions': sales_portions_list,
                     'void_sales_portions': void_sales_portions_list,
                     'staff_meal_portions': staff_meals_portions_list,
-                    'previous_change_given': previous_change_given_by_cashier_list,
+                    'previous_change_given': [],
                     'variance': list(eod_list),
                     'expense': expenses_list,
                     'total_expenses': total_expenses,
-                    'total_change': total_change,
+                    'total_change': collected_change,
                     'total_accumulated_change': total_accumulated_change,
                     'cash_in_hand': cash_in_hand,
                     'sales_total': sale_total,
@@ -1092,16 +1091,9 @@ def cash_up(request, cashier_id):
                     'eco_cash_tax': Decimal(eco_cash_tax),
                     'collected_changes': float(collected_changes),
                 }
-
-                # Call accountantreport and update data with its results
-            report_data = accountantreport(request)
-            data.update({
-                    'accountant_report': report_data
-                })
-
             return JsonResponse({'success': True, "data": data})
         except Exception as e:
-            logger.exception('Error in cash_up view')
+            logger.error(f'Error in processing cashup: {e}')
             return JsonResponse({
                 'success': False, 
                 'message': 'An error occurred while processing your request',

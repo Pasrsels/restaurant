@@ -11,6 +11,8 @@ urlpatterns = [
     path('product_meal_json/', product_meal_json, name='product_meal_json'),
     path('meal/detail/json/<int:meal_id>/', meal_detail_json, name='meal_detail_json'),
     
+    #chaanges
+    path('change_data', change_data, name='change_data'),
     path('change_list/', change_list, name='change_list'),
     path('create_change/', create_change, name='create_change'),
     path('report/', download_change_report, name='download_cashbook_report'),
