@@ -120,6 +120,7 @@ def users(request):
 
 def login_view(request):
     if request.method == 'POST':
+        logger.info('here')
         email_address = request.POST['email_address']
         password = request.POST['password']
 

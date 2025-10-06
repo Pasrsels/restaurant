@@ -3,14 +3,9 @@ from .models import *
 
 
 for model in [
-    Meal, 
     Supplier, 
-    Production, 
-    Ingredient, 
     PurchaseOrder, 
-    MealCategory, 
     UnitOfMeasurement, 
-    ProductionItems, 
     TransferItems,
     BudgetItem, 
     StockTake, 
@@ -19,6 +14,5 @@ for model in [
     EndOfDayItems,
     EndOfDayCashier,
     Logs,
-    Dish
 ]:
     admin.site.register(model)

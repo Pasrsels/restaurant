@@ -22,15 +22,9 @@ from django.utils.timezone import localdate
 from django.http import JsonResponse, HttpResponse
 from django.contrib.auth.decorators import login_required
 from inventory.models import (
-    ProductionLogs, 
-    LeftOvers, 
     EndOfDayItems,
-    Meal, 
-    Production, 
     Product, 
-    Logs, 
-    Dish,
-    Ingredient
+    Logs
 )
 from inventory.views import finishedProduct
 from .models import SaleAuthorization
@@ -67,7 +61,7 @@ from django.core.cache import cache
 from inventory.forms import ProductionPlanInlineForm
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.timezone import localtime
-from inventory.models import MealDishLowStock, DailyLowStockFlag
+from inventory.models import Meal, Dish, DailyLowStockFlag
 
 today = localdate()
 
@@ -312,7 +306,7 @@ def _process_sale_data(sale_data, user):
                     
                 sale_item.save()
                 
-                _process_supplies(dish, meal, user)
+                # _process_supplies(dish, meal, user)
                 
                 # _process_log(product=product, user=user, sale=sale, quantity=sale_item.quantity, total_quantity=product.quantity)
                 
@@ -702,7 +696,6 @@ def collect_change(request):
             change.cashier_give = cashier
             
             if new_balance == 0:
-                print('here')
                 change.collected = True
             
             change.save()
@@ -861,7 +854,7 @@ def void_authenticate(request):
                 return JsonResponse({"success": False, "message": "Username and password are required."}, status=400)
             
             user = User.objects.filter(username=username).first()
-            if user and user.role.lower() in ['admin', 'accountant', 'supervisor', 'manager', 'owner']:
+            if user and user.role.lower() in ['admin', 'accountant', 'supervisor', 'manager', 'owner', 'sales']:
                 return JsonResponse({"success": True, 'role': user.role, "message": "Authentication successful.", "user_id":user.id}, status=200)
 
         except Exception as e:
@@ -1039,33 +1032,53 @@ def cash_up(request, cashier_id):
                 collected=True,
                 date_collected=datetime.datetime.today(),
                 sale__branch=request.user.branch
-            ).aggregate(Sum('amount'))['amount__sum'] or 0
+            ).exclude(
+                cashier__id=cashier_id
+            ).aggregate(Sum('amount_collected'))['amount_collected__sum'] or 0
+
+            cashier_partially_collected_changes = Change.objects.filter(
+                timestamp__date=datetime.datetime.today(),
+                cashier__id=cashier_id,
+                collected=False,
+                balance__gt=0,
+                sale__branch=request.user.branch
+            ).aggregate(Sum('balance'))['balance__sum'] or 0
+
+            logger.info(f'Collected changes from others: {collected_changes}')
+            logger.info(f'Partially collected changes by cashier: {cashier_partially_collected_changes}')
+
+            total_collected_change = collected_changes + cashier_partially_collected_changes 
+            collected_change = total_collected_change
 
             uncollected_change = Change.objects.filter(
+                timestamp__date=datetime.datetime.today(),
                 cashier__id=cashier_id,
-                collected=True,
+                collected=False,
+                amount_collected=0,
                 sale__branch=request.user.branch
             ).aggregate(Sum('amount'))['amount__sum'] or 0
+
+            logger.info(f'Uncollected changes by cashier: {uncollected_change}')
             
-            cash_in_hand = total_sales - total_expenses - total_void_sales - collected_changes
-            total_accumulated_change = uncollected_change.aggregate(Sum('amount'))['amount__sum'] or 0
+            cash_in_hand = total_sales - total_expenses - total_void_sales - collected_changes + uncollected_change + cashier_partially_collected_changes - eco_cash_tax
+            uncollected_change = uncollected_change + cashier_partially_collected_changes
             
             cashier = User.objects.get(id=cashier_id)
 
             logger.info(f'Sales totals: total: {total_sales}, staff_sales: {total_staff_sales}')
 
             CashUp.objects.create(
-                    branch=request.user.branch,
-                    cashier=cashier,
-                    # cashed_amount=cashed_amount,
-                    void_amount=total_void_sales,
-                    sales=total_sales,
-                    change=collected_change,
-                    user=request.user,
-                    expenses=total_expenses,
-                    status=False,
-                    cashed=False,
-                )
+                branch=request.user.branch,
+                cashier=cashier,
+                # cashed_amount=cashed_amount,
+                void_amount=total_void_sales,
+                sales=total_sales,
+                change=collected_change,
+                user=request.user,
+                expenses=total_expenses,
+                status=False,
+                cashed=False,
+            )
 
             finished_product = finishedProduct(cashier_id)
 
@@ -1078,9 +1091,9 @@ def cash_up(request, cashier_id):
                     'variance': list(eod_list),
                     'expense': expenses_list,
                     'total_expenses': total_expenses,
-                    'total_change': collected_change,
-                    'total_accumulated_change': total_accumulated_change,
-                    'cash_in_hand': cash_in_hand,
+                    'total_change': round(uncollected_change, 2),
+                    'total_accumulated_change': uncollected_change,
+                    'cash_in_hand': round(cash_in_hand, 2),
                     'sales_total': sale_total,
                     'staff_total': staff_total,
                     'finished_product': finished_product,

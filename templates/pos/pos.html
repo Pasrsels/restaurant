@@ -230,9 +230,8 @@
 <div class="pos-container">
     <div class="left-sidebar">
         <div>
-            <div>
-                <!-- <img src="{% static 'assests/logos/posflow.png' %}" alt="product-name"> -->
-                 <h5>Posflow</h5>
+            <div style="margin-top: -15px;">
+                <img src="{% static 'assets/posflow.jpeg' %}" alt="product-name" width="230px">
             </div>
             <h4 class="mb-2">{{request.user.company.name}} - <span class="ms-3">POS</span></h4>
             <div class="branch-info">
@@ -243,7 +242,7 @@
                     </button>
                 {% endif %}
             </div>
-            <div style="height:200px"></div>
+            <div style="height:100px;"></div>
                 <ul class="nav flex-column">
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'inventory:end_of_day_view' %}" >
@@ -263,6 +262,10 @@
                             View Change
                         </a>
                     </li> 
+                    <a class="nav-link" href='{% url "pos:change_list" %}'>
+                            <i class="bx bx-list-ul text-primary"></i>
+                            View Change
+                        </a>
                     <li class="nav-item">
                         <a class="nav-link" href="javascript:void(0);" id="collect">
                             <i class="bx bx-wallet text-primary"></i>
@@ -1514,7 +1517,7 @@
             finished_product,
             eco_cash_total,
             eco_cash_tax,
-            collected_changes = 0
+            collected_changes,
         } = cashUpData; 
         
         //finished products
