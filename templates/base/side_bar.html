@@ -299,7 +299,7 @@
             <i class='bx bx-package text-primary'></i>
             <span>Inventory</span>
         </a>
-        <a href="" class="{% if request.resolver_match.url_name == 'production_plans' %}active{% endif %}">
+        <a href="{% url 'production:production-list' %}" class="{% if request.resolver_match.url_name == 'production_plans' %}active{% endif %}">
             <i class='bx bx-cog text-primary'></i>
             <span>Production</span>
         </a>
@@ -338,7 +338,7 @@
     <i class="bx bx-bell"></i>
 </button>
 
-<script>
+<!-- <script>
     const notificationIcon = document.getElementById('notification-icon');
     const notificationDropdown = document.getElementById('notification-dropdown');
     const floatingBtn = document.getElementById('floating-notification-btn');
@@ -353,5 +353,5 @@
         notificationDropdown.style.bottom = '80px';
         notificationDropdown.style.right = '20px';
     });
-</script>
+</script> -->
 {% endblock content %}

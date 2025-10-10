@@ -7,11 +7,14 @@
     .nav-back-btn{
         background:rgba(14, 134, 212, 0.10);
     }
+    label{
+        display: none;
+    }
 </style>
-<div class='me-2'>
+<div class='mt-3 me-3'>
     <div class='d-flex justify-content-between align-items-center'>
         <div class='d-flex justify-content-center align-items-center'>
-            <a href='{% url "inventory:production_plans"%}' class='btn bx bx-arrow-back nav-back-btn me-1 fs-5'></a>
+            <a href='{% url "production:production-list"%}' class='btn bx bx-arrow-back nav-back-btn me-1 fs-5'></a>
             {% if request.user.role != 'chef'%}
                 <a href='/' class='bx bx-home nav-back-btn btn fs-5 me-1'></a>
             {% else %}
@@ -19,16 +22,10 @@
             {% endif %}
             <span class='fs-5'>Create Production Plan</span>
         </div>
-        <div>
-            <ul class="list-unstyled mt-3">
-                <li>
-                    <a href="{% url 'inventory:production_plans' %}" class="btn btn-primary">Production Plan</a>
-                </li>
-            </ul>
-        </div>
     </div>
-    <div class="row mt-2">
+    <div class="row mt-4">
         <div class="col-9">
+            <input type="text" name="" id="" class="form-control" placeholder="Search Dish" list="dishes" autocomplete="off" />
             <table class="table">
                 <thead class="bg-primary-subtle">
                     <th>Dish</th>
@@ -44,11 +41,12 @@
                 <button class="btn-primary btn sm bx bx-save" id="id_submit"></button>
             </div>
         </div>
-        <div class="col-3 mt-2">
-            <form id="production-plan-form">
+        <div class="col-3 rounded bg-light pt-2" style="height:90vh;">
+            <span class="fs-5">Select Dish & Enter portions</span>
+            <form id="production-plan-form" class="mt-2">
                 {% csrf_token %}
                 {{ form | crispy }}
-                <button type="button" id="save-button" class="btn btn-secondary btn-sm w-100">Save</button>
+                <button type="button" id="save-button" class="btn btn-primary btn-sm w-100">Save</button>
             </form>
         </div>
     </div>
@@ -79,7 +77,7 @@
                 cart: cart
             };
     
-            fetch('{% url "inventory:create_production_plan" %}', {
+            fetch('{% url "production:create_production" %}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -95,7 +93,7 @@
                         text: "Production plan created successfully!",
                         icon: "success"
                     }).then(() => {
-                        window.location.href = `/inventory/production/plan/list`;
+                        window.location.href = `/inventory/production/plans`;
                     });
                     cart = [];
                     updateCartTable();
@@ -112,9 +110,10 @@
             });
         });
     
-        jQuery('#id_dish').on('change', function(e) {
+        // document.getElementById('id_dish').addEventListener('change', function(e) {})
+        $('#id_dish').on('change', function(e) {
             const selectedProductId = e.target.value;
-            
+            console.log("Selected Product ID:", selectedProductId);
             if (!selectedProductId || selectedProductId === '') {
                 ingredientsData = []; 
                 portion_multiplier = 1; 
@@ -126,7 +125,7 @@
                 dish_id: selectedProductId,
             };
     
-            fetch('{% url "inventory:dish_json_detail" %}', {
+            fetch('{% url "production:dish_json_detail" %}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -136,9 +135,9 @@
             })
             .then(response => response.json())
             .then(data => {
+                console.log("Received data:", data);
                 if (data.success) {
                     ingredientsData = data.data;
-                    console.log(ingredientsData) 
                     portion_multiplier = data.portion_multiplier;
                 } else {
                     if (selectedProductId && selectedProductId !== '') {
@@ -182,7 +181,7 @@
             const portions = parseFloat($('#id_portions').val());
             const dish_name = $('#select2-id_dish-container').text();
 
-            console.log(dish_name)
+            console.log(dish_name, portions)
 
             if (!ingredientsData.length || isNaN(portions) || portions <= 0) {
                 Swal.fire({
@@ -191,18 +190,7 @@
                     icon: "warning"
                 });
                 return;
-            }
-            /*
-            const item = {
-                dish: $('#id_dish option:selected').text(),
-                portions: portions,
-                total_cost: total_dish_cost(portions)
-            };
-    
-            cart.push(item);
-            updateCartTable();
-            */
-            
+            }        
             const dish_text = $('#id_dish option:selected').text();
             const itemIndex = cart.findIndex(entry => entry.dish === dish_text);
 

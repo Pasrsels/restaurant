@@ -215,14 +215,22 @@
         .branch-info {
             display: flex;
             align-items: center;
-            justify-content: space-between;
         }
         .branch-info button {
             border: none;
             background: none;
             cursor: pointer;
             padding: 0;
+            color:#007bff;
+            width: 60px;
+            margin-left: -10px;;
         }
+        .branch-info small{
+            color:#007bff;
+        }
+        .border {
+            border-color: #ccc !important;
+        }   
     </style>
 </head>
 <body>
@@ -231,18 +239,20 @@
     <div class="left-sidebar">
         <div>
             <div style="margin-top: -15px;">
-                <img src="{% static 'assets/posflow.jpeg' %}" alt="product-name" width="230px">
+                <img src="{% static 'assets/posflow.jpeg' %}" alt="product-name" width="230px" style="height: 100px; width:100px;">
             </div>
-            <h4 class="mb-2">{{request.user.company.name}} - <span class="ms-3">POS</span></h4>
-            <div class="branch-info">
-                <span class='fs-5'>{{ request.user.branch.branch_name }} branch</span>
-                {% if request.user.role in 'admin owner accountant supervisor chef stores_person' %}
-                    <button onclick="branchSwitch()" title="Switch Branch">
-                        <i class="bx bx-transfer-alt fs-5"></i>
-                    </button>
-                {% endif %}
+            <h4 class="mb-2">{{request.user.company.name}}</h4>
+            <div class="branch-info " style="margin-top:-10px;">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a href="javascript::void()" onclick="branchSwitch()" class="nav-link">
+                            <i class="bx bx-transfer-alt fs-5"></i>
+                            <small class='fs-6'>{{ request.user.branch.branch_name }} branch</small>
+                        </a>
+                    </li>
+                </ul>
             </div>
-            <div style="height:100px;"></div>
+            <div style="height:70px;"></div>
                 <ul class="nav flex-column">
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'inventory:end_of_day_view' %}" >
@@ -294,15 +304,16 @@
                         </button>
                     </li>
 
-                    <li class="nav-item">
-                        <button class="btn btn-secondary w-100" href="javascript:void(0);" id="void">
-                            Void
-                        </button>
-                    </li>
-
                     <li class='nav-item'>
                         <a href="javascript:void(0);" class="btn btn-secondary border w-100" id="chargeStaff">Staff</a>
                     </li>
+
+                    <li class="nav-item">
+                        <button class="btn btn-primary w-100" href="javascript:void(0);" id="void">
+                            Add Production
+                        </button>
+                    </li>
+
                     <li class="nav-item">
                         <a class="nav-link text-danger btn border text-center" href="#" id="logoutBtn">
                             <i class="bx bx-log-out"></i>
@@ -406,20 +417,22 @@
     <!-- Charge Modal -->
     <div class="modal fade" id="chargeModal" tabindex="-1" aria-labelledby="chargeModalLabel" aria-hidden="true">
         <div class="modal-dialog bg modal-dialog-centered">
-            <div class="modal-content shadow">
-                <div class="modal-header">
+            <div class="modal-content shadow bg-light">
+                <div class="modal-header" style="border-bottom: none !important;">
                     <h5 id="payModal"></h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 
                 <div class='m-2'>
-                    <button id="sitting-btn" class="order-type-btn btn btn-outline-dark w-100">Sitting (S)</button>
-                    <button id="takeaway-btn" class="order-type-btn btn btn-outline-dark w-100 mt-2">Takeaway (T)</button>
-                    <input type="hidden" id="order-type-input">
-                    <input type="hidden" id="cash-type-input">
+                    <div class="d-flex jusify-content-center align-items-center flex-column w-100">
+                        <button id="sitting-btn" class="order-type-btn btn-primary-outline border btn bg-white w-75">Sitting (S)</button>
+                        <button id="takeaway-btn" class="order-type-btn border btn bg-white  mt-2 w-75">Takeaway (T)</button>
+                        <input type="hidden" id="order-type-input">
+                        <input type="hidden" id="cash-type-input">
+                    </div>
                    <div class="d-flex justify-content-between mt-2">
-                        <button class="btn btn-outline-dark w-50 me-2" id="eco-cash">ECO CASH</button>
-                        <button class="btn btn-outline-dark w-50" id="solid-cash">CASH</button>
+                        <button class="btn border w-50 me-2 bg-white" id="eco-cash">ECO CASH</button>
+                        <button class="btn border w-50 bg-white" id="solid-cash">CASH</button>
                     </div>
                 </div>
                 <div class="modal-body">
@@ -1066,13 +1079,13 @@
     });
 
     function activateButton(button) {
-        sittingBtn.classList.remove("btn-dark");
-        takeawayBtn.classList.remove("btn-dark");
+        sittingBtn.classList.remove("btn-primary");
+        takeawayBtn.classList.remove("btn-primary");
 
         sittingBtn.classList.remove("text-light");
         takeawayBtn.classList.remove("text-light");
         
-        button.classList.add("btn-dark");
+        button.classList.add("btn-primary");
         button.classList.add("text-light");
 
         selectedOrderType = button.id === "sitting-btn" ? "sitting" : "takeaway";
@@ -1768,7 +1781,7 @@
                     </div>
                     <div class="line">
                         <span>Collected Changes:</span>
-                        <span>-$${collected_changes.toFixed(2) || '0.00'}</span>
+                        <span>-$${collected_changes.toFixed(2)}</span>
                     </div>
                     <hr>
                     <div class="line">

@@ -11,10 +11,11 @@ class TimestampModel(models.Model):
         abstract = True
 
 class Production(TimestampModel):
-    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True, related_name='production_production_set')
     confirm = models.BooleanField(default=False)
     plan_number = models.CharField(max_length=10, unique=True, default='')
     declared = models.BooleanField(default=False)
+
 
     def save(self, *args, **kwargs):
         if not self.plan_number:   
@@ -28,36 +29,6 @@ class Production(TimestampModel):
     def __str__(self) -> str:
         return self.plan_number
 
-
-class Dish(TimestampModel):
-    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
-    name = models.CharField(max_length=100)
-    portion_multiplier = models.FloatField()
-    price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    category = models.CharField(
-        choices=[
-            ('Fast food', 'Fast food'),
-            ('Meat', 'Meat'),
-            ('Starch', 'Starch'),
-            ('Salad', 'Salad')
-        ],
-        max_length=255
-    )
-    is_dish = models.BooleanField(default=True)  # ✅ renamed from `dish`
-    low_stock = models.IntegerField(default=10, null=True)
-    image = models.ImageField(upload_to='meal_images/', default='placeholder1.jpg', null=True)
-    low_stock_time = models.ForeignKey(
-        'production.MealDishLowStock',
-        on_delete=models.CASCADE,
-        related_name="dish_notification",
-        null=True, blank=True
-    )
-
-    def __str__(self) -> str:
-        return self.name
-
-
 class ProductionItem(TimestampModel):
     production = models.ForeignKey(Production, on_delete=models.CASCADE)
     dish = models.ForeignKey('production.Dish', on_delete=models.CASCADE)  
@@ -65,10 +36,10 @@ class ProductionItem(TimestampModel):
     total_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     declared = models.BooleanField(default=False)
     portions = models.FloatField(default=0, null=True)
+    
 
     def __str__(self):
         return f'{self.production.plan_number}: {self.dish.name}'
-
 
 class ProductionIngredients(models.Model):  
     production = models.ForeignKey(Production, on_delete=models.CASCADE)
@@ -82,14 +53,41 @@ class ProductionIngredients(models.Model):
 
     def __str__(self) -> str:
         return f'{self.ingredient}'
+    
+class Dish(TimestampModel):
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True, related_name='production_dish_set')
+    name = models.CharField(max_length=100)
+    portion_multiplier = models.FloatField()
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    category = models.CharField(
+        choices=[
+            ('Fast food', 'Fast food'),
+            ('Meat', 'Meat'),
+            ('Starch', 'Starch'),
+            ('Salad', 'Salad')
+        ],
+        max_length=255
+    )
+    is_dish = models.BooleanField(default=True)
+    low_stock = models.IntegerField(default=10, null=True)
+    image = models.ImageField(upload_to='meal_images/', default='placeholder1.jpg', null=True)
+    low_stock_time = models.ForeignKey(
+        'production.MealDishLowStock',
+        on_delete=models.CASCADE,
+        related_name="dish_notification",
+        null=True, blank=True
+    )
 
+    def __str__(self) -> str:
+        return self.name
 
 class Ingredient(TimestampModel):
     dish = models.ForeignKey(Dish, on_delete=models.CASCADE, null=True)
     note = models.CharField(max_length=100, null=True)
     quantity = models.FloatField()
     cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    raw_material = models.ForeignKey(Product, on_delete=models.CASCADE, null=True)
+    raw_material = models.ForeignKey(Product, on_delete=models.CASCADE, null=True, related_name='production_ingredient_raws')
 
     def __str__(self) -> str:
         return self.raw_material.name if self.raw_material else 'None'
@@ -102,8 +100,9 @@ class MealCategory(models.Model):
         return self.name
 
 
+
 class Meal(TimestampModel):
-    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True, related_name='production_meal_set')
     name = models.CharField(max_length=255)
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0) 
     dishes = models.ManyToManyField(Dish, related_name='dishes')
@@ -141,7 +140,7 @@ class Supplies(TimestampModel):
     type = models.CharField(max_length=10, choices=TYPE_CHOICES)
     dish = models.ForeignKey(Dish, on_delete=models.CASCADE, null=True, blank=True)
     meal = models.ForeignKey(Meal, on_delete=models.CASCADE, null=True, blank=True)
-    item = models.ForeignKey(Product, on_delete=models.CASCADE)
+    item = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='production_supplies')
     quantity = models.IntegerField()
 
     def __str__(self):
@@ -149,8 +148,9 @@ class Supplies(TimestampModel):
 
 
 class ProductionInventory(models.Model):  # kitchen inventory
-    raw_material = models.ForeignKey(Product, on_delete=models.CASCADE)
+    raw_material = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='production_productioninventories')
     quantity = models.FloatField()
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
 
     def __str__(self) -> str:
         return f'{self.raw_material}: ({self.quantity})'
@@ -164,7 +164,7 @@ class ProductionLogs(models.Model):  # kitchen inventory logs
         ('to production', 'To Production'),
     ]
     product = models.ForeignKey(ProductionInventory, on_delete=models.CASCADE)
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='production_productionlogs')
     action = models.CharField(max_length=20, choices=ACTION_CHOICES)
     quantity = models.FloatField()
     total_quantity = models.FloatField()
@@ -173,9 +173,19 @@ class ProductionLogs(models.Model):  # kitchen inventory logs
 
 class AllocatedRawMaterials(models.Model):
     production = models.ForeignKey(Production, on_delete=models.CASCADE)
-    raw_material = models.ForeignKey(Product, on_delete=models.CASCADE)
+    raw_material = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='production_allocatedrawmaterials')
     remaining_quantity = models.FloatField(null=True)
     quantity = models.FloatField()
 
     def __str__(self) -> str:
         return f'{self.production} ({self.raw_material}: {self.quantity})'
+
+class ProductionRawMaterialAllocation(models.Model):
+    production = models.ForeignKey(Production, on_delete=models.CASCADE, null=True)
+    product = models.ForeignKey('inventory.product', on_delete=models.CASCADE, related_name='production_productionrawmaterials_set')
+    quantity = models.FloatField(null=True)
+    expected_quantity = models.FloatField(null=True)
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True, related_name='production_productionrawmaterials_set')
+    
+    def __str__(self) -> str:
+        return self.product.name

@@ -48,6 +48,7 @@ THIRD_PARTY_APPS = [
   "crispy_forms",
   "crispy_bootstrap5",
   'django_extensions',
+  'debug_toolbar',
 ]
 
 LOCAL_APPS = [
@@ -56,7 +57,8 @@ LOCAL_APPS = [
     'inventory',
     'finance',
     'analytics',
-    'settings'
+    'settings',
+    'production'
 ]
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
@@ -77,6 +79,9 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+
+    #third party
+    # 'debug_toolbar.middleware.DebugToolbarMiddleware',
     
     # custom
     'middleware.request_logging.RequestLoggingMiddleware',
@@ -321,3 +326,5 @@ CACHES = {
         }
     }
 }
+
+INTERNAL_IPS = ['127.0.0.1'] 

@@ -10,7 +10,7 @@ urlpatterns = [
     path('edit/product/<int:product_id>/', edit_inventory, name='edit_inventory'),
     path('product-detail/<int:product_id>/', product_detail, name='product-detail'),
     path('add/product/category/', add_product_category, name='add_product_category'),
-    # path('raw_material_json/', raw_material_json, name='raw_material_json'),
+    path('raw_material_json/', raw_material_json, name='raw_material_json'),
     path('product-history/', productHistory, name='product_history'),
     path('inventory/stock-movement/', stock_movement_view, name='stock_movement'),
     path('inventory/filter-products/', filter_products, name='filter_products'),
@@ -22,11 +22,6 @@ urlpatterns = [
     path('unit_of_measurement/', unit_of_measurement, name='unit_of_measurement'),
     
     # production plan 
-    path('production/plan/ajax', production_plans_ajax, name='production_plans_ajax'),
-    path('production/declaration/table/ajax', production_declaration_table_ajax, name='production_declaration_table_ajax'),
-    path('production_plan/detail/<int:plan_id>/ajax/', production_plan_detail_ajax, name='production_plan_detail_ajax'),
-    path('production_plan/allocations/<int:plan_id>/', production_plan_allocations_ajax, name='production_plan_allocations_ajax'),
-    path('create/production/plan/ajax', create_production_plan_ajax, name='create_production_plan_ajax'),
     path('dishes/ajax', dish_list_ajax, name='dish_list_ajax'),
     path('meals/ajax', meal_list_ajax, name='meal_list_ajax'),
     path('chef/checklist/ajax', chef_checklist_ajax, name='chef_checklist_ajax'),

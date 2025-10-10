@@ -10,7 +10,7 @@ class Command(BaseCommand):
     help = "Create 20 test Production plans"
 
     def handle(self, *args, **kwargs):
-        branch, _ = Branch.objects.get_or_create(branch_sname="Test")
+        branch, _ = Branch.objects.get_or_create(branch_name="Test")
 
         for _ in range(20):
             plan = Production.objects.create(
