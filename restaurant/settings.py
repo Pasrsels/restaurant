@@ -48,6 +48,7 @@ THIRD_PARTY_APPS = [
   "crispy_forms",
   "crispy_bootstrap5",
   'django_extensions',
+  'debug_toolbar',
 ]
 
 LOCAL_APPS = [
@@ -57,6 +58,7 @@ LOCAL_APPS = [
     'finance',
     'analytics',
     'settings',
+    'production'
 ]
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
@@ -77,6 +79,9 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+
+    #third party
+    # 'debug_toolbar.middleware.DebugToolbarMiddleware',
     
     # custom
     'middleware.request_logging.RequestLoggingMiddleware',
@@ -104,7 +109,8 @@ TEMPLATES = [
                 'inventory.context_processors.notification_processor', 
                 'inventory.context_processors.check_list_processor',
                 'inventory.context_processors.all_meals_dishes',
-                'users.context_processors.branches'
+                'users.context_processors.branches',
+                'inventory.context_processors.products'
             ],
         },
     },
@@ -126,6 +132,7 @@ DATABASES = {
         'PASSWORD': 'neverfail',
         'HOST':'192.168.1.2',
         'PORT': '5432',
+        # 'HOST': '192.168.1.2'
     }
 }
 
@@ -321,4 +328,4 @@ CACHES = {
     }
 }
 
-
+INTERNAL_IPS = ['127.0.0.1'] 

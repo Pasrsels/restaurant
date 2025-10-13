@@ -1,0 +1,41 @@
+{% load custom_filters %}
+<table class="table table-hover table-borderless" id="dishes_table">
+    <thead class="bg bg-primary-subtle">
+        <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Category</th>
+            <th>Portion Multiplier</th>
+            <th>Cost</th>
+            <th>Price</th>
+            <th>GP</th>
+            <th>Ingredients</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="dish-rows">
+        {% for dish in dishes %}
+            <tr>
+                <td><small>{{ forloop.counter }}</small></td>
+                <td><small>{{ dish.name }}</small></td>
+                <td><small>{{ dish.category }}</small></td>
+                <td><small>{{ dish.portion_multiplier }}</small></td>
+                <td><small class="cost">{{ dish.cost }}</small></td>
+                <td><small class="price">{{ dish.price }}</small></td>
+                <td><small class="gp"></small></td>
+                <td>
+                    <small>
+                        {% for ingredient in ingredients_by_dish|get_ingredient_item:dish.id %}
+                            {{ ingredient.minor_raw_material.name }} ({{ ingredient.quantity }})<br>
+                        {% endfor %}
+                    </small>
+                </td>
+                <td>
+                    <small>
+                        <a href="{% url 'production:dish_edit' dish.id %}" class="btn bx bx-pencil text-primary mx-1"></a>
+                    </small>
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>

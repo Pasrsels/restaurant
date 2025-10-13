@@ -47,10 +47,76 @@
     }
 
     table thead th {
-        font-weight: bold !important;
-        color: #000000 !important;
-        opacity: 1 !important;
-        text-shadow: none !important;
+        font-weight: 600;
+        color: #222;
+        background: #f8f9fa;
+        border-bottom: 2px solid #e0e0e0;
+        letter-spacing: 0.03em;
+        font-size: 1.05rem;
+        text-align: center;
+        padding: 12px 8px;
+        text-shadow: none;
+        transition: background 0.2s;
+    }
+
+    .table {
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        background: #fff;
+    }
+
+    .table tbody tr {
+        transition: background 0.2s;
+    }
+    .table tbody tr:hover {
+        background: #f1f3f6;
+    }
+
+    .table td {
+        vertical-align: middle;
+        text-align: center;
+        padding: 10px 8px;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 1rem;
+    }
+
+    .table .badge {
+        font-size: 0.95em;
+        padding: 0.5em 0.8em;
+        border-radius: 8px;
+    }
+
+    .bx {
+        font-size: 1.2em;
+        color: #6c757d;
+        transition: color 0.2s;
+    }
+    .bx:hover {
+        color: #0d6efd;
+    }
+
+    .btn, a.btn {
+        border-radius: 8px;
+        font-weight: 500;
+        transition: background 0.2s, color 0.2s;
+    }
+
+    .card.active {
+        background: linear-gradient(90deg, #e3f2fd 0%, #f8fafc 100%) !important;
+        border: 1.5px solid #90caf9;
+        box-shadow: 0 2px 8px rgba(33,150,243,0.08);
+    }
+
+    .clickable-cards .card {
+        border-radius: 12px;
+        background: #fff;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+        transition: box-shadow 0.2s, background 0.2s;
+    }
+    .clickable-cards .card:hover {
+        background: #f1f3f6;
+        box-shadow: 0 4px 16px rgba(33,150,243,0.08);
     }
 
     .declaration-table {
@@ -168,8 +234,8 @@
             <input class="form-control w-100" type="text" placeholder="Search production plan ...."/>
         </div>
 
-        <div class="chef-table mt-4">
-            <table class="table table-bordereless">
+        <div class="chef-table mt-4" style="height: 70vh;">
+            <table class="table">
                 <thead class="">
                     <tr>
                         <th>Plan number & date</th>
@@ -188,15 +254,22 @@
                             {{ plan.production_plan_number }}<br>
                             <small>{{ plan.date_created|date:"M d, Y" }}</small>
                         </td>
-                        <td>${{ plan.total_planned }}</td>
-                        <td>${{ plan.total_actual }}</td>
-                        <td>${{ plan.total_variance }}</td>
-                        <td>%{{ plan.gp }}</td>
+                        <td>${{ plan.total_planned|floatformat:2 }}</td>
+                        <td>${{ plan.total_actual|floatformat:2 }}</td>
+                        <td>${{ plan.total_variance|floatformat:2 }}</td>
+                        <td>%{{ plan.gp|floatformat:2 }}</td>
                         <td>
                             {% if plan.declared %}
                                 <span class="badge bg-success">DECLARED</span>
                             {% else %}
-                                <span class="badge p-2 bg-danger text-light">Waiting Declaration</span>
+                                {% if request.user.role == 'admin' or request.user.role == 'accountant' or request.user.role == 'owner' and not plan.status %}
+                                    <a href="" class="badge bg-primary-subtle">CONFIRM</a>
+                                {% elif request.user.role == 'admin' or request.user.role == 'chef' and not plan.declared %}
+                                    <a class="badge bg-primary" href="{% url 'inventory:declare_production_plan' plan.id %}">DECLARE</a>
+                                    <span class="badge p-2 bg-warning text-dark">PENDING CONFIRMATION</span>
+                                {% else %}
+                                    <span class="badge p-2 bg-warning text-dark">PENDING DECLARATION</span> --- IGNORE ---
+                                {% endif %}
                             {% endif %}
                         </td>
                         <td>
@@ -243,10 +316,10 @@
             const planId = this.dataset.id;
 
             rows.forEach(r => {
-                r.querySelectorAll('td').forEach(td => td.classList.remove('bg-primary'));
+                r.querySelectorAll('td').forEach(td => td.classList.remove('bg-light'));
             });
 
-            this.querySelectorAll('td').forEach(td => td.classList.add('bg-primary'));
+            this.querySelectorAll('td').forEach(td => td.classList.add('bg-light'));
 
             const existingChild = this.nextElementSibling;
             if (existingChild && existingChild.classList.contains('child-row')) {
@@ -980,6 +1053,8 @@
         }
         return null;
     }
+
+    
 function processIngredientInput(input) {
     const row = input.closest("tr");
 
@@ -1046,8 +1121,33 @@ function processIngredientInput(input) {
 
     input.disabled = true;
 
-    // Call external function to update totals
     updateTotalVarianceAndActualCosts();
+
+    fetch("/inventory/update-ingredient/", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCSRFToken(), 
+        },
+        body: JSON.stringify({
+            id: row.dataset.id,  
+            actual_quantity: actualUnits,
+            actual_cost: ingACost,
+            variance_units: varianceUnits,
+            variance_cost: varianceCost,
+            system_cost: systemCost
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status !== "success") {
+            console.error("Error saving data:", data.message);
+        }
+    })
+    .catch(err => {
+        console.error("Fetch error:", err);
+    });
+
 }
 
 

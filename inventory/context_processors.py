@@ -1,6 +1,7 @@
 import datetime
 from loguru import logger
 from .models import *
+from inventory.models import *
 
 def notification_processor(request):
     notifications = Notification.objects.filter(is_read=False)
@@ -30,3 +31,7 @@ def all_meals_dishes(request):
     return {
         "dishes": dishes
     }
+
+def products(request):
+    products = Product.objects.all()
+    return {'products':products}

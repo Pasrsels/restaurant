@@ -133,13 +133,13 @@
                         <div id="pos-sidebar" class="col-2 d-none d-md-flex justify-content-center border rounded">
                             {% include 'base/Possidebar.html' %}
                         </div>
-                    {% elif request.resolver_match.url_name not in 'declare_production,confirm_production_plan,production_plans,view_production_plan' %}
+                    {% else %}
                         <div id="main-sidebar" class="col-2 d-none d-md-flex justify-content-center main-sideba">
                             {% include 'base/side_bar.html' %}
                         </div>
                     {% endif %}
-                    <div class="{% if request.resolver_match.url_name in 'production_plans' %}{% else %}col-10{% endif %}">
-                        <div class="app-area {% if request.resolver_match.url_name not in 'view_production_plan' %}overflow{% endif %}" {% if request.resolver_match.url_name == 'view_production_plan' %}class="app-area-style"{% endif %}>
+                    <div class="col-10">
+                        <div class="app-area">
                             {% if messages %}
                                 {% for message in messages %}
                                     <div class="alert alert-dismissible {% if message.tags %}alert-{{ message.tags }}{% endif %}">
@@ -151,11 +151,6 @@
                             {% block content %}{% endblock %}
                         </div>
                     </div>
-                    {% comment %} {% if request.resolver_match.url_name == 'declare_production' or request.resolver_match.url_name == 'confirm_production_plan' or request.resolver_match.url_name == 'production_plans' %}
-                        <div class="col-2 checklist-style">
-                            {% include 'base/check_list.html' %}
-                        </div>
-                    {% endif %} {% endcomment %}
                 </div>
             </div>
         </div>
@@ -190,6 +185,8 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
+        const BranchModal = new bootstrap.Modal(document.getElementById('switchBranchModal'));
+
         document.addEventListener('DOMContentLoaded', function() {
             const mobileSidebar = document.getElementById('mobile-sidebar');
             const toggleButton = document.getElementById('sidebar-toggle-button');
@@ -198,8 +195,6 @@
                 mobileSidebar.classList.toggle('show');
             });
         });
-
-        const BranchModal = new bootstrap.Modal(document.getElementById('switchBranchModal'));
 
         function branchSwitch() {
             fetch("{% url 'users:branches' %}", {

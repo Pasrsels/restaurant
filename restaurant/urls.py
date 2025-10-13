@@ -17,6 +17,8 @@ urlpatterns = [
     path('analytics/', include('analytics.urls')),
     path('finance/', include('finance.urls', namespace='finance')),
     path('inventory/', include('inventory.urls', namespace='inventory')),
+    path('production/', include('production.urls', namespace='production')),
+    # path('__debug__/', include('debug_toolbar.urls')),
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if settings.DEBUG:

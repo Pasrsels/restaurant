@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    .nav-back-btn{
+        background:rgba(14, 134, 212, 0.10);
+    }
+
+    .production-list-container {
+        height: calc(100vh - 160px);
+        overflow-y: auto;
+        padding-right: 8px;
+    }
+</style>
+<div class="production">
+        <div class="production-header d-flex justify-content-between align-items-center my-3">
+        <div class="d-flex align-items-center">
+            <a href='/' class='bx bx-home btn nav-back-btn fs-5 ms-1'></a>
+            <h2 class="ms-1">Production Plans</h2>
+        </div>
+        <div class="production-header-buttons">
+            <a href="{% url 'production:dish_list' %}" class="btn btn-outline-dark me-2">Dishes</a>
+            <!-- <a href="{% url 'production:dish_list' %}">Meal</a> -->
+            <a href="{% url 'production:create_production' %}" class="btn btn-outline-dark">New Production Plan</a>
+        </div>
+    </div>
+
+    <div class="production-search">
+        <input type="text" id="searchInput" class="form-control" placeholder="Search Production Plans..." onkeyup="filterPlans()">
+    </div>
+    <div class="production-list-container" id="production-container">
+        <div id="production-list">
+            {% include "production/production_list_items.html" %}
+        </div>
+    </div>
+
+    <div id="loading" style="display:none;">Loading...</div>
+</div>
+
+<script>
+    let page = 2;  
+    let loading = false;
+    let hasNext = true;
+
+    function filterPlans(params) {
+        //fill in
+    }
+
+    const container = document.getElementById('production-container');
+    if (container) {
+        container.addEventListener('scroll', () => {
+            if (loading || !hasNext) return;
+            const threshold = 200; 
+            if (container.scrollTop + container.clientHeight >= container.scrollHeight - threshold) {
+                loadMore();
+            }
+        });
+    } else {
+        window.addEventListener('scroll', () => {
+            if (!loading && hasNext && (window.innerHeight + window.scrollY) >= document.body.offsetHeight - 200) {
+                loadMore();
+            }
+        });
+    }
+
+    function loadMore() {
+        loading = true;
+        const loader = document.getElementById('loading');
+        if (loader) loader.style.display = 'block';
+
+        fetch(`?page=${page}`, {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+            .then(res => res.json())
+            .then(data => {
+                const rowsContainer = document.getElementById('production-rows');
+                if (rowsContainer) {
+                    rowsContainer.insertAdjacentHTML('beforeend', data.productions_html);
+                } else {
+                    document.getElementById('production-list').insertAdjacentHTML('beforeend', data.productions_html);
+                }
+                hasNext = data.has_next;
+                page++;
+                loading = false;
+                if (loader) loader.style.display = 'none';
+                if (!hasNext) {
+                    console.log('no more pages');
+                }
+            })
+            .catch(err => {
+                console.error('Error loading more productions', err);
+                loading = false;
+                if (loader) loader.style.display = 'none';
+            });
+    }
+</script>
+
+{% endblock %}

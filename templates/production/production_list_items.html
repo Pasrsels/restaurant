@@ -1,0 +1,58 @@
+<style>
+    .badge {
+        display: inline-block;
+        min-width: 110px;
+        text-align: center;
+        padding: .35rem .5rem;
+    }
+    .bx{
+        cursor: pointer;
+    }
+    .bx:hover {
+        font-size: 1.5rem;
+    }
+</style>
+<table class="table table-hover table-borderless">
+    <thead class="bg bg-primary-subtle">
+        <th>Details</th>
+        <th>Planned Cost</th>
+        <th>Actual Cost</th>
+        <th>Variance</th>
+        <th>status</th>
+        <th>Action</th>
+    </thead>
+    <tbody id="production-rows">
+        {% for plan in productions %}
+        <tr>
+            <td>
+                {{ plan.plan_number }}
+                <br>
+                <i class="bx bx-time text-muted"></i>
+                <small class="text-muted">{{ plan.created }}</small>
+            </td>
+            <td>{{ plan.planned_cost }}</td>
+            <td>{{ plan.actual_cost }}</td>
+            <td>{{ plan.variance }}</td>
+            <td>
+                {% if plan.declared %}
+                    <span class="badge bg-light text-dark p-2">Declared</span>
+                {% elif plan.confirm %}
+                    <span class="badge bg-warning p-2">Confirmed</span>
+                {% else %}
+                    {% if request.user.role == 'sales' or request.user.role == 'owner' or request.user.role == 'chef' and not plan.declared and not confirmed %}
+                        <a href="{% url 'production:confirm_production' plan.id %}" class="badge bg-primary text-white p-2">Confirm</a>
+                    {% elif request.user.role == 'sales' or request.user.role == 'owner' or request.user.role == 'accountant' or request.user.role == 'stores' and not plan.declared %}
+                        <a class="badge bg-secondary text-white p-2">Declare</span>
+                    {% endif %}
+                {% endif %}
+            </td>
+            <td>
+                <span class="bx bx-show"></span>
+                <span class="ms-2 text-primary bx bx-pencil"></span>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+

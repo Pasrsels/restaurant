@@ -56,3 +56,4 @@ urlpatterns = [
     path('cash-up/<int:cashier_id>/', cash_up, name='cash_up'),
     
 ]
+

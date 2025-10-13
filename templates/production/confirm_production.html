@@ -1,0 +1,326 @@
+{% extends "base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% block title %} Confirm Production Plan {% endblock %}
+{% block content %}
+<style>
+    input.loading {
+        background: url('{% static "images/loader.gif" %}') no-repeat right center;
+        background-size: 20px;
+        padding-right: 30px; 
+    }    
+    table {
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+
+    .btn.disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+    
+    .btn:not(.disabled) {
+        opacity: 1;
+        cursor: pointer;
+        pointer-events: auto;
+    }
+</style>
+<div class="production">
+    <div class='add-production-plan'>
+        <div class='production-plan mt-3 d-flex justify-content-between align-items-center'>
+            <div>
+                <a href='{% url "production:production-list" %}' class='border btn bx bx-arrow-back fs-5'></a>
+                <a href='/' class='bx bx-home btn border fs-5 mx-2'></a>
+                {% if confirm %}
+                    <span class='mt-2 fs-5'>Confirm Production Plan : {{ production_plan.production_plan_number }}</span>
+                {% else %}
+                    <span class='mt-2 fs-5'>Production Plan : {{ production.plan_number }} Detail</span>
+                {% endif %}
+            </div>
+            <div>
+                <button id="showDishesBtn" class="btn btn-primary mx-2 active">Show Dishes</button>
+                <button id="showRawBtn" class="btn btn-primary mx-2">Show Raw Materials</button>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="table-responsive">
+                <div id="dishesSection">
+                    <div class="d-flex align-items-center justify-content-between rounded p-2">
+                        <h4 class="fw-bold">Dishes</h4>
+                        <h5 class="fw-bold">Total Cost: ${{ total_cost_items }}</h5>
+                    </div>
+                    <input type="search" id="search_dish" class="form-control" placeholder="search dish.."/>
+                    <table class="table table-hover" id='plan_item_table' style="width:100%;">
+                        <thead class="bg-primary-subtle">
+                            <th>Dish</th>
+                            <th>Portions</th>
+                            <th>Total Cost</th>
+                        </thead>
+                        <tbody>
+                            {% for item in production_plan_items %}
+                            <tr>
+                                <td>
+                                    <small>
+                                        <strong>{{ item.dish.name }}</strong>
+                                        <p>
+                                            (
+                                            {% for items in dish_ing %}
+                                                {% if item.dish.name == items.dish.name %}
+                                                    {{items.minor_raw_material.name}} => {{items.quantity}}{{items.minor_raw_material.unit.unit_name}}
+                                                {% endif %}
+                                            {% endfor %}
+                                            )
+                                        </p>
+                                    </small>
+                                </td>
+                                <td><small>{{ item.portions }} {{ item.raw_material.unit }}</small></td>
+                                <td><small>${{ item.total_cost }}</small></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Raw Materials Table -->
+                <div id="rawMaterialsSection" style="display: none;">
+                    <div class="d-flex mt-3 align-items-center justify-content-between rounded p-2">
+                        <h5 class="fw-bold">Raw Materials</h5>
+                    </div>
+                    <table class="table table-hover" id="minor">
+                        <thead class="bg-primary-subtle">
+                            <th>Raw Material</th>
+                            <th>Planned Quantity</th>
+                            <th>Expected Qnty From Stores</th>
+                            <th>Stores Allocation</th>
+                        </thead>
+                        <tbody>
+                            {% for item in production_plan_minor_items %}
+                                <tr data-id="{{ item.id }}">
+                                    <td>{{ item.name }}</td>
+                                    <td class="text-center">{{ item.quantity|floatformat:2 }}</td>
+                                    <td class="text-center">{{ item.expected_quantity|floatformat:2 }}</td>
+                                    <td>
+                                        {% if not item.allocated_quantity %}
+                                            <input type="number" class="form-control-sm form-control" min="0" placeholder="Press enter when done">
+                                        {% else %}
+                                            {{ item.allocated_quantity }}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="d-flex justify-content-end py-4">
+                    <a href="" class="btn btn-outline-danger mx-2">Cancel</a>
+                    <a href="" class="btn-primary text-light btn disabled" id="confirm-btn" onclick="return false;">Confirm</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const inputs = document.querySelectorAll('#minor input[type="number"]');
+    const confirmBtn = document.getElementById('confirm-btn');
+
+    function getCSRFToken() {
+        const name = 'csrftoken';
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            cookie = cookie.trim();
+            if (cookie.startsWith(name + '=')) {
+                return decodeURIComponent(cookie.substring(name.length + 1));
+            }
+        }
+        return null;
+    }
+
+    document.getElementById("confirm-btn").addEventListener("click", function(e) {
+        e.preventDefault(); 
+
+        Swal.fire({
+            title: 'Confirm Production?',
+            text: "Are you sure you want to confirm this production?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, confirm it!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch('/production/confirm/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCSRFToken(), 
+                    },
+                    body: JSON.stringify({ production_id: {{ production.id }} }) 
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire(
+                            'Confirmed!',
+                            'Production has been confirmed.',
+                            'success'
+                        );
+                        window.location.href = '{% url "production:production-list" %}'
+                    } else {
+                        Swal.fire(
+                            'Error!',
+                            'There was an issue confirming production.',
+                            'error'
+                        );
+                    }
+                })
+                .catch(error => {
+                    Swal.fire(
+                        'Error!',
+                        'Network error occurred.',
+                        'error'
+                    );
+                });
+            }
+        });
+    });
+
+    function checkInputs() {
+        let allFilled = true;
+        inputs.forEach(input => {
+            if (!input.disabled && input.value.trim() === '') {
+                allFilled = false;
+            }
+        });
+
+        if (confirmBtn) {
+            if (allFilled) {
+                confirmBtn.classList.remove('disabled');
+                confirmBtn.removeAttribute('onclick');
+            } else {
+                confirmBtn.classList.add('disabled');
+                confirmBtn.setAttribute('onclick', 'return false;');
+            }
+        }
+    }
+
+    function focusNextInput(currentInput) {
+        const index = Array.prototype.indexOf.call(inputs, currentInput);
+        if (index < inputs.length - 1) {
+            inputs[index + 1].focus();
+        }
+    }
+
+    inputs.forEach(function (input) {
+        input.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                const row = input.closest('tr');
+                const rawMaterialId = row.getAttribute('data-id');
+                const quantityEntered = parseFloat(input.value);
+
+                if (isNaN(quantityEntered) || quantityEntered < 0) {
+                    Swal.fire({
+                        title: "Invalid Input",
+                        text: "Please enter a valid number.",
+                        icon: "warning"
+                    });
+                    return;
+                }
+
+                const cells = row.querySelectorAll('td');
+                const plannedQuantity = parseFloat(cells[1].innerText.trim());
+                const expectedQuantity = parseFloat(cells[2].innerText.trim());
+
+                if (quantityEntered > expectedQuantity) {
+                    Swal.fire({
+                        title: "Error",
+                        text: "Allocated quantity cannot exceed expected quantity.",
+                        icon: "error"
+                    });
+                    return;
+                }
+
+                Swal.fire({
+                    title: 'Processing Allocation',
+                    text: 'Please wait...',
+                    icon: 'info',
+                    showConfirmButton: false,
+                    timer: 1500
+                });
+
+                input.classList.add('loading');
+                input.disabled = true;
+                checkInputs();
+
+                fetch('/production/confirm/production/item/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCSRFToken(),
+                    },
+                    body: JSON.stringify({
+                        production_id: {{ production.id }},
+                        raw_material_id: rawMaterialId,
+                        quantity: quantityEntered,
+                        planned_quantity: plannedQuantity,
+                        expected_quantity: expectedQuantity
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        input.classList.remove('loading');
+                        row.style.backgroundColor = '#d3d3d3';
+                        input.disabled = true;
+                        focusNextInput(input);
+                        checkInputs();
+                    } else {
+                        Swal.fire({
+                            title: "Error",
+                            text: data.message || "Something went wrong.",
+                            icon: "error"
+                        });
+                        input.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire({
+                        title: "Error",
+                        text: "An error occurred during the request.",
+                        icon: "error"
+                    });
+                    input.disabled = false;
+                })
+                .finally(() => {
+                    input.classList.remove('loading');
+                });
+            }
+        });
+
+        input.addEventListener('input', checkInputs);
+    });
+
+    checkInputs();
+
+    document.getElementById("showDishesBtn").addEventListener("click", function() {
+        document.getElementById("dishesSection").style.display = "block";
+        document.getElementById("rawMaterialsSection").style.display = "none";
+        this.classList.add("active");
+        document.getElementById("showRawBtn").classList.remove("active");
+    });
+
+    document.getElementById("showRawBtn").addEventListener("click", function() {
+        document.getElementById("rawMaterialsSection").style.display = "block";
+        document.getElementById("dishesSection").style.display = "none";
+        this.classList.add("active");
+        document.getElementById("showDishesBtn").classList.remove("active");
+    });
+});
+</script>
+
+
+{% endblock content %}

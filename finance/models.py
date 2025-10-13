@@ -1,5 +1,6 @@
 from django.db import models
-from inventory.models import Meal, Product, Dish
+from inventory.models import Product
+from inventory.models import Meal, Dish
 from django.contrib.auth import get_user_model
 from users.models import Company, Branch
 

@@ -1,0 +1,44 @@
+Meal ID,Meal Name,Price,Category,Branch,Dishes,Deactivate,Meal
+226,Goat Meat & Rice,2.00,Starch and meat,Main,"Goat Meat, Plain Rice 50c",False,True
+211,1/4 Chicken & Chips,4,Starch and meat,Main,"Small Chips, 1/4 Chicken",False,True
+225,Goat Meat & Sadza,2.00,Starch and meat,Main,"Goat Meat, Sadza",False,True
+212,1/4 Chicken & Rice,3.50,Starch and meat,Main,"1/4 Chicken, Plain Rice 50c",False,True
+250,Large Pork & Sadza,4,Starch and meat,Main,"Sadza, Large Pork",False,True
+251,Large Pork & Rice,4,Starch and meat,Main,"Plain Rice 50c, Large Pork",False,True
+252,Large Pork & Spaghetti,4.50,Starch and meat,Main,"Spaghetti, Large Pork",False,True
+254,Chicken Roast & Rice,2.00,Starch and meat,Main,"Plain Rice 50c, Roast Chicken",False,True
+255,Chicken Roast & Sadza,2.00,Starch and meat,Main,"Sadza, Roast Chicken",False,True
+253,Large Pork & Chips,4.50,Starch and meat,Main,"Small Chips, Large Pork",False,True
+213,1/4 Chicken & Sadza,3.50,Starch and meat,Main,"Sadza, 1/4 Chicken",False,True
+215,Crumbed Chicken & Chips,3.00,Starch and meat,Main,"Small Chips, Crumbed Chicken",False,True
+216,Crumbed Chicken & Rice,2.50,Starch and meat,Main,"Crumbed Chicken, Plain Rice 50c",False,True
+217,Pork Chop & Chips,3.50,Starch and meat,Main,"Small Chips, Pork Chop",False,True
+218,Pork Chop & Sadza,3.00,Starch and meat,Main,"Sadza, Pork Chop",False,True
+219,Pork Chop & Rice,3.00,Starch and meat,Main,"Plain Rice 50c, Pork Chop",False,True
+221,T-Bone & Chips,3.50,Starch and meat,Main,"Small Chips, T-Bone",False,True
+223,T-Bone & Rice,3.00,Starch and meat,Main,"Plain Rice 50c, T-Bone",False,True
+222,T-Bone & Sadza,3.00,Starch and meat,Main,"Sadza, T-Bone",False,True
+228,Beef Stew & Sadza,2.00,Starch and meat,Main,"Sadza, Beef Stew",False,True
+229,Beef Stew & Rice,2.00,Starch and meat,Main,"Plain Rice 50c, Beef Stew",False,True
+232,Chicken Stew & Rice,2.00,Starch and meat,Main,"Chicken Stew, Plain Rice 50c",False,True
+231,Chicken Stew & Sadza,2.00,Starch and meat,Main,"Sadza, Chicken Stew",False,True
+233,Pork Stew & Rice,2.00,Starch and meat,Main,"Plain Rice 50c, Pork Stew",False,True
+220,Pork Chop & Spaghetti,3.50,Starch and meat,Main,"Spaghetti, Pork Chop",False,True
+235,Pork Stew & Sadza,2.00,Starch and meat,Main,"Sadza, Pork Stew",False,True
+236,Gango & Sadza,2.00,Starch and meat,Main,"Sadza, Gango",False,True
+237,Gango & Rice,2.00,Starch and meat,Main,"Gango, Plain Rice 50c",False,True
+238,Gango & Spaghetti,2.50,Starch and meat,Main,"Spaghetti, Gango",False,True
+239,Beef Veggie & Sadza,2.00,Starch and meat,Main,"Sadza, Beef Veggie",False,True
+240,Beef Veggie & Rice,2.00,Starch and meat,Main,"Plain Rice 50c, Beef Veggie",False,True
+241,Maguru & Sadza,2.00,Starch and meat,Main,"Sadza, Maguru",False,True
+242,Road Runner & Sadza,2.00,Starch and meat,Main,"Sadza, Road Runner",False,True
+243,Road Runner & Rice,2.00,Starch and meat,Main,"Plain Rice 50c, Road Runner",False,True
+224,T-Bone & Spaghetti,3.50,Starch and meat,Main,"Spaghetti, T-Bone",False,True
+230,Beef Stew & Spaghetti,2.50,Starch and meat,Main,"Spaghetti, Beef Stew",False,True
+214,1/4 Chicken & Spaghetti,4,Starch and meat,Main,"Spaghetti, 1/4 Chicken",False,True
+234,Pork Stew & Spaghetti,2.50,Starch and meat,Main,"Spaghetti, Pork Stew",False,True
+227,Goat Meat & Spaghetti,2.50,Starch and meat,Main,"Goat Meat, Spaghetti",False,True
+244,Road Runner & Spaghetti,2.50,Starch and meat,Main,"Spaghetti, Road Runner",False,True
+257,2 Piecer,4.50,Starch and meat,Main,"Small Chips, 2 Crumbed",False,True
+258,Tea & Bread,1.00,Starch and meat,Main,"Tea, Bread",False,True
+259,Russian Combo,2.00,Starch and meat,Main,"Small Chips, Russian Meat",False,True
