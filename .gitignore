@@ -15,6 +15,10 @@ test.png
 *.cpython-312.pyc
 */__pycache__/*
 *.pyc
+/migrations
+*/.migrations
+/.migrations
 docker-composer.yml
 Dockerfile
 build.sh
+**/migrations/**

@@ -16,6 +16,7 @@
     {% block css %}
         <link rel="stylesheet" href="{% static 'css/main.css'%}">
         <link rel="stylesheet" href="{% static 'css/bootstrap/css/bootstrap.min.css'%}">
+        <link rel="stylesheet" href="{% static 'css/login.css'%}">
         <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     {% endblock css %}
 
@@ -23,22 +24,6 @@
         {% block title %}Restaurant{% endblock %}
     </title>
 </head>
-<style>
-    .login {
-        background: #dde5f4;
-        height: 100vh;
-        background: url('../../static/assets/back.jpg');
-        background-repeat: no-repeat;
-        background-size: cover;
-    }
-    .login-form {
-        height: 40vh;
-        width: 40vh;
-        border: 1px solid #333;
-        background: #333;
-        color: #fff;
-    }
-</style>
 <body>
     <div class="login">
         <div class="">
@@ -46,7 +31,7 @@
                 <div class="logo">
                     <!-- <img src="{% static 'assets/logo.png' %}" width="250px"/> -->
                 </div>
-                <div class="login-form rounded d-flex align-items-center mt-4">
+                <div class="login-form rounded d-flex align-items-center justify-content-center mt-4">
                     <form method="post" class="p-3">
                         {{ form }}
                         {% csrf_token %}

@@ -1,0 +1,724 @@
+{% extends 'base.html' %}
+{% block content %}
+<!-- cashier_report_form.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cashier Report</title>
+    <style>
+        .form-container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        select, input[type="date"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        .print-button {
+            background-color: #28a745;
+        }
+        
+        .print-button:hover {
+            background-color: #218838;
+        }
+        
+        #report-container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: none;
+        }
+
+        .report-content {
+            
+            margin: 0 auto;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+        }
+
+        .report-content h3 {
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .report-content h2 {
+            text-align: center;
+            font-size: 16px;
+            margin: 20px 0 10px 0;
+        }
+
+        .report-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 11px;
+            border-spacing: 0;
+        }
+
+        .report-content th {
+            font-family: Arial, sans-serif;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 5px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+
+        .report-content td {
+            padding: 5px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+
+        .report-content .line {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+        }
+
+        .report-content .line span {
+            display: inline-block;
+        }
+
+        .report-content hr {
+            border: none;
+            border-top: 1px solid #ddd;
+            margin: 15px 0;
+        }
+
+        .total-row {
+            font-weight: bold;
+        }
+
+        .sale-item {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 10px;
+        }
+
+        .sale-header {
+            font-weight: bold;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .sale-time {
+            font-size: 10px;
+            color: #666;
+        }
+
+        .sale-dishes {
+            margin-left: 10px;
+            font-size: 11px;
+        }
+
+        .sale-dishes div {
+            margin: 3px 0;
+        }
+
+        .change-item {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+            font-size: 11px;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        @media print {
+            body {
+                background-color: white;
+            }
+            
+            .form-container, button {
+                display: none !important;
+            }
+            
+            #report-container {
+                box-shadow: none;
+                padding: 0;
+            }
+
+            .report-content {
+                width: 80mm;
+            }
+        }
+    .nav-back-btn {
+        background: rgba(14, 134, 212, 0.10);
+    }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <nav class="d-flex justify-content-between align-items-center rounded mb-2 py-2">
+            <div class='d-flex justify-content-center'>
+                <a href='{% url "finance:finance"%}' class='btn bx bx-arrow-back nav-back-btn me-1 fs-5'></a>
+                <a href='/' class='bx bx-home btn fs-5 nav-back-btn'></a>
+                <span class='h4 ms-2'>Generate Cashier Report</span>
+            </div>
+        </nav>
+        <form id="reportForm">
+            <div class="form-group">
+                <label for="reportType">Report Type:</label>
+                <select id="reportType" name="reportType" required>
+                    <option value="">-- Select Report Type --</option>
+                    <option value="cash_up">Cash Up Report</option>
+                    <option value="sales_detail">Sales Detail Report</option>
+                    <option value="changes_detail">Changes Collected Detail</option>
+                    <option value="expenses_detail">Expenses Detail</option>
+                    <option value="staff_meals_detail">Staff Meals Detail</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="cashier">Select Cashier:</label>
+                <select id="cashier" name="cashier" required>
+                    <option value="">-- Select Cashier --</option>
+                    {% for cashier in cashiers %}
+                    <option value="{{ cashier.id }}">{{ cashier.get_full_name|default:cashier.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="date">Select Date:</label>
+                <input type="date" id="date" name="date" value="{{ today|date:'Y-m-d' }}" required>
+            </div>
+            
+            <button type="submit">Generate Report</button>
+            <button type="button" class="print-button" onclick="printReport()" id="printBtn" style="display: none;">Print Report</button>
+        </form>
+    </div>
+    
+    <div id="loading" class="loading" style="display: none;">
+        Loading report...
+    </div>
+    
+    <div id="error" class="error" style="display: none;"></div>
+    
+    <div id="report-container">
+        <div class="report-content" id="report-content">
+            <!-- Report content will be dynamically inserted here -->
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('reportForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const reportType = document.getElementById('reportType').value;
+            const cashierId = document.getElementById('cashier').value;
+            const cashierName = document.getElementById('cashier').options[document.getElementById('cashier').selectedIndex].text;
+            const date = document.getElementById('date').value;
+            
+            if (!reportType) {
+                alert('Please select a report type');
+                return;
+            }
+            
+            if (!cashierId) {
+                alert('Please select a cashier');
+                return;
+            }
+            
+            // Show loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('report-container').style.display = 'none';
+            document.getElementById('printBtn').style.display = 'none';
+            
+            // Fetch report data
+            fetch(`/finance/cash-up/${cashierId}/?date=${date}&report_type=${reportType}`)
+                .then(response => response.json())
+                .then(result => {
+                    document.getElementById('loading').style.display = 'none';
+                    
+                    if (result.success) {
+                        displayReport(result.data, cashierName, date, reportType);
+                        document.getElementById('printBtn').style.display = 'inline-block';
+                    } else {
+                        document.getElementById('error').textContent = result.message || 'Failed to generate report';
+                        document.getElementById('error').style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('error').textContent = 'Error: ' + error.message;
+                    document.getElementById('error').style.display = 'block';
+                });
+        });
+        
+        function displayReport(data, cashierName, date, reportType) {
+            console.log({CashUpData: data, reportType: reportType});
+            
+            const reportContent = document.getElementById('report-content');
+            
+            switch(reportType) {
+                case 'cash_up':
+                    reportContent.innerHTML = generateCashUpReport(data, cashierName, date);
+                    break;
+                case 'sales_detail':
+                    reportContent.innerHTML = generateSalesDetailReport(data, cashierName, date);
+                    break;
+                case 'changes_detail':
+                    reportContent.innerHTML = generateChangesDetailReport(data, cashierName, date);
+                    break;
+                case 'expenses_detail':
+                    reportContent.innerHTML = generateExpensesDetailReport(data, cashierName, date);
+                    break;
+                case 'staff_meals_detail':
+                    reportContent.innerHTML = generateStaffMealsDetailReport(data, cashierName, date);
+                    break;
+            }
+            
+            // Show report
+            document.getElementById('report-container').style.display = 'block';
+        }
+        
+        function generateCashUpReport(data, cashierName, date) {
+            const salesPortionsRows = data.sales_portions.map(portion => `
+                <tr>
+                    <td>${portion.Name}</td>
+                    <td>${portion.Quantity}</td>
+                    <td>$${parseFloat(portion.Price).toFixed(2)}</td>
+                    <td>$${parseFloat(portion.Total).toFixed(2)}</td>
+                </tr>
+            `).join('');
+
+            const finishedProductsRows = data.finished_product && data.finished_product.length > 0 
+                ? data.finished_product.map(product => `
+                    <tr>
+                        <td>${product.Product_Name}</td>
+                        <td>${product.Start}</td>
+                        <td>${product.Stock}</td>
+                        <td>${product.Sold}</td>
+                        <td>${product.Current}</td>
+                    </tr>
+                `).join('')
+                : '<tr><td colspan="5" style="text-align:center;">No finished products</td></tr>';
+
+            const voidSalesRows = data.void_sales_portions && data.void_sales_portions.length > 0
+                ? data.void_sales_portions.map(sale => `
+                    <tr>
+                        <td>${sale.Name}</td>
+                        <td>${sale.Quantity}</td>
+                        <td>$${parseFloat(sale.Price).toFixed(2)}</td>
+                        <td>$${parseFloat(sale.Total).toFixed(2)}</td>
+                    </tr>
+                `).join('')
+                : '<tr><td colspan="4" style="text-align:center;">No void sales</td></tr>';
+
+            const staffMealRows = data.staff_sales_summary && Object.keys(data.staff_sales_summary).length > 0
+                ? Object.entries(data.staff_sales_summary).map(([name, details]) => {
+                    const total = (details.price * details.quantity).toFixed(2);
+                    return `
+                        <tr>
+                            <td>${name}</td>
+                            <td>${details.quantity}</td>
+                            <td>$${parseFloat(details.price).toFixed(2)}</td>
+                            <td>$${total}</td>
+                        </tr>
+                    `;
+                }).join('') + `
+                    <tr class="total-row">
+                        <td colspan="3">Total Staff Sales</td>
+                        <td>$${parseFloat(data.staff_total).toFixed(2)}</td>
+                    </tr>
+                `
+                : '<tr><td colspan="4" style="text-align:center;">No staff meals</td></tr>';
+
+            const expensesRows = data.expense && data.expense.length > 0
+                ? data.expense.map(expense => `
+                    <tr>
+                        <td>${expense.Name}</td>
+                        <td>$${parseFloat(expense.Amount).toFixed(2)}</td>
+                    </tr>
+                `).join('')
+                : '<tr><td colspan="2" style="text-align:center;">No expenses</td></tr>';
+
+            return `
+                <h3>Parsles Investments (Urban Eats)</h3>
+                <div>Cashier: ${cashierName}</div>
+                <div>Date: ${new Date(date).toLocaleDateString()}</div>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Sold</th>
+                            <th>Price</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${salesPortionsRows}
+                        <tr class="total-row">
+                            <td colspan="3">Total Sales</td>
+                            <td>$${parseFloat(data.sales_total).toFixed(2)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <hr>
+                
+                <h2>Finished Products</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Start</th>
+                            <th>In</th>
+                            <th>Out</th>
+                            <th>Left</th>
+                        </tr>
+                    </thead>
+                    <tbody>${finishedProductsRows}</tbody>
+                </table>
+                
+                <hr>
+                
+                <h2>Voided Sales</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Portions</th>
+                            <th>Price</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>${voidSalesRows}</tbody>
+                </table>
+                
+                <hr>
+                
+                <h2>Staff Meal</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Quantity</th>
+                            <th>Price</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>${staffMealRows}</tbody>
+                </table>
+                
+                <hr>
+                
+                <h2>Cashier Expenses</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>${expensesRows}</tbody>
+                </table>
+                
+                <hr>
+                
+                <div class="line">
+                    <span style="font-weight:bold;">Total Sales:</span>
+                    <span style="font-weight:bold;">$${parseFloat(data.total_sales).toFixed(2)}</span>
+                </div>
+                <div class="line">
+                    <span>Total Expenses:</span>
+                    <span>-$${parseFloat(data.total_expenses).toFixed(2)}</span>
+                </div>
+                <div class="line">
+                    <span>Today's Change: <i>(uncollected)</i></span>
+                    <span>+$${parseFloat(data.total_change).toFixed(2)}</span>
+                </div>
+                <div class="line">
+                    <span>Collected Changes <i>(other cashiers)</i>:</span>
+                    <span>-$${parseFloat(data.collected_changes || 0).toFixed(2)}</span>
+                </div>
+                
+                <hr>
+                
+                <div class="line">
+                    <span style="font-weight:bold; font-size:14px;">Cash In Hand:</span>
+                    <span style="font-weight:bold; font-size:14px;">$${parseFloat(data.cash_in_hand).toFixed(2)}</span>
+                </div>
+                
+                <hr>
+                
+                <div class="line" style="margin-top:10px;">
+                    <span style="font-size:10px;"><span style="font-weight:bold;">Nb</span> Total Change In System: $${parseFloat(data.total_accumulated_change).toFixed(2)}</span>
+                </div>
+                
+                <hr>
+                
+                <div class="line" style="margin-top:10px;">
+                    <span style="font-size:10px;"><span style="font-weight:bold;">Nb</span> Total Eco Cash Sales: $${parseFloat(data.eco_cash_total).toFixed(2)}</span>
+                </div>
+                <div class="line">
+                    <span style="font-size:10px;"><span style="font-weight:bold;">Nb</span> Total Eco Cash Tax: $${parseFloat(data.eco_cash_tax).toFixed(2)}</span>
+                </div>
+            `;
+        }
+        
+        function generateSalesDetailReport(data, cashierName, date) {
+            if (!data.sales_detail || data.sales_detail.length === 0) {
+                return `
+                    <h3>Parsles Investments (Urban Eats)</h3>
+                    <h2>Sales Detail Report</h2>
+                    <div>Cashier: ${cashierName}</div>
+                    <div>Date: ${new Date(date).toLocaleDateString()}</div>
+                    <hr>
+                    <p style="text-align:center;">No sales recorded for this date</p>
+                `;
+            }
+
+            const salesItems = data.sales_detail.map((sale, index) => {
+                const dishesHtml = sale.items.map(item => `
+                    <div>• ${item.name} x${item.quantity} @ $${parseFloat(item.price).toFixed(2)} = $${parseFloat(item.total).toFixed(2)}</div>
+                `).join('');
+
+                return `
+                    <div class="sale-item">
+                        <div class="sale-header">
+                            <span>Sale #${sale.sale_number || index + 1}</span>
+                            <span>$${parseFloat(sale.total_amount).toFixed(2)}</span>
+                        </div>
+                        <div class="sale-time">Time: ${sale.time}</div>
+                        <div class="sale-time">Payment: ${sale.cash_type}</div>
+                        ${sale.is_staff ? '<div class="sale-time" style="color: #ff6b6b;">Staff Meal</div>' : ''}
+                        <div class="sale-dishes">
+                            ${dishesHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <h3>Parsles Investments (Urban Eats)</h3>
+                <h2>Sales Detail Report</h2>
+                <div>Cashier: ${cashierName}</div>
+                <div>Date: ${new Date(date).toLocaleDateString()}</div>
+                <hr>
+                <div style="margin-top: 20px;">
+                    ${salesItems}
+                </div>
+                <hr>
+                <div class="line" style="font-weight:bold; font-size:14px;">
+                    <span>Total Sales:</span>
+                    <span>$${parseFloat(data.total_sales).toFixed(2)}</span>
+                </div>
+                <div class="line">
+                    <span>Total Transactions:</span>
+                    <span>${data.sales_detail.length}</span>
+                </div>
+            `;
+        }
+        
+        function generateChangesDetailReport(data, cashierName, date) {
+            if (!data.changes_detail || data.changes_detail.length === 0) {
+                return `
+                    <h3>Parsles Investments (Urban Eats)</h3>
+                    <h2>Changes Collected Detail</h2>
+                    <div>Cashier: ${cashierName}</div>
+                    <div>Date: ${new Date(date).toLocaleDateString()}</div>
+                    <hr>
+                    <p style="text-align:center;">No changes collected for this date</p>
+                `;
+            }
+
+            const changesItems = data.changes_detail.map(change => {
+                return `
+                    <div class="change-item">
+                        <div style="font-weight:bold;">Change #${change.id} Recorderd by ${change.recorded_by} & Issued by ${change.issued_by}</div>
+                        <div>Customer: ${change.name || 'N/A'}</div>
+                        <div>Time: ${change.time}</div>
+                        <div>Change Amount: $${parseFloat(change.amount).toFixed(2)}</div>
+                        <div>Amount Collected: $${parseFloat(change.amount_collected || 0).toFixed(2)}</div>
+                        <div>Balance: $${parseFloat(change.balance || change.amount).toFixed(2)}</div>
+                        <div>Status: ${change.collected ? 'Collected' : 'Pending'}</div>
+                        ${change.collected_by ? `<div>Collected By: ${change.collected_by}</div>` : ''}
+                        ${change.collection_time ? `<div>Collection Time: ${change.collection_time}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <h3>Parsles Investments (Urban Eats)</h3>
+                <h2>Changes Collected Detail</h2>
+                <div>Cashier: ${cashierName}</div>
+                <div>Date: ${new Date(date).toLocaleDateString()}</div>
+                <hr>
+                <div style="margin-top: 20px;">
+                    ${changesItems}
+                </div>
+                <hr>
+                <div class="line" style="font-weight:bold;">
+                    <span>Total Changes Given:</span>
+                    <span>$${parseFloat(data.total_change_given || 0).toFixed(2)}</span>
+                </div>
+                <div class="line" style="font-weight:bold;">
+                    <span>Total Collected:</span>
+                    <span>$${parseFloat(data.total_change_collected || 0).toFixed(2)}</span>
+                </div>
+                <div class="line" style="font-weight:bold;">
+                    <span>Total Pending:</span>
+                    <span>$${parseFloat(data.total_change_pending || 0).toFixed(2)}</span>
+                </div>
+            `;
+        }
+        
+        function generateExpensesDetailReport(data, cashierName, date) {
+            if (!data.expense || data.expense.length === 0) {
+                return `
+                    <h3>Parsles Investments (Urban Eats)</h3>
+                    <h2>Expenses Detail Report</h2>
+                    <div>Cashier: ${cashierName}</div>
+                    <div>Date: ${new Date(date).toLocaleDateString()}</div>
+                    <hr>
+                    <p style="text-align:center;">No expenses recorded for this date</p>
+                `;
+            }
+
+            const expensesRows = data.expense.map(expense => `
+                <tr>
+                    <td>${expense.Name}</td>
+                    <td>$${parseFloat(expense.Amount).toFixed(2)}</td>
+                    <td>${expense.time || 'N/A'}</td>
+                </tr>
+            `).join('');
+
+            return `
+                <h3>Parsles Investments (Urban Eats)</h3>
+                <h2>Expenses Detail Report</h2>
+                <div>Cashier: ${cashierName}</div>
+                <div>Date: ${new Date(date).toLocaleDateString()}</div>
+                <hr>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Description</th>
+                            <th>Amount</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${expensesRows}
+                        <tr class="total-row">
+                            <td colspan="2">Total Expenses</td>
+                            <td>$${parseFloat(data.total_expenses).toFixed(2)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            `;
+        }
+        
+        function generateStaffMealsDetailReport(data, cashierName, date) {
+            if (!data.staff_meals_detail || data.staff_meals_detail.length === 0) {
+                return `
+                    <h3>Parsles Investments (Urban Eats)</h3>
+                    <h2>Staff Meals Detail Report</h2>
+                    <div>Cashier: ${cashierName}</div>
+                    <div>Date: ${new Date(date).toLocaleDateString()}</div>
+                    <hr>
+                    <p style="text-align:center;">No staff meals recorded for this date</p>
+                `;
+            }
+
+            const staffMealsItems = data.staff_meals_detail.map((meal, index) => {
+                const dishesHtml = meal.items.map(item => `
+                    <div>• ${item.name} x${item.quantity} @ $${parseFloat(item.price).toFixed(2)} = $${parseFloat(item.total).toFixed(2)}</div>
+                `).join('');
+
+                return `
+                    <div class="sale-item">
+                        <div class="sale-header">
+                            <span>Staff Meal #${index + 1}</span>
+                            <span>$${parseFloat(meal.total_amount).toFixed(2)}</span>
+                        </div>
+                        <div class="sale-time">Time: ${meal.time}</div>
+                        <div class="sale-dishes">
+                            ${dishesHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <h3>Parsles Investments (Urban Eats)</h3>
+                <h2>Staff Meals Detail Report</h2>
+                <div>Cashier: ${cashierName}</div>
+                <div>Date: ${new Date(date).toLocaleDateString()}</div>
+                <hr>
+                <div style="margin-top: 20px;">
+                    ${staffMealsItems}
+                </div>
+                <hr>
+                <div class="line" style="font-weight:bold; font-size:14px;">
+                    <span>Total Staff Meals:</span>
+                    <span>$${parseFloat(data.staff_total).toFixed(2)}</span>
+                </div>
+                <div class="line">
+                    <span>Total Meals:</span>
+                    <span>${data.staff_meals_detail.length}</span>
+                </div>
+            `;
+        }
+        
+        function printReport() {
+            window.print();
+        }
+    </script>
+</body>
+</html>
+{% endblock %}

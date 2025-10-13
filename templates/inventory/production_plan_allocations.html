@@ -1,0 +1,191 @@
+{% load static %}
+
+<style>
+    .allocations-container {
+        padding: 0;
+    }
+    
+    .allocations-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+        margin-bottom: 25px;
+    }
+    
+    .summary-item {
+        background: #f8f9fa;
+        border-radius: 6px;
+        padding: 12px;
+        text-align: center;
+        border-left: 3px solid #007bff;
+    }
+    
+    .summary-item h4 {
+        margin: 0 0 5px 0;
+        font-size: 12px;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .summary-item .value {
+        font-size: 18px;
+        font-weight: 700;
+        color: #2c3e50;
+    }
+    
+    .allocations-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 6px;
+        overflow: hidden;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        font-size: 12px;
+    }
+    
+    .allocations-table th {
+        background: #6c757d;
+        color: white;
+        padding: 10px 8px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .allocations-table td {
+        padding: 8px;
+        border-bottom: 1px solid #e9ecef;
+        font-size: 11px;
+        vertical-align: middle;
+    }
+    
+    .allocations-table tbody tr:nth-child(even) {
+        background-color: #f8f9fa;
+    }
+    
+    .allocations-table tbody tr:nth-child(odd) {
+        background-color: white;
+    }
+    
+    .allocations-table tbody tr:hover {
+        background-color: #e9ecef;
+        transition: background-color 0.2s ease;
+    }
+    
+    .text-center {
+        text-align: center;
+    }
+    
+    .text-right {
+        text-align: right;
+    }
+    
+    .font-weight-bold {
+        font-weight: 600;
+    }
+    
+    .text-primary {
+        color: #007bff;
+    }
+    
+    .text-muted {
+        color: #6c757d;
+    }
+    
+    .text-success {
+        color: #28a745;
+    }
+    
+    .text-danger {
+        color: #dc3545;
+    }
+    
+    .status-badge {
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    
+    .status-sufficient {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    
+    .status-insufficient {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+</style>
+
+<div class="allocations-container">
+    <div class="allocations-summary">
+        <div class="summary-item">
+            <h4>Total Items</h4>
+            <div class="value">{{ total_items }}</div>
+        </div>
+        <div class="summary-item">
+            <h4>Total Ingredients</h4>
+            <div class="value">{{ total_ingredients }}</div>
+        </div>
+        <div class="summary-item">
+            <h4>Total Cost</h4>
+            <div class="value">${{ total_cost|floatformat:2 }}</div>
+        </div>
+        <div class="summary-item">
+            <h4>Insufficient Stock</h4>
+            <div class="value text-danger">{{ insufficient_stock_count }}</div>
+        </div>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="allocations-table">
+            <thead>
+                <tr>
+                    <th>Dish Name</th>
+                    <th class="text-center">Planned Portions</th>
+                    <th class="text-center">Actual Portions</th>
+                    <th>Ingredient</th>
+                    <th class="text-center">Qty per Portion</th>
+                    <th class="text-center">Total Required</th>
+                    <th class="text-center">Unit</th>
+                    <th class="text-right">Cost per Unit</th>
+                    <th class="text-right">Total Cost</th>
+                    <th class="text-center">Stock Available</th>
+                    <th class="text-center">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for allocation in allocations %}
+                    <tr>
+                        <td class="font-weight-bold">{{ allocation.dish_name }}</td>
+                        <td class="text-center">{{ allocation.planned_portions }}</td>
+                        <td class="text-center">{{ allocation.actual_portions }}</td>
+                        <td class="font-weight-bold">{{ allocation.ingredient_name }}</td>
+                        <td class="text-center">{{ allocation.quantity_per_portion|floatformat:2 }}</td>
+                        <td class="text-center">{{ allocation.total_quantity_required|floatformat:2 }}</td>
+                        <td class="text-center">{{ allocation.unit }}</td>
+                        <td class="text-right">${{ allocation.cost_per_unit|floatformat:2 }}</td>
+                        <td class="text-right">${{ allocation.total_cost|floatformat:2 }}</td>
+                        <td class="text-center">{{ allocation.stock_available|floatformat:2 }}</td>
+                        <td class="text-center">
+                            <span class="status-badge {% if allocation.stock_status == 'Sufficient' %}status-sufficient{% else %}status-insufficient{% endif %}">
+                                {{ allocation.stock_status }}
+                            </span>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="11" class="text-center text-muted">No allocations found for this production plan</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+

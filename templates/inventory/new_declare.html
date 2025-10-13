@@ -1,0 +1,1522 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %} 
+    Production Plan Declaration
+{% endblock %}
+
+{% block content %}
+<!-- STYLING -->
+<style>
+    
+    .table_container_dish {
+        max-height: 250px;
+        overflow-y: auto;
+    }
+
+    table {
+        width: 100%;
+    }
+    .sticky-header {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+    }
+    .background-blue{
+        background: #f2fbff !important;
+    }
+    tr, tboody, tfoot{
+        border: 1px solid #f2fbff !important;
+    }
+</style>
+
+
+<div class="container-fluid">
+    <div class='production-plan mt-2 d-flex justify-content-between align-items-center'>
+        <div>
+             <h5 class="fw-bold text-blue" style="color:#055c9d;">Dishes</h5>
+        </div>
+        <div class="d-flex justify-content-end align-items-center">
+            <span>
+                <input type="text" id="dishSearch" class="form-control w-100" placeholder="Search for a dish...">
+            </span>
+            <ul class="list-unstyled me-1 ms-1 mt-3 d-flex align-items-center">
+                <li>
+                    <a onclick="showModal()" class="btn border bg-success text-light">+ Production</a>
+                </li>
+                <li>
+                    <a href="{% url 'inventory:production_plans' %}" class="btn border btn-primary text-light">Production Plan</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <h2 class="d-none" id="prod_id">{{production_plan_id}}</h2>
+    <!-- Dishes Table -->
+    
+    <!-- <div class="text-center text-dark py-2 mb-1">
+        <h5>Dishes</h5>
+    </div> -->
+
+    <!-- <div class="mt-3 mb-3 d-flex justify-content-end">
+        <input type="text" id="dishSearch" class="form-control w-25" placeholder="Search for a dish...">
+    </div> -->
+    
+    <div class="table_container_dish table-responsive">
+        <table class="table background-blue table-bordereless">
+            <thead class="background-blue">
+                <tr class="">
+                    <th class="bg-suc">Dish</th>
+                    <th class="bg-suc">Planned Portions</th>
+                    <th class="bg-suc d-none">Value(Price)</th>
+                    <th class="bg-suc">
+                        Declared Portions
+                        <span class="badge bg-primary text-light">
+                            <strong id="dishCount"></strong>
+                        </span>
+                    </th>
+                    <th class="bg-suc">Note</th>
+                    <th class="bg-suc">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="dishTableBody">
+                {% for dish in production_plan %}
+                    <tr class="py-0 px-0 background-blue">
+                        
+                        <td class="dish-name py-0 background-blue">
+                            <small>
+                                {{ dish.dish.name }}@${{ dish.dish.price}}
+                            </small>
+                        </td>
+                        <td class="py-0 background-blue">
+                            <small>
+                                <div class="d-flex align-items-center gap-1">
+                                    <span class="dish-portions fw-bold">{{ dish.portions }}</span>
+                                    <input
+                                        type="text"
+                                        value="{% for price in total_price %}{% if price.name == dish.dish.name %} ${{price.total_price}}{% endif %}{% endfor %}"
+                                        class="border-0 rounded w-25 text-center text-dark mt-1"
+                                        disabled
+                                    >
+                                </div>
+                            </small>
+                        </td>
+                        <td class="dish-price d-none background-blue">
+                            <small>
+                                {% for price in total_price %}
+                                    {% if price.name == dish.dish.name %}
+                                        ${{price.total_price}}
+                                    {% endif %}
+                                {% endfor %}
+                            </small>
+                        </td>
+                        <td class="onchange py-0 background-blue">
+                            {{ dish.declared_quantity}}
+                            {% if dish.declared_quantity >= 0  %}
+                                <small>
+                                    <input type="number" value={{ dish.declared_quantity }} class="rounded border text-center text-dark declared-portions fs-6 w-50 mt-1" onkeydown="declared(this, event)">
+                                </small>
+                            {% else %}
+                                <small>
+                                    <input type="number" class="rounded border text-center text-dark declared-portions fs-6 w-50 mt-1" onkeydown="declared(this, event)">
+                                </small>
+                            {% endif %}
+                        </td>
+                        <td class="note-portions py-0 background-blue">
+                            <small class="note-text"> </small>
+                        </td>
+                        <td class="py-0 background-blue">
+                            <small>
+                                <a class="disable-btn d-none" onclick="declared(this)">
+                                    <i class="btn btn-primary bx bx-check-circle fs-6 ">Declare</i>
+                                </a>
+                            </small>
+                            <small>
+                                <a class="disabled-btn-edit d-none" onclick="Edit(this)">
+                                    <i class="btn btn-primary bx bx-edit fs-6 "></i>
+                                </a>
+                            </small>
+                            <small>
+                                <a class="disabled-btn-add-portions d-none" onclick="addPM(this)">
+                                    <i class="btn btn-primary bx bx-plus-circle fs-6 "></i>
+                                </a>
+                            </small>
+                        </td>
+                    </tr>
+                {% endfor %}
+                <tr class="dish-total-rows sticky-header">
+                    <td class="background-blue">
+                        <strong>
+                            Totals
+                        </strong>
+                    </td>
+                    <td class="background-blue">
+                        <small>
+                            <div class="d-flex align-items-center gap-1">
+                                <span class="dish-portions fw-bold">{{total_portions}}</span>
+                                <input
+                                    type="text"
+                                    value="${{price}}"
+                                    class="rounded border-0 w-25 text-center text-dark"
+                                    disabled
+                                >
+                            </div>
+                        </small>
+                    </td>
+                    <td class="d-none">
+                        <small>
+                            <strong>
+                                ${{price}}
+                            </strong>
+                        </small>
+                    </td>
+                    <td class="background-blue"></td>
+                    <td class="background-blue"></td>
+                    <td class="background-blue"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Ingredients Table -->
+    <div>
+        <div class="text-start text-dark py-2 mb-1">
+            <h5 class="fw-bold" style="color:#055c9d;">Ingredients</h5>
+        </div>
+
+        <div class="table_container_ing background-blue">
+            <table class="table tablackground-blue">
+                <thead class="background-blue">
+                    <tr>
+                        <th class="bg-suc">Ingredients</th>
+                        <th class="text-center bg-suc">Kitchen Inventory</th>
+                        <th class="text-center d-none">Planned Cost</th>
+                        <th class="text-center bg-suc">Auto Expected Usage</th>
+                        <th class="text-center d-none">System Cost</th>
+                        <th class="text-center bg-suc">Actual Usage</th>
+                        <th class="text-center d-none">Actual Cost</th>
+                        <th class="text-center bg-suc">Variance Units</th>
+                        <th class="text-center d-none">Variance Cost</th>
+                        <th class="text-center bg-suc">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="table_ing">
+                    {% for ing in ingridients %}
+                        <tr class="py-1 px-1 background-blue">
+                            <td class="ing-name background-blue">
+                                <small>
+                                    {{ing.name}}
+                                </small>
+                            </td>
+                            
+                            <td class="background-blue">
+                                <small class="background-blue">
+                                    <div class="d-flex justify-content-center align-items-center gap-3 background-blue">
+                                        <span class="text-success fw-bold w-25 background-blue">
+                                            {% for item in allocated %}
+                                                {% if item.id == ing.id %}
+                                                    {{ item.quantity|floatformat:"3" }}{{item.unit}}
+                                                {% endif %}
+                                            {% endfor %}
+                                        </span>
+                                        <input
+                                            type="text"
+                                            value="{% for item in allocated %}{% if item.id == ing.id %}${{ item.cost }}{% endif %}{% endfor %}"
+                                            class="rounded border-0 w-25 text-center text-dark"
+                                            disabled
+                                        />
+                                        
+                                    </div>
+                                </small>
+                            </td>
+                            <td class=" text-center d-none background-blue">
+                                <small>
+                                    <div class="d-flex justify-content-center" style="gap:2px;">
+                                        <span class="text-success fw-bold ing-qnty">{{ ing.quantity|floatformat:"3" }}@{{ing.unit}}</span>
+                                        <input type="text" value="${{ing.cost}}" class="ing-cost rounded border-0 w-25 text-center text-dark" disabled>
+                                        <style>
+                                            /* Remove arrows in input number for Chrome, Safari, Edge, Opera */
+                                            input[type=number].rounded::-webkit-inner-spin-button,
+                                            input[type=number].rounded::-webkit-outer-spin-button {
+                                                -webkit-appearance: none;
+                                                margin: 0;
+                                            }
+                                            /* Remove arrows in input number for Firefox */
+                                            input[type=number].rounded {
+                                                -moz-appearance: textfield;
+                                            }
+                                        </style>
+                                    </div>
+                                </small>
+                            </td>
+                            <td class=" text-center d-none background-blue">
+                                <small>
+                                    ${{ing.cost}}
+                                </small>
+                            </td>
+                            <td class="text-center text-center">
+                                <small>
+                                    <div class="d-flex justify-content-center align-items-center gap-3">
+                                        <span class="ing-pop w-25">
+
+                                        </span>
+                                        <input type="text" value="" class="ing-a-costs rounded border-0 w-25 text-center"  disabled>
+                                    </div>
+                                </small>
+                            </td>
+                            <td class=" text-center text-success d-none background-blue">.</td>
+                            <td class="ing-sys text-center background-blue">
+                                <small>
+                                    <div class="d-flex justify-content-center align-items-center ing-center-content">
+                                        <input type="number" class="rounded border border-2 w-100 text-center ing-sys-input" placeholder="Enter Quantity and press enter">
+                                        <span class="text-success fw-bold ing-sys-input-new d-none"></span>
+                                        <span class="text-success fw-bold ing-sys-cost"></span>
+                                        <input type="text" value="" class="ing-sys-cost-new rounded order-0 w-25 text-center text-dark d-none" disabled>
+                                    </div>
+                                </small>
+                            </td>
+                            <td class=" text-center text-success d-none background-blue">.</td>
+                            <td class=" text-center background-blue">
+                                <div class="d-flex justify-content-center align-items-center gap-3">
+                                    <span class="ing-variance w-25"></span>
+                                    <input type="text" value="" class="w-25 rounded border-0 text-center ing-v-costs" disabled>
+                                </div>
+                            </td>
+                            <td class=" text-center text-danger d-none background-blue">.</td>
+                            <td class="background-blue">
+                                <i class="btn btn-outline-primary bx bx-edit rounded" onclick="editIng(this)"></i>
+                            </td>
+                        </tr>
+                    {% endfor %} 
+                    <tr class="ing-total-rows">
+                        <td class="background-blue">
+                            <strong>
+                                Totals
+                            </strong>
+                        </td>
+                        <td class="planned-cost text-center background-blue">
+                            <small>
+                                <div class="d-flex justify-content-center align-items-center gap-3">
+                                    <span class="text-white fw-bold w-25">
+                                       
+                                    </span>
+                                    <input
+                                        type="text"
+                                        value="${{all_r_m_cost}}"
+                                        class="rounded border-0 disabled w-25 text-center text-dark"
+                                        disabled
+                                    />
+                                </div>
+                            </small>
+                        </td>
+                        <td class="text-center background-blue d-none">
+                            <small>
+                                <strong>
+                                    ${{total}}
+                                </strong>
+                            </small>
+                        </td>
+                        <td class="d-none background-blue"></td>
+                        <td class="actual-cost text-center background-blue"></td>
+                        <td class="background-blue"></td>
+                        <td class="background-blue"></td>
+                        <td class="background-blue"></td>
+                        <td class="variance-cost text-center text-danger background-blue"></td>
+                        <td class="background-blue"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="d-flex justify-content-end">
+            <a class="btn btn-primary d-flex align-items-center gap-2 py-2 px-2" onclick="finalConfirm()">
+                <i class="bx bx-save fs-4"></i>
+                <span class="text-light">Confirm</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="modal fade" id="AddPortionsModal" tabindex="-1" aria-labelledby="AddPortionsModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-body">
+                        <h5 class="modal-title text-center">ADD EXTRA PORTIONS</h5>
+                        <hr>
+                        <form>
+                            <div class="mb-3">
+                                <label for="extraPortions" class="form-label">Extra Portions</label>
+                                <input type="number" class="form-control" id="extraPortions" placeholder="Enter extra portions" required>
+                            </div>
+                            <div class="d-flex justify-content-end">
+                                <a class="btn btn-primary d-flex align-items-center gap-2 py-2 px-2" onclick="confirmAddPortions()">
+                                    <i class="bx bx-plus-circle"></i>
+                                    <span class="text-light">Submit</span>
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="addProductioNPlanModal" tabindex="-1" aria-labelledby="addProductioNPlanModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content shadow">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addProductioNPlanModalLabel">POS PRODUCTION PLAN CREATION</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mt-2">
+                        <div class="col-9">
+                            <table class="table">
+                                <thead class="bg-primary">
+                                    <th>Dish</th>
+                                    <th>Portions</th>
+                                    <th>Total Cost</th>
+                                </thead>
+                                <tbody id="cart-items"></tbody>
+                            </table>
+                            <div class="d-flex justify-content-end">
+                                <button class="btn border bx bx-reset mx-2" id="id_reset"></button>
+                                <button class="btn-primary btn sm bx bx-save" id="id_submit"></button>
+                            </div>
+                        </div>
+                        <div class="col-3 mt-2">
+                            <form id="production-plan-form">
+                                {% csrf_token %}
+                                {{ form | crispy }}
+                                <button type="button" id="save-button" class="btn btn-secondary btn-sm w-100">Save</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+
+    const productionModal = new bootstrap.Modal(document.getElementById('addProductioNPlanModal'));
+    const addPortionModal = new bootstrap.Modal(document.getElementById('AddPortionsModal'));
+    let addPortionElementUpdate = null;
+
+
+    function showModal(){
+        productionModal.show();
+    }
+
+    function addPM(element){
+        addPortionElementUpdate = element;
+        const row = element.closest('tr');
+        const dishName = row.querySelector('.dish-name').textContent.trim();
+        const declaredInput = row.querySelector('.declared-portions');
+
+        console.log({Dish: dishName, Declared: declaredInput.value});
+        addPortionModal.show();
+    }
+
+    function confirmAddPortions() {
+        const extraPortionsInput = document.getElementById('extraPortions');
+        const extraPortions = parseInt(extraPortionsInput.value);
+        const row = addPortionElementUpdate.closest('tr');
+        const declaredInput = row.querySelector('.declared-portions');
+        const note = row.querySelector('.note-portions .note-text');
+
+        const currentDeclared = parseInt(declaredInput.value) || 0;
+        declaredInput.value = currentDeclared + extraPortions;
+        declaredInput.disabled = true;
+
+        if(note.innerHTML.trim() === ''){
+            console.log('here');
+            note.innerHTML = `Extra Portions: ${extraPortions}`;
+        }else{
+            previousNote = note.innerHTML.replace('Extra Portions: ', '').trim();
+            console.log({previous: previousNote});
+            updatedNote = parseFloat(previousNote) + extraPortions;
+            note.innerHTML = `Extra Portions: ${updatedNote}`;
+        }
+        console.log({extra:extraPortions});
+
+        addPortionModal.hide();
+        updateDishCount();
+        portionChange(addPortionElementUpdate);
+    }
+
+    updateDishCount();
+    document.addEventListener('DOMContentLoaded', function () {
+        const inputs = document.querySelectorAll('.declared-portions');
+        inputs.forEach(input => input.value = '');
+
+        updateDishCount();
+
+    });
+
+    function updateDishCount() {
+        const declareButtons = document.querySelectorAll('.declared-portions:not([disabled])');
+        const countElement = document.getElementById('dishCount');
+        countElement.textContent = declareButtons.length;
+
+        if( declareButtons.length === 0) {
+            ingSysInputs = document.querySelectorAll('.ing-sys-input');
+            ingSysInputs.forEach(input => {
+                input.disabled = false;
+            });
+        } else {
+            ingSysInputs = document.querySelectorAll('.ing-sys-input');
+            ingSysInputs.forEach(input => {
+                input.disabled = true;
+                input.value = '';
+            });
+        }
+    }
+
+    function portionChange(element) {
+        console.log('Edit Function Called');
+        let totalVarianceCost = 0;
+
+        const row = element.closest('tr');
+
+        const pp = document.getElementById('prod_id').textContent.trim();
+        
+        const dishName = row.querySelector('.dish-name').textContent.trim();
+        const declaredInput = row.querySelector('.declared-portions');
+        const declaredPortions = row.querySelector('.declared-portions').value;
+        const plannedPortions = row.querySelector('.dish-portions').innerText;
+        const btnDisable = row.querySelector('.disable-btn');
+        const btnEnable = row.querySelector('.disabled-btn-edit');
+        const btnAddPortions = row.querySelector('.disabled-btn-add-portions');
+
+        /*
+        btnEnable.classList.add('d-none');
+        btnAddPortions.classList.add('d-none');
+        btnDisable.classList.remove('d-none');
+        declaredInput.disabled = false;
+        */
+
+        data = {
+            dish_name: dishName,
+            portions: declaredPortions,
+        };
+
+        console.log(
+            {
+                data_log: data,
+            }
+        );
+
+        fetch("{% url 'inventory:declare_production' 0 %}".replace('0', parseInt(pp)),{
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken':  getCSRFToken()
+            },
+            body: JSON.stringify(data)
+        }).then(response => response.json())
+        .then(info => {
+            if(info.success){
+                
+                updateDishCount();
+                info.ingridient.forEach(item => {
+                    const name = item.ingridient_name;
+                    const qnty = item.ingridient_qnty;
+                    actual_temp = 0;
+                    finalQntyFormatted = 0;
+                    variance = 0;
+
+                    const rows = document.querySelectorAll('#table_ing tr');
+
+                    rows.forEach(row => {
+                        const ingName = row.querySelector('.ing-name');
+                        const ingPop = row.querySelector('.ing-pop');
+                        const ingQnty = row.querySelector('.ing-qnty');
+                        const ingVar = row.querySelector('.ing-variance');
+                        const ingCost = row.querySelector('.ing-cost');
+                        const ingVarCost = row.querySelector('.ing-v-costs');
+                        const ingActCost = row.querySelector('.ing-a-costs');
+                        
+                        if (ingName && ingName.textContent.trim() === name) {
+                            if (ingPop) {
+                                qntyFormatted = parseFloat(qnty);
+                                const plannedText = ingQnty.textContent.trim();
+                                
+                                if(ingPop.textContent.trim() === ''){
+                                    console.log('Actual Quantity is not populate');
+                                    ingPop.innerHTML = `<small>${qntyFormatted}</small>`;
+                                    variance = (parseFloat(plannedText) - parseFloat(qnty));
+                                    console.log({Variance: variance});
+
+                                }else{
+                                    console.log('Actual Quantity is populate');
+                                    actual_temp = parseFloat(ingPop.textContent.trim());
+
+                                    actual_temp_formatted = parseFloat(actual_temp);
+                                    finalQntyFormatted = parseFloat(qntyFormatted);
+
+
+                                    ingPop.innerHTML = `${parseFloat(finalQntyFormatted).toFixed(3)}`;
+                                    variance = (parseFloat(plannedText) - parseFloat(finalQntyFormatted));
+                                    console.log({Variance: variance});
+
+
+                                }
+
+                                console.log({IngVar: ingVar.textContent,
+                                    IngPop: ingPop.textContent,
+                                    IngCost: ingCost.textContent.trim()
+                                });
+
+                                actcost_cal = parseFloat(parseFloat(ingPop.textContent.trim())/parseFloat(ingQnty.textContent.trim())) * parseFloat(ingCost.value.replace('$', '').trim());
+                                ingActCost.value = `$${parseFloat(actcost_cal).toFixed(2)}`;
+                            }
+                        }
+                    });
+                });
+                updateTotalVarianceAndActualCosts();
+            }
+        }) 
+    }
+
+    function editIng(element){
+        
+        const row = element.closest('tr');
+
+        const ingSysInput = row.querySelector('.ing-sys-input');
+        const IngSysNew = row.querySelector('.ing-sys-input-new');
+        const ingSysCost = row.querySelector('.ing-sys-cost');
+        const IngSysCostNew = row.querySelector('.ing-sys-cost-new');
+        const ingVarCost = row.querySelector('.ing-v-costs');
+        const ingVar = row.querySelector('.ing-variance');
+
+        IngSysNew.classList.add('d-none');
+        ingSysInput.value = '';
+        ingSysInput.disabled = false;
+        ingSysInput.classList.remove('d-none');
+
+        IngSysCostNew.classList.add('d-none');
+        ingSysCost.innerHTML = '';
+        ingSysCost.classList.remove('d-none');
+
+        ingVarCost.value = '';
+        ingVar.innerHTML = '';
+    }
+
+    function Edit(element) {
+        console.log('Edit Function Called');
+        let totalVarianceCost = 0;
+
+        const row = element.closest('tr');
+
+        const pp = document.getElementById('prod_id').textContent.trim();
+        
+        const dishName = row.querySelector('.dish-name').textContent.trim();
+        const declaredInput = row.querySelector('.declared-portions');
+        const declaredPortions = row.querySelector('.declared-portions').value;
+        const plannedPortions = row.querySelector('.dish-portions').innerText;
+        const btnDisable = row.querySelector('.disable-btn');
+        const btnEnable = row.querySelector('.disabled-btn-edit');
+        const btnAddPortions = row.querySelector('.disabled-btn-add-portions');
+
+        btnEnable.classList.add('d-none');
+        btnAddPortions.classList.add('d-none');
+        // btnDisable.classList.remove('d-none');
+        // declaredInput.disabled = false;
+
+        // editIng(element);
+
+        data = {
+            dish_name: dishName,
+            portions: declaredPortions,
+        };
+
+        fetch("{% url 'inventory:declare_production' 0 %}".replace('0', parseInt(pp)),{
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken':  getCSRFToken()
+            },
+            body: JSON.stringify(data)
+        }).then(response => response.json())
+        .then(info => {
+            if(info.success){
+                
+                updateDishCount();
+                info.ingridient.forEach(item => {
+                    const name = item.ingridient_name;
+                    const qnty = item.ingridient_qnty;
+                    actual_temp = 0;
+                    finalQntyFormatted = 0;
+                    variance = 0;
+
+                    const rows = document.querySelectorAll('#table_ing tr');
+
+                    rows.forEach(row => {
+                        const ingName = row.querySelector('.ing-name');
+                        const ingPop = row.querySelector('.ing-pop');
+                        const ingQnty = row.querySelector('.ing-qnty');
+                        const ingVar = row.querySelector('.ing-variance');
+                        const ingCost = row.querySelector('.ing-cost');
+                        const ingVarCost = row.querySelector('.ing-v-costs');
+                        const ingActCost = row.querySelector('.ing-a-costs');
+                        const ingSysInput = row.querySelector('.ing-sys-input');
+                        const IngSysNew = row.querySelector('.ing-sys-input-new');
+                        const ingSysCost = row.querySelector('.ing-sys-cost');
+                        const IngSysCostNew = row.querySelector('.ing-sys-cost-new');
+                        // const ingVarCost = row.querySelector('.ing-v-costs');
+                        // const ingVar = row.querySelector('.ing-variance');
+
+                        IngSysNew.classList.add('d-none');
+                        ingSysInput.value = '';
+                        ingSysInput.disabled = false;
+                        ingSysInput.classList.remove('d-none');
+
+                        IngSysCostNew.classList.add('d-none');
+                        ingSysCost.innerHTML = '';
+                        ingSysCost.classList.remove('d-none');
+
+                        ingVarCost.value = '';
+                        ingVar.innerHTML = '';
+                        
+                        if (ingName && ingName.textContent.trim() === name) {
+                            if (ingPop) {
+                                qntyFormatted = parseFloat(qnty);
+                                const plannedText = ingQnty.textContent.trim();
+                                
+                                if(ingPop.textContent.trim() === ''){
+                                    console.log('Actual Quantity is not populate');
+                                    ingPop.innerHTML = `${qntyFormatted}`;
+                                    variance = (parseFloat(plannedText) - parseFloat(qnty));
+                                    console.log({Variance: variance});
+
+                                }else{
+                                    console.log('Actual Quantity is populate');
+                                    actual_temp = parseFloat(ingPop.textContent.trim());
+
+                                    actual_temp_formatted = parseFloat(actual_temp);
+                                    finalQntyFormatted = parseFloat(actual_temp_formatted - qntyFormatted);
+
+
+                                    ingPop.innerHTML = `${parseFloat(finalQntyFormatted).toFixed(3)}`;
+                                    variance = (parseFloat(plannedText) - parseFloat(finalQntyFormatted));
+                                    console.log({Variance: variance});
+
+
+                                }
+
+                                ingVar.innerHTML = ``;
+
+                                console.log({IngVar: ingVar.textContent,
+                                    IngPop: ingPop.textContent,
+                                    IngCost: ingCost.textContent.trim()
+                                });
+
+                                actcost_cal = parseFloat(parseFloat(ingPop.textContent.trim())/parseFloat(ingQnty.textContent.trim())) * parseFloat(ingCost.textContent.replace('$', '').trim());
+                                ingActCost.innerHTML = `$${parseFloat(actcost_cal).toFixed(2)}`;
+                            }
+                        }
+                    });
+                });
+                updateTotalVarianceAndActualCosts();
+            }
+        }) 
+    }
+
+    function declared(element, event) {
+        if(event && event.key && event.key !== 'Enter'){
+            return; 
+        }
+        
+        let totalVarianceCost = 0;
+
+        const row = element.closest('tr');
+        
+        const pp = document.getElementById('prod_id').textContent.trim();
+        console.log({prod_id: pp});
+        const dishName = row.querySelector('.dish-name').textContent.trim();
+        const declaredInput = row.querySelector('.declared-portions');
+        const declaredPortions = row.querySelector('.declared-portions').value;
+        const plannedPortions = row.querySelector('.dish-portions').innerText;
+        const btnDisable = row.querySelector('.disable-btn');
+        const btnEnable = row.querySelector('.disabled-btn-edit');
+        const btnAddPortions = row.querySelector('.disabled-btn-add-portions');
+
+        console.log('Dish:', dishName);
+        console.log('Declared Portions:', declaredPortions);
+        console.log('Planned Portions:', plannedPortions);
+
+        if(declaredPortions > parseInt(plannedPortions) || declaredPortions === '' || declaredPortions < 1){
+            Swal.fire({
+                icon: 'error'
+            });
+            console.log('here')
+        }else{
+            data = {
+                dish_name: dishName,
+                portions: declaredPortions,
+            }
+            fetch("{% url 'inventory:declare_production' 0 %}".replace('0', parseInt(pp)),{
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken':  getCSRFToken()
+                },
+                body: JSON.stringify(data)
+            }).then(response => response.json())
+            .then(info => {
+                if(info.success){
+                    declaredInput.disabled = true;
+                    btnDisable.classList.add('d-none');
+                    btnEnable.classList.remove('d-none');
+                    btnAddPortions.classList.remove('d-none');
+
+                    updateDishCount();
+                    info.ingridient.forEach(item => {
+                        const name = item.ingridient_name;
+                        const qnty = item.ingridient_qnty;
+                        actual_temp = 0;
+                        finalQntyFormatted = 0;
+                        variance = 0;
+
+                        const rows = document.querySelectorAll('#table_ing tr');
+
+                        rows.forEach(row => {
+                            const ingName = row.querySelector('.ing-name');
+                            const ingPop = row.querySelector('.ing-pop');
+                            const ingQnty = row.querySelector('.ing-qnty');
+                            const ingVar = row.querySelector('.ing-variance');
+                            const ingCost = row.querySelector('.ing-cost');
+                            const ingVarCost = row.querySelector('.ing-v-costs');
+                            const ingActCost = row.querySelector('.ing-a-costs');
+                            
+                            if (ingName && ingName.textContent.trim() === name) {
+                                if (ingPop) {
+                                    console.log();
+                                    qntyFormatted = parseFloat(qnty);
+                                    const plannedText = ingQnty.textContent.trim();
+                                    
+                                    if(ingPop.textContent.trim() === ''){
+                                        console.log('Actual Quantity is not populate');
+                                        ingPop.innerHTML = `${qntyFormatted}`;
+                                        variance = (parseFloat(plannedText) - parseFloat(qnty));
+                                        console.log({Variance: variance});
+
+                                    }else{
+                                        console.log('Actual Quantity is populate');
+                                        actual_temp = parseFloat(ingPop.textContent.trim());
+
+                                        actual_temp_formatted = parseFloat(actual_temp);
+                                        finalQntyFormatted = parseFloat(actual_temp_formatted + qntyFormatted);
+
+                                        ingPop.innerHTML = `${parseFloat(finalQntyFormatted).toFixed(3)}`;
+                                        variance = (parseFloat(plannedText) - parseFloat(finalQntyFormatted));
+                                        console.log({Variance: variance});
+                                    }
+
+                                    ingVar.value = ``;
+
+                                    console.log({IngVar: ingVar.textContent,
+                                        IngPop: ingPop.textContent,
+                                        IngCost: ingCost.textContent.trim()
+                                        });
+
+                                        //varcost_cal = parseFloat(parseFloat(ingVar.textContent.trim())/parseFloat(ingQnty.textContent.trim())) * parseFloat(ingCost.textContent.replace('$', '').trim());
+                                        //ingVarCost.innerHTML = `<small>$${parseFloat(varcost_cal).toFixed(2)}</small>`;
+
+                                        actcost_cal = parseFloat(parseFloat(ingPop.textContent.trim())/parseFloat(ingQnty.textContent.trim())) * parseFloat(ingCost.value.replace('$', '').trim());
+                                        ingActCost.value = `$${parseFloat(actcost_cal).toFixed(2)}`;
+                                        
+                                        //console.log({VatCost: varcost_cal});
+
+
+                                        //totalVarianceCost += parseFloat(varcost_cal);
+                                        //console.log({TotalVarianceCostNew: totalVarianceCost});
+                                    
+                                        //varianceCostCell.innerHTML = `<small><strong>$${parseFloat(totalVarianceCost).toFixed(2)}</strong></small>`;
+                                        /*
+                                        costFormatted = parseFloat(ingCost.textContent.replace('$', ''));
+                                        //total_cost = parseFloat(parseFloat(variance) / parseFloat(plannedText)) * parseFloat(costFormatted);
+                                        const costPerUnit = parseFloat(costFormatted) / parseFloat(plannedText);
+                                        total_cost = parseFloat(variance) * costPerUnit;
+
+                                        console.log(total_cost);
+
+                                        console.log({Total_Before:totalVarianceCost});
+                                        totalVarianceCost += total_cost;
+                                        console.log({Total_After:totalVarianceCost});
+                                        */
+
+                                    }
+                                }
+                            });
+                        });
+                        /*
+                        if (varianceCostCell) {
+                            temp_store = parseFloat(varianceCostCell.textContent.replace('$', ''));
+                            temp_store = isNaN(temp_store) ? 0 : temp_store;
+                            console.log({Temp: temp_store});
+                            if(temp_store){
+                                new_cost = parseFloat(totalVarianceCost);
+                                console.log({New_cost: new_cost});
+                                varianceCostCell.innerHTML = `<small><strong>$${parseFloat(new_cost).toFixed(2)}</strong></small>`;
+                            }else{
+                                new_cost = parseFloat(totalVarianceCost);
+                                console.log({New_cost_Empty: new_cost});
+                                varianceCostCell.innerHTML = `<small><strong>$${parseFloat(new_cost).toFixed(2)}</strong></small>`;
+                            }
+                            
+                            variance_cal = varianceCostCell.textContent.replace('$', '').trim();
+                            planned_cal = plannedCostCell.textContent.replace('$', '').trim();
+
+                            console.log({
+                                Variance: variance_cal,
+                                Planned: planned_cal
+                            })
+                            actual_cal = parseFloat(parseFloat(planned_cal) - parseFloat(variance_cal));
+
+                            const countElement = document.getElementById('dishCount');
+                            updated_count = countElement.textContent.trim();
+                            console.log({
+                                UPDATE_COUNT: updated_count
+                            })
+                            
+                            if(updated_count === '0'){
+                                actualCostCell.innerHTML = `<small><strong>$${parseFloat(actual_cal).toFixed(2)}</strong></small>`;
+                            }else{
+                                actualCostCell.innerHTML = `<small>Pending Declarations</small>`;
+                            }
+
+                        }
+                        */
+                    updateTotalVarianceAndActualCosts();
+                    }
+                })
+            }
+        }
+
+    function updateTotalVarianceAndActualCosts() {
+        let totalVarianceCost = 0;
+        let totalActualCost = 0;
+
+        const varianceCostCell = document.querySelector('.variance-cost');
+        const actualCostCell = document.querySelector('.actual-cost');
+        const plannedCostCell = document.querySelector('.planned-cost');
+        const plannedCost = parseFloat(plannedCostCell.textContent.replace('$', '').trim());
+
+        const rows = document.querySelectorAll('#table_ing tr');
+
+        rows.forEach(row => {
+            
+            const ingVarCost = row.querySelector('.ing-v-costs');
+            const ingActCost = row.querySelector('.ing-a-costs');
+
+            if (ingVarCost && ingActCost) {
+                const varCostText = ingVarCost.value.trim();
+                const varCost = parseFloat(varCostText.replace('$', ''));
+                totalVarianceCost += isNaN(varCost) ? 0 : varCost;
+
+                const actCostText = ingActCost.value.trim();
+                const actCost = parseFloat(actCostText.replace('$', ''));
+                totalActualCost += isNaN(actCost) ? 0 : actCost;
+            }
+          
+        });
+        
+        varianceCostCell.innerHTML = `<small><div class="d-flex justify-content-center align-items-center gap-3"><span class="text-white fw-bold w-25"></span><input
+            type="text"
+            value="$${totalVarianceCost.toFixed(2)}"
+            class="rounded border-0 w-25 text-center text-dark"
+            disabled
+        /></div></small>`;
+        actualCostCell.innerHTML = `<small><div class="d-flex justify-content-center align-items-center gap-3"><span class="text-white fw-bold w-25"></span><input
+            type="text"
+            value="$${totalActualCost.toFixed(2)}"
+            class="rounded border-0 w-25 text-center text-dark"
+            disabled
+        /></div></small>`;
+    }
+
+    function finalConfirm(){
+        const countElement = document.getElementById('dishCount');
+        updated_count = countElement.textContent.trim();
+        const data = [];
+        const data_dish = [];
+
+        console.log({
+            UPDATE_COUNT: updated_count
+        })
+        
+        if(updated_count === '0'){
+
+            const rows = document.querySelectorAll('#table_ing tr');
+
+            rows.forEach(row => {
+                const ingNameCell = row.querySelector('.ing-name');
+                const ingPopCell = row.querySelector('.ing-pop');
+                const ingQntyCell = row.querySelector('.ing-qnty');
+                const ingVarCell = row.querySelector('.ing-variance');
+                const ingCostCell = row.querySelector('.ing-cost');
+                const ingSysInput = row.querySelector('.ing-sys-input');
+
+                if (ingNameCell && ingPopCell && ingQntyCell && ingVarCell && ingCostCell && ingSysInput) {
+                    const ingName = ingNameCell.textContent.trim();
+                    const ingPop = ingPopCell.textContent.trim();
+                    const ingQnty = ingQntyCell.textContent.trim();
+                    const ingVar = ingVarCell.textContent.trim();
+                    const ingCost = ingCostCell.textContent.trim();
+                    const ingSys = ingSysInput.value.trim();
+
+                    console.log({
+                        Name: ingName,
+                        Pop: ingPop,
+                        Qnty: ingQnty,
+                        Var: ingVar,
+                        Cost: ingCost,
+                        Sys: ingSys
+                    });
+
+                    data.push({
+                        'ingridient_name': ingName,
+                        'planned': ingQnty,
+                        'actual': ingPop,
+                        'variance': ingVar,
+                        'system': ingSys
+                    });
+                }
+            });
+
+            const rows_dish = document.querySelectorAll('#dishTableBody tr');
+
+            rows_dish.forEach(row => {
+                const dishNameCell = row.querySelector('.dish-name');
+                const dishPorCell = row.querySelector('.dish-portions');
+                const dishportionsCell = row.querySelector('.declared-portions');
+                const notePortionsCell = row.querySelector('.note-portions');
+                
+
+                if (dishNameCell && dishportionsCell && dishPorCell && notePortionsCell) {
+                    const dishName = dishNameCell.textContent.trim();
+                    const dishPor = dishPorCell.textContent.trim();
+                    const dishportions= dishportionsCell.value.trim();
+                    const notePortions = notePortionsCell.textContent.trim();
+
+                    console.log({
+                        Name: dishName,
+                        Planned_Portions: dishPor,
+                        Declared: dishportions,
+                        Note: notePortions,
+                    });
+
+                    data_dish.push({
+                        'dish_name': dishName,
+                        'planned_portions': dishPor,
+                        'declared': dishportions,
+                        'note': notePortions,
+                    });
+                }
+            });
+
+            console.log({
+                DATA: data,
+                DATA_DISH: data_dish
+            });
+
+            id = document.getElementById('prod_id').textContent.trim();
+
+            fetch("{% url 'inventory:declare_production' 0 %}".replace('0', parseInt(id)),{
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                },
+                body: JSON.stringify({data, data_dish})
+            }).then(response => response.json())
+            .then(info => {
+                if(info.success){
+                    //window.print();
+                    printDeclarationPlan();
+                    setTimeout(() => {
+                        window.location.href = '/inventory/production/plan/list';
+                    }, 6000);
+                }else{
+                    Swal.fire({
+                        icon: 'error',
+                    });
+                }
+            })
+        }else{
+            Swal.fire({
+                icon: 'warning',
+                title: 'Confirm Failed',
+                text: 'Declare all dishes first'
+            })
+        }
+    }
+
+    document.getElementById('dishSearch').addEventListener('input', function () {
+        const query = this.value.toLowerCase();
+        const rows = document.querySelectorAll('.table_container_dish tbody tr');
+
+        rows.forEach(row => {
+            const dishNameCell = row.querySelector('.dish-name');
+            const dishName = dishNameCell ? dishNameCell.textContent.toLowerCase() : '';
+            row.style.display = dishName.includes(query) ? '' : 'none';
+        });
+    });
+
+    function getCSRFToken() {
+        const name = 'csrftoken';
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            cookie = cookie.trim();
+            if (cookie.startsWith(name + '=')) {
+                return decodeURIComponent(cookie.substring(name.length + 1));
+            }
+        }
+        return null;
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const inputs = document.querySelectorAll(".ing-sys-input");
+
+        inputs.forEach(input => {
+            input.addEventListener("keydown", function (event) {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    const row = input.closest("tr");
+
+                    const plannedUnits = parseFloat(row.querySelector(".ing-qnty").innerText.trim()) || 0;
+                    const plannedCost = parseFloat(row.querySelector(".ing-cost").value.replace("$", "").trim()) || 0;
+                    const ingPop = parseFloat(row.querySelector(".ing-pop").innerText.trim()) || 0;
+                    const ingACost = parseFloat(row.querySelector(".ing-a-costs").value.replace("$", "").trim()) || 0;
+                    const ingNewSysInput = row.querySelector(".ing-sys-input-new");
+
+                    console.log(
+                        {
+                            'PlannedCost': plannedCost,
+                            'Pop': ingPop,
+                            'ActualCost': ingACost
+                        }
+                    );
+
+
+                    console.log({ActualCost: ingACost});
+                    if(input.value.trim() === '' || isNaN(parseFloat(input.value.trim())) /*|| parseFloat(input.value.trim()) > plannedUnits*/) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Invalid Input',
+                            text: 'Please enter a valid number less than or equal to the planned units.'
+                        });
+                    }else{
+                        row.querySelector(".ing-sys-input").classList.add('d-none');
+                        unit = row.querySelector(".ing-qnty").innerText.split("@");
+                        unitFormat = unit[1];
+                        ingNewSysInput.innerHTML = row.querySelector(".ing-sys-input").value + unitFormat;
+                        ingNewSysInput.classList.remove('d-none');
+
+                        const actualUnits = parseFloat(input.value.trim()) || 0;
+                        
+                        // Calculate unit cost
+                        const unitCost = plannedCost / plannedUnits || 0;
+
+                        // Calculate system cost
+                        const systemCost = unitCost * actualUnits;
+
+                        // Calculate variance
+                        const varianceUnits = actualUnits - ingPop;
+                        const varianceCost = systemCost - ingACost;
+                        console.log(
+                            {
+                                'Row': row.querySelector(".ing-v-costs").value
+                            }
+                        )
+                        // Update the DOM
+                        row.querySelector(".ing-sys-cost").innerText = "$" + systemCost.toFixed(2);
+                        row.querySelector(".ing-variance").innerText = varianceUnits.toFixed(3);
+                        if(varianceCost.toFixed(2) > 0){
+                            row.querySelector(".ing-v-costs").classList.add("text-danger");
+                            row.querySelector(".ing-v-costs").value = "$" + varianceCost.toFixed(2);
+                        }else{
+                            row.querySelector(".ing-v-costs").classList.add("text-success");
+                            row.querySelector(".ing-v-costs").value = "$" + varianceCost.toFixed(2);
+                        }
+                        
+                        row.querySelector(".ing-sys-cost").classList.add('d-none');
+                        console.log(row.querySelector('.ing-sys-cost').innerText.trim());
+                        row.querySelector(".ing-sys-cost-new").value = row.querySelector('.ing-sys-cost').innerText.trim();
+                        row.querySelector(".ing-sys-cost-new").classList.remove('d-none');
+                        
+
+                        row.querySelector(".ing-center-content").classList.add('justify-content-center');
+
+                        input.disabled = true;
+                        updateTotalVarianceAndActualCosts();
+                    }
+                }
+            });
+        });
+    });
+
+
+    function printDeclarationPlan(){
+        const dishrows = document.querySelectorAll('.table_container_dish tbody tr ');
+        const ingrows = document.querySelectorAll('#table_ing tr');
+
+        dishrows.forEach(row => {
+            if(row.classList.contains('dish-total-rows')){
+                return;
+            }else{
+                console.log({
+                    Dish: row.querySelector('.dish-name').textContent.trim(),
+                    Portions: row.querySelector('.declared-portions').value,
+                    Price: row.querySelector('.dish-portions').textContent.trim(),
+                    Note: row.querySelector('.note-portions note-text')
+                });
+            }
+        });
+        
+
+        ingrows.forEach(row => {
+            if(row.classList.contains('dish-total-rows') || row.classList.contains('ing-total-rows')){
+                return;
+            }else{
+                console.log({
+                    IngName: row.querySelector('.ing-name').textContent.trim(),
+                    PlannedUnits: row.querySelector('.ing-qnty').textContent.trim(),
+                    PlannedCost: row.querySelector('.ing-cost').textContent.trim(),
+                    SystemUnits: row.querySelector('.ing-pop').textContent.trim(),
+                    SystemCost: row.querySelector('.ing-sys-cost').textContent.trim(),
+                    ActualUnits: row.querySelector('.ing-sys-input').value,
+                    ActualCost: row.querySelector('.ing-a-costs').textContent.trim(),
+                    VarianceUnits: row.querySelector('.ing-variance').textContent.trim(),
+                    VarianceCost: row.querySelector('.ing-v-costs').value.trim()
+                });
+            }
+        });
+
+
+        dishes = Array.from(dishrows).map(row => {
+            const dish = row.querySelector('.dish-name');
+            const portions = row.querySelector('.dish-portions');
+            const declared = row.querySelector('.declared-portions');
+            const dishPrice = row.querySelector('.dish-price');
+            const note = row.querySelector('.note-portions')
+
+            if (dish && portions && declared && dishPrice) {
+                return `
+                    <tr>
+                        <td style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 214, 200);">${dish.textContent.trim()}</td>
+                        <td style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 214, 200);">${portions.textContent.trim()}</td>
+                        <td style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 214, 200);">${dishPrice.textContent.trim()}</td>
+                        <td style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 214, 200);">${declared.value}</td>
+                        <td style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 214, 200);">${note.textContent.trim()}</td>
+                    </tr>
+                `;
+            } else {
+                return '';
+            }
+        }).join('')
+
+
+        ings = Array.from(ingrows).map(row => {
+            const ingName = row.querySelector('.ing-name');
+            const ingQnty = row.querySelector('.ing-qnty');
+            const ingCost = row.querySelector('.ing-cost');
+            const ingPop = row.querySelector('.ing-pop');
+            const ingSysCost = row.querySelector('.ing-sys-cost');
+            const ingSysInput = row.querySelector('.ing-sys-input');
+            const ingACosts = row.querySelector('.ing-a-costs');
+            const ingVariance = row.querySelector('.ing-variance');
+            const ingVCosts = row.querySelector('.ing-v-costs');
+
+            if (ingName && ingQnty && ingCost && ingPop && ingSysCost && ingSysInput && ingACosts && ingVariance && ingVCosts) {
+                return `
+                    <tr>
+                        <td style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 214, 200);">${ingName.textContent.trim()}</td>
+                        <td style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 214, 200);">${ingQnty.textContent.trim()}[${ingCost.value.trim()}]</td>
+                        <td style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 214, 200);">${ingPop.textContent.trim()}[${ingACosts.value.trim()}]</td>
+                        <td style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 214, 200);">${ingSysInput.value}[${ingSysCost.textContent.trim()}]</td>
+                        <td style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 214, 200);">${ingVariance.textContent.trim()}[${ingVCosts.value.trim()}]</td>
+                    </tr>
+                `;
+            } else {
+                return ''; // Skip total or malformed rows
+            }
+        }).join('')
+
+
+        const printWindow = window.open('','','width=800,height=600');
+
+        printWindow.document.write(`
+            <html>
+            <head>
+                <title>Production Plan Declaration</title>
+            </head>
+            <body>
+                <h1>Production Plan Declaration</h1>
+                <h2>Declared Dishes</h2>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr>
+                            <th style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 182, 127);">Dish</th>
+                            <th style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 182, 127);">Planned Portions</th>
+                            <th style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 182, 127);">Value(Price)</th>
+                            <th style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 182, 127);">Declared Portions</th>
+                            <th style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 182, 127);">Note</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${dishes}
+                    </tbody>
+                </table>
+
+                <h2>Ingredients</h2>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr>
+                            <th style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 182, 127);">Ingredients</th>
+                            <th style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 182, 127);">Planned Units</th>
+                            <th style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 182, 127);">System Units</th>
+                            <th style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 182, 127);">Actual Units</th>
+                            <th style="border: 1px solid black; padding: 8px; text-align: center; background-color: rgb(224, 182, 127);">Variance Units</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${ings}
+                    </tbody>
+                </table>
+            </body>
+            </html>
+        `)
+        printWindow.document.close();
+        printWindow.onload = function () {
+            printWindow.print();
+            printWindow.close();
+        };
+    }
+
+
+
+    $(document).ready(function() {
+        let cart = [];
+        let portion_multiplier = 1;
+        let ingredientsData = [];
+    
+        const lf = document.getElementById('id_lf_carried_forward_quantity');
+        const rm = document.getElementById('id_rm_carried_forward_quantity');
+        const quantity = document.getElementById('id_quantity');
+        const actual = document.getElementById('id_actual_quantity');
+    
+        // $('#id_dish').select2();
+    
+        // Reset button functionality
+        $('#id_reset').on('click', function() {
+            cart = [];
+            updateCartTable();
+        });
+    
+        // Submit button functionality
+        $('#id_submit').on('click', function() {
+            id = document.getElementById('prod_id').textContent;
+            const postData = {
+                csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
+                cart: cart,
+                auto: true,
+                id: parseInt(id)
+            };
+    
+            fetch('{% url "inventory:create_production_plan" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()
+                },
+                body: JSON.stringify(postData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: "Success",
+                        text: "Production plan created successfully!",
+                        icon: "success"
+                    }).then(() => {
+                        window.location.href = '/inventory/production/plan/list';
+                    });
+                    cart = [];
+                    updateCartTable();
+                } else {
+                    Swal.fire({
+                        title: "Error",
+                        text: data.message,
+                        icon: "error"
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error submitting production plan:', error);
+            });
+        });
+    
+        // Dish selection event
+        $('#id_dish').on('change', function(e) {
+            const selectedProductId = e.target.value;
+            
+            // Don't make the API call if no dish is selected
+            if (!selectedProductId || selectedProductId === '') {
+                ingredientsData = []; // Clear ingredients data
+                portion_multiplier = 1; // Reset portion multiplier
+                return;
+            }
+    
+            const postData = {
+                csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
+                dish_id: selectedProductId,
+            };
+    
+            fetch('{% url "inventory:dish_json_detail" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()
+                },
+                body: JSON.stringify(postData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    ingredientsData = data.data; // Replaces previous data
+                    portion_multiplier = data.portion_multiplier;
+                } else {
+                    // Only show error if it's not an empty selection
+                    if (selectedProductId && selectedProductId !== '') {
+                        Swal.fire({
+                            title: "Error",
+                            text: data.message,
+                            icon: "error"
+                        });
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error posting product data:', error);
+            });
+        });
+    
+        // Quantity input listener
+        $('#id_quantity').on('input', function(e) {
+            let quantityVal = parseFloat(e.target.value) || 0;
+            let lfVal = parseFloat(lf.value) || 0;
+            let rmVal = parseFloat(rm.value) || 0;
+    
+            let value = quantityVal - (lfVal + rmVal);
+            actual.value = value < 0 ? 0 : value;
+            actual.readOnly = true;
+        });
+    
+        // Calculate total cost based on dish and portion size
+        function total_dish_cost(portions) {
+            let cost_per_kg = 0;
+            let kgs = portions / portion_multiplier;
+    
+            ingredientsData.forEach((i) => {
+                cost_per_kg += i.quantity * i.cost;
+            });
+    
+            return kgs * cost_per_kg;
+        }
+    
+        // Add item to cart
+        $('#save-button').on('click', function() {
+            const portions = parseFloat($('#id_portions').val());
+            const dish_name = $('#select2-id_dish-container').text();
+
+            console.log(dish_name)
+
+            if (!ingredientsData.length || isNaN(portions) || portions <= 0) {
+                Swal.fire({
+                    title: "Invalid Entry",
+                    text: "Please select a dish and enter a valid portion size.",
+                    icon: "warning"
+                });
+                return;
+            }
+            /*
+            const item = {
+                dish: $('#id_dish option:selected').text(),
+                portions: portions,
+                total_cost: total_dish_cost(portions)
+            };
+    
+            cart.push(item);
+            updateCartTable();
+            */
+            
+            const dish_text = $('#id_dish option:selected').text();
+            const itemIndex = cart.findIndex(entry => entry.dish === dish_text);
+
+            if (itemIndex !== -1) {
+                cart[itemIndex].portions += portions;
+                cart[itemIndex].total_cost = total_dish_cost(cart[itemIndex].portions);
+            } else {
+                const item = {
+                    dish: dish_text,
+                    portions: portions,
+                    total_cost: total_dish_cost(portions)
+                };
+                cart.push(item);
+            }
+
+            updateCartTable();
+            $('#id_dish').val(null).trigger('change');
+            $('#id_portions').val(0);
+        });
+    
+        // Update cart table display
+        function updateCartTable() {
+            const cartItems = $('#cart-items');
+            cartItems.empty();
+    
+            cart.forEach((item, index) => {
+                cartItems.append(`
+                    <tr>
+                        <td>
+                            <button class="btn border bx bx-trash" onclick="deleteItem(${index})"></button>
+                            <span class='mx-2'>${item.dish}</span>
+                        </td>
+                        <td>
+                            <input type="number" class="form-control" value="${item.portions}" onchange="updateQuantity(${index}, this.value)">
+                        </td>
+                        <td>${item.total_cost.toFixed(2)}</td>
+                    </tr>
+                `);
+            });
+        }
+    
+        // Global functions for cart item actions
+        window.deleteItem = function(index) {
+            cart.splice(index, 1);
+            updateCartTable();
+        }
+    
+        window.updateQuantity = function(index, newPortions) {
+            newPortions = parseFloat(newPortions);
+    
+            if (isNaN(newPortions) || newPortions <= 0) {
+                Swal.fire({
+                    title: "Invalid Portion",
+                    text: "Please enter a valid portion number.",
+                    icon: "warning"
+                });
+                return;
+            }
+    
+            const item = cart[index];
+            item.portions = newPortions;
+            item.total_cost = total_dish_cost(newPortions);
+            updateCartTable();
+        }
+    });
+</script>
+
+{% endblock content %}

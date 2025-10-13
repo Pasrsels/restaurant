@@ -10,7 +10,8 @@ from . models import (
     UnitOfMeasurement,
     ProductionItems,
     TransferItems,
-    BudgetItem
+    BudgetItem,
+    StockTake
 )
 from django import forms
 from datetime import date
@@ -86,7 +87,7 @@ class ProductionPlanInlineForm(forms.ModelForm):
 class DishForm(forms.ModelForm):
     class Meta:
         model = Dish
-        exclude = ['cost']
+        exclude = ['cost', 'dish']
 
 class IngredientForm(forms.ModelForm):
     class Meta:
@@ -96,7 +97,7 @@ class IngredientForm(forms.ModelForm):
 class MealForm(forms.ModelForm):
     class Meta:
         model = Meal
-        fields = ['name', 'price', 'category', 'dish', 'image']
+        fields = ['name', 'price', 'dish', 'image']
         widgets = {
             'dish': forms.SelectMultiple(attrs={'class': 'form-control'}),
         }
@@ -116,5 +117,11 @@ class CreateBudgetItemForm(forms.ModelForm):
     class Meta:
         model = BudgetItem
         fields = ['product', 'allocated_amount', 'quantity', 'approove_by',  'reoccuring']
+        
+
+class CreateStockTakeForm(forms.ModelForm):
+    class Meta:
+        model = StockTake
+        fields = ['conductor', 'users']
 
         

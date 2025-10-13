@@ -1,122 +1,20 @@
 {% extends "base.html" %}
 {% load static %}
+{% load crispy_forms_tags %}
 {% block title %}Pos{% endblock title %}
+
+{% block css %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/pos.css'%}">
+    <link rel="manifest" href="{% static 'manifest.json' %}">
+{% endblock css %}
+
 {% block content %}
-<style>
-    /* Floating Button */
-    .floating-button {
-        marging-top: 300px;
-        positon:relative;
-        bottom: 20px;
-        left: 20px;
-        width: 100%;
-        height: 50px;
-        color: #fff;
-        border-radius: 2%;
-        display: flex;
-        align-items: center;
-        cursor: pointer;
-        z-index: 1000;
-    }
-
-    /* Hidden Content Box */
-    .floating-content {
-        display: none;
-        position: fixed;
-        bottom: 80px;
-        left: 20px;
-        width: 300px;
-        background-color: #fff;
-        border-radius: 8px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        z-index: 1000;
-    }
-
-    .content-header {
-        background-color: #333;
-        color: #fff;
-        padding: 10px;
-        border-top-left-radius: 8px;
-        border-top-right-radius: 8px;
-    }
-
-    .content-body {
-        padding: 15px;
-    }
-
-    .content-body ul {
-        list-style: none;
-        padding-left: 0;
-    }
-
-    .content-body ul li {
-        margin-bottom: 10px;
-    }
-
-    .content-body ul li a {
-        text-decoration: none;
-        color: #333;
-    }
-
-    .menu{
-        background: url('../../static/assets/back.jpg');
-        background-repeat: no-repeat;
-        background-size: cover;
-        height: 60vh;
-    }
-    .pos{
-        height: 100vh;
-    }
-    .hover:hover{
-        background: #2b292a;
-        color:#fff;
-    }
-    .loader-wrapper {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(255, 255, 255, 0.8);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 10000;
-    }
-
-    .loader {
-        border: 16px solid #f3f3f3; 
-        border-top: 16px solid #333; 
-        border-radius: 50%;
-        width: 120px;                  
-        height: 120px;
-        animation: spin 2s linear infinite;
-    }
-
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-    .card {
-        width: 250px;
-        height: 300px;
-        overflow: hidden;
-      }
-      
-      .card-img-top {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        object-position: center;
-      }
-      
-</style>
 <div class="pos px-4 py-3">
     <div class="container-fluid">
         <div class="row justify-content-center">
-            <!-- Left Column (Products) -->
             <div class="col-9">
-                <div style='height:80vh;'>
+                <div class="left-column">
                     <div class="d-flex justify-content-between p-2 rounded-0 mt-1 align-items-center border rounded">
                         <h5 class="mb-0">Products</h5>
                         <input 
@@ -127,16 +25,19 @@
                             oninput="searchItems()"
                         >
                     </div>
-                    <div class="mt-4">
-                        <div class="row" id="itemsContainer" style='height:70vh; overflow-y: auto;'></div>
+                    <div id="dishCategories" class="d-flex justify-content-between p-1 mt-1 mb-1">
+
+                    </div>
+                    <div class="mt-1 mb-4">
+                        <div class="row container-color py-1 rounded mx-1 items-container" id="itemsContainer"></div>
                     </div>
                 </div>
 
-                <div id="floatingButton" class="floating-button d-flex justify-content-between align-items-center mt-3">
+                <div id="floatingButton" class="floating-button d-flex justify-content-between align-items-center mt-5">
                     <div class="d-flex flex-wrap">
                         <li><a href="{% url 'inventory:end_of_day_view' %}" class="btn btn-outline-dark m-1">End of day</a></li>
                         <li class='m-1'>
-                            <button class="btn btn-outline-dark" id="chargeStaff">Staff</button>
+                            <button class="btn btn-outline-dark" id="chargeStaff">Staff (F1)</button>
                         </li>
                         <li class='m-1'>
                             <a href='{% url "pos:change_list" %}' class="btn btn-outline-dark">View Change</a>
@@ -147,26 +48,27 @@
                         <li class='m-1'>
                             <a class="btn btn-outline-dark" id="cashup">Cash Up</a>
                         </li>
-                        <!-- <li class='m-1'> pamwe tichazokuda
-                            <a href='{% url "pos:cash_up_accountant_report" %}' class="btn btn-outline-dark">Accountant Report</a>
-                        </li> -->
+                        <li class='m-1'>
+                            <a class="btn btn-outline-dark" href="{% url 'inventory:create_purchase_order' %}">Purchases</a>
+                        </li>
                     </div>
                     <div class="d-flex">
-                        <li class="m-1">
+                        <li class="m-1 d-none">
                             <a class="btn btn-danger text-light" onclick="handover()">Handover</a>
                         </li>
                         <li class="m-1">
-                            <a class="btn btn-danger text-light" id="void">Void</a>
+                            <a class="btn color-button text-light" onclick="addModal()">Add Production Plan</a>
+                        </li>
+                        <li class="m-1">
+                            <a class="btn color-button text-light" id="void">Void</a>
                         </li>
                     </div>
                 </div>
             </div>
-
-            <!-- Middle Column (Order Details) -->
             <div class="col-3 p-0 rounded">
-                <div class="bg-dark text-light h-100 d-flex flex-column rounded">
+                <div class="bg-white text-dark h-100 d-flex flex-column rounded border">
                     <h5 class="fw-bold text-center border-bottom pb-2 pt-3 px-3">Order Details</h5>
-                    <div id="orderDetails" class="flex-grow-1 overflow-auto px-3" style="min-height: 200px;"></div>
+                    <div id="orderDetails" class="overflow-auto px-3 order-details"></div>
                     
                     <div class="mt-auto px-3 pb-3">
                         <hr>
@@ -184,11 +86,11 @@
                             <span id="total">$0.00</span>
                         </div>
                         <div class="d-flex flex-column gap-2">
-                            <button class="btn btn-warning w-100" id="chargeButton">
+                            <button class="btn color-bg w-100" id="chargeButton">
                                 Charge $0.00
                                 <span class="text-light mx-2">Enter</span>
                             </button>
-                            <button class="btn btn-outline-danger w-100" id="cancelBtn">Cancel</button>
+                            <button class="btn btn-outline-danger w-100" id="cancelBtn">Cancel (ESC)</button>
                         </div>
                     </div>
                 </div>
@@ -215,7 +117,8 @@
                             class="form-control" 
                             placeholder="Enter username" 
                             autocomplete="off"
-                            required>
+                            required
+                        >
                     </div>
                     <div class="mb-3">
                         <label for="password" class="form-label">Password</label>
@@ -228,7 +131,7 @@
                             autocomplete="new-password"
                             required>
                     </div>
-                    <button id="cash_upbutton" onclick="cashUp()" type="button" class="btn btn-outline-dark w-100">Authenticate</button>
+                    <button id="pos_cash_upbutton" onclick="cashUp()" type="button" class="btn btn-outline-dark w-100">Authenticate</button>
                 </form>
             </div>
         </div>
@@ -304,7 +207,7 @@
                             autocomplete="new-password"
                             required>
                     </div>
-                    <button id="cash_upbutton" onclick="authorization()" type="button" class="btn btn-outline-dark w-100">Authenticate</button>
+                    <button id="pos_auth_button" onclick="authorization()" type="button" class="btn btn-outline-dark w-100">Authenticate</button>
                 </form>
             </div>
         </div>
@@ -350,10 +253,15 @@
                     <button id="sitting-btn" class="order-type-btn btn btn-outline-dark w-100">Sitting (S)</button>
                     <button id="takeaway-btn" class="order-type-btn btn btn-outline-dark w-100 mt-2">Takeaway (T)</button>
                     <input type="hidden" id="order-type-input">
+                    <input type="hidden" id="cash-type-input">
+                   <div class="d-flex justify-content-between mt-2">
+                        <button class="btn btn-outline-dark w-50 me-2" id="eco-cash">ECO CASH</button>
+                        <button class="btn btn-outline-dark w-50" id="solid-cash">CASH</button>
+                    </div>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="totalAmountInput" class="form-label">Total Amount</label>
+                        <label for="totalAmountInput" class="form-label">Total Amount Received</label>
                         <input type="number" class="form-control" id="totalAmountInput" placeholder="Enter total amount received">
                     </div>
                     <div class="mb-3">
@@ -453,7 +361,7 @@
                         </div>
                         <div class="mb-3">
                             <label for="id_change_amount" class="form-label">Change Amount</label>
-                            <input type="text" class="form-control" id="change_amount" required>
+                            <input type="text" class="form-control" id="change_amount" disabled required>
                         </div>
                         <div class="mb-3">
                             <label for="id_change_given" class="form-label">Change Given</label>
@@ -461,13 +369,74 @@
                         </div>
                         <div class="mb-3">
                             <label for="id_balance" class="form-label">Balance</label>
-                            <textarea class="form-control" id="balance" rows="1" required></textarea>
+                            <input class="form-control" id="balance" rows="1" disabled required></input>
                         </div>
                         <div class='d-flex justify-content-between'>
                             <button type="button" class="btn btn-outline-dark" id="btn_back">Back</button>
                             <button type="button" class="btn btn-primary" id="btn_proceed">Proceed</button>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="cashTypeModal" tabindex="-1" aria-labelledby="cashTypeModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cashTypeModalLabel">Select Cash Type</h5>
+                </div>
+                <div class="modal-body">
+                    <div class="btn-selection">
+                        <span>
+                            <a class="btn btn-primary" id="eco-cash">
+                                ECO CASH
+                            </a>
+                        </span>
+
+                        <span>
+                            <a class="btn btn-primary" id="solid-cash">
+                                CASH
+                            </a>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="addProductioNPlanModal" tabindex="-1" aria-labelledby="addProductioNPlanModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content shadow">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addProductioNPlanModalLabel">POS PRODUCTION PLAN CREATION</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mt-2">
+                        <div class="col-9">
+                            <table class="table">
+                                <thead class="bg-primary">
+                                    <th>Dish</th>
+                                    <th>Portions</th>
+                                    <th>Total Cost</th>
+                                </thead>
+                                <tbody id="cart-items"></tbody>
+                            </table>
+                            <div class="d-flex justify-content-end">
+                                <button class="btn border bx bx-reset mx-2" id="id_reset"></button>
+                                <button class="btn-primary btn sm bx bx-save" id="id_submit"></button>
+                            </div>
+                        </div>
+                        <div class="col-3 mt-2">
+                            <form id="production-plan-form">
+                                {% csrf_token %}
+                                {{ form | crispy }}
+                                <button type="button" id="save-button" class="btn btn-secondary btn-sm w-100">Save</button>
+                            </form>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -483,8 +452,11 @@
         let mealsData = []
         let orderType = ''
         let changeAmount = 0;
+        let productionModalAuth = false;
         const changeData = []
+        let imageUrlsToCache = [];
 
+        const productionModal = new bootstrap.Modal(document.getElementById('addProductioNPlanModal'));
         const chargeModal = new bootstrap.Modal(document.getElementById('chargeModal'));
         const staffModal = new bootstrap.Modal(document.getElementById('staffModal'));
         const staffChargeModal = new bootstrap.Modal(document.getElementById('staffChargeModal'));
@@ -499,6 +471,56 @@
         const sellAuthorizationModal = new bootstrap.Modal(document.getElementById('AuthorizationModal'));
         const search = document.getElementById('searchInput')
 
+
+        document.addEventListener('DOMContentLoaded', function(){
+            const dishCat =  document.getElementById('dishCategories');
+            fetch("{% url 'inventory:filter_meal_category' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            }).then(response => response.json())
+            .then(data => {
+                if(data.success){
+                    console.log({'DISH CAT':data.categories})
+                    data.categories.forEach(cat => {
+                        const  dishContainer = document.createElement('span');
+                        dishContainer.className = 'my-0 border rounded p-2 btn btn-outline-dark';
+                        dishContainer.onclick = function(){ searchButtonItems(dishContainer.innerText.trim())};
+                        dishContainer.innerHTML = `
+                            ${cat}
+                        `;
+                        dishCat.appendChild(dishContainer);
+                    });
+                }
+            });
+
+            fetch('{% url "pos:product_meal_json" %}')
+                .then(response => response.json())
+                .then(data => {
+                    imageUrlsToCache = data.items.map(item => item.image ? `/media/${item.image}` : null).filter(Boolean);
+                });
+        });
+
+        function filter(filterby){
+            console.log({'filterBy': filterby});
+            const m_dContainer = document.getElementById('itemsContainer');
+        }
+
+        function addModal(){
+            if(productionModalAuth === true){
+                productionModal.show();
+            }else{
+                sellAuthorizationModal.show();
+            }
+        }
+
+        document.addEventListener('keydown', function(event){
+            if(event.code === 'F1'){
+                staffModal.show();
+            }
+        })
         
         // clear search input
 
@@ -566,6 +588,16 @@
             console.log(query)
             const filteredItems = items.filter(item => 
                 item.name.toLowerCase().includes(query) 
+            );
+            displayItems(filteredItems);
+        }
+
+        function searchButtonItems(filter) {
+            console.log({search:mealsData})
+            const query = filter;
+            console.log(query)
+            const filteredItems = items.filter(item => 
+                item.name.toLowerCase().includes(query.toLowerCase()) 
             );
             displayItems(filteredItems);
         }
@@ -698,11 +730,15 @@
 
         document.addEventListener("DOMContentLoaded", function() {
             let selectedOrderType = null;
-        
+            let selectedCashType = null;
+
             const sittingBtn = document.getElementById("sitting-btn");
             const takeawayBtn = document.getElementById("takeaway-btn");
+            const ecocashBtn = document.getElementById("eco-cash");
+            const solidcashBtn = document.getElementById("solid-cash");
             const chargeBtn = document.querySelector(".btn-primary");
             const orderTypeInput = document.getElementById("order-type-input");
+            const cashTypeInput = document.getElementById("cash-type-input");
             const totalAmountInput = document.getElementById("totalAmountInput");
         
             function activateButton(button) {
@@ -720,7 +756,7 @@
         
                 chargeBtn.disabled = false;
             }
-        
+            
             sittingBtn.addEventListener("click", function() {
                 activateButton(sittingBtn);
             });
@@ -728,11 +764,39 @@
             takeawayBtn.addEventListener("click", function() {
                 activateButton(takeawayBtn);
             });
+            
+
+            function cashButton(button) {
+                ecocashBtn.classList.remove("btn-dark");
+                solidcashBtn.classList.remove("btn-dark");
+
+                ecocashBtn.classList.remove("text-light");
+                solidcashBtn.classList.remove("text-light");
+                
+                button.classList.add("btn-dark");
+                button.classList.add("text-light");
+
+                selectedCashType = button.id === "eco-cash" ? "eco-cash" : "solid-cash";
+                cashTypeInput.value = selectedCashType;
+
+                chargeBtn.disabled = false;
+            }
+
+            ecocashBtn.addEventListener("click", function() {
+                cashButton(ecocashBtn);
+            });
         
+            solidcashBtn.addEventListener("click", function() {
+                cashButton(solidcashBtn);
+            });
+
             window.finalizeSale = function(staff) {
                 const amountField = document.getElementById('totalAmountInput');
                 const changeDisplay = document.getElementById('changeDisplay');
                 const orderTypeInput = document.getElementById('order-type-input');
+                const cashTypeInput = document.getElementById('cash-type-input');
+
+                console.log('Finalizing sale with staff:', cashTypeInput.value, 'and order type:', orderTypeInput.value);
 
                 setTimeout(() => {
                     totalAmountInput.focus();
@@ -741,8 +805,10 @@
 
                 if (staff) {
                     selectedOrderType = 'sitting';
+                    selectedCashType = 'solid-cash';
                 } else {
                     selectedOrderType = selectedOrderType;
+                    selectedCashType = selectedCashType;
                 }
 
                 const totalAmount = parseFloat(totalAmountInput.value);
@@ -769,10 +835,20 @@
                     return;
                 }
 
+                if (!selectedCashType) {
+                    Swal.fire({
+                        title: "Error",
+                        text: "Please select a cash type before finalizing the sale.",
+                        icon: "error"
+                    });
+                    return;
+                }
+
                 const saleData = {
                     received_amount: totalAmount,
                     staff: staff,
                     order_type: selectedOrderType,
+                    cash_type: selectedCashType,
                     items: cart.map(meal => ({
                         meal_id: meal.id,
                         quantity: meal.quantity,
@@ -879,13 +955,6 @@
             updateOrderDetails()
         }
     
-        // function searchFunction(e) {
-        //     const searchField = $('#food_search'); 
-        //     searchField.select2('open');
-        
-        //     const searchInput = $('.select2-search__field'); 
-        
-        // }
     
         function chargeFunction(event) {
             if (cart.length === 0){
@@ -895,12 +964,6 @@
                     icon: "error"
                 });
             }else{
-                // const chargeModal = new bootstrap.Modal(document.getElementById('chargeModal'));
-                // const isModalOpen = chargeModal.classList.contains('show')
-                // if(!isModalOpen){
-                //     event.preventDefault()
-                    
-                // }
                 chargeModal.show()
             }
 
@@ -944,17 +1007,27 @@
                 itemCard.className = 'col-md-3';
                 itemCard.innerHTML = `
                     <div class="card mb-4 position-relative overflow-hidden">
-                        <img src="${item.image ? '/media/' + item.image : '/media/' + 'placeholder.png'}" 
+                        <img src="${item.image ? '/media/' + item.image : '/media/' + 'placeholder.jpg'}" 
                         class="card-img-top" 
                         style = "object-fit: center;"
                         alt="${item.name}" 
                         onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
                         
-                        <div class="card-body text-center rounded-0 d-flex justify-content-center align-items-center bg-warning position-absolute bottom-0 w-100"
+                        <div class="color-bg position-absolute top-0 w-100 text-center py-2"
+                            onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})"
+                        ">
+                            <span class="dish-writing fs-5 fw-bold"
+                                readonly
+                            >
+                                ${item.name}
+                            </span>
+                        </div>
+                        
+                        <div class="border border-dark border-rounded card-body text-center rounded-0 d-flex justify-content-center align-items-center color-bg position-absolute bottom-0 w-100"
                             style="height: 50px; padding: 0; margin: 0; line-height: 50px; margin-top:-10px;"
                             onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
                             
-                            <span class="fw-bold">${item.name}</span>
+                            <span class="dish-writing bt-end fw-bold fs-3">$${parseFloat(item.price).toFixed(2)}</span>
                         </div>
                     </div>
 
@@ -967,7 +1040,7 @@
             fetch('{% url "pos:product_meal_json" %}')
                 .then(response => response.json())
                 .then(data => {
-                    console.log(data)
+                    // console.log(data)
                     items = data.items;
                     mealsData.push(data)
                     displayItems(items);
@@ -1072,10 +1145,6 @@
           
               orderDetails.appendChild(mealRow);
           
-            //   const mealPrice = document.createElement('span');
-            //   mealPrice.innerText = `$${(meal.price * meal.quantity).toFixed(2)}`;
-            //   mealRow.appendChild(mealPrice);
-          
               orderDetails.appendChild(mealRow);
               subTotal += meal.price * meal.quantity;
         });
@@ -1087,7 +1156,7 @@
             document.getElementById('subTotal').innerText = `$${subTotalExclTax.toFixed(2)}`;
             document.getElementById('tax').innerText = `$${tax.toFixed(2)}`;
             document.getElementById('total').innerText = `$${total.toFixed(2)}`;
-            document.getElementById('chargeButton').innerText = `Charge $${total.toFixed(2)}`;
+            document.getElementById('chargeButton').innerText = `Charge $${total.toFixed(2)} (Enter)`;
 
             // pay modal
             document.getElementById('totalAmountInput').value = total.toFixed(2);
@@ -1116,6 +1185,7 @@
         const amountField = document.getElementById('totalAmountInput');
         const changeDisplay = document.getElementById('changeDisplay');
         const orderTypeInput = document.getElementById('order-type-input');
+        const cashTypeInput = document.getElementById("cash-type-input");
 
         setTimeout(() => {
             amountField.focus();
@@ -1125,6 +1195,8 @@
         const totalAmountInput = parseFloat(document.getElementById('totalAmountInput').value);
         const total = parseFloat(document.getElementById('total').innerText.slice(1));
         const change = totalAmountInput - total;
+
+        console.log('change', change)
         document.getElementById('changeDisplay').value = `$${change.toFixed(2)}`;
 
         if (!totalAmountInput) {
@@ -1136,16 +1208,6 @@
             return;
         }
 
-        Swal.fire({
-            title: "Processing...",
-            text: "Please wait while the sale is being processed.",
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-
         const saleData = {
             received_amount: totalAmountInput,
             staff: staff,
@@ -1156,12 +1218,20 @@
                 price: meal.price,
                 type: meal.type,
                 meal: meal.meal,
-                meal: meal.dish
+                dish: meal.dish
             })),
             change_data: changeData
         };
 
-        console.log(saleData);
+        Swal.fire({
+            title: "Processing...",
+            text: "Please wait while the sale is being processed.",
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
 
         fetch('{% url "pos:process_sale" %}', {
             method: 'POST',
@@ -1171,46 +1241,66 @@
             },
             body: JSON.stringify(saleData)
         })
-            .then(response => response.json())
-            .then(data => {
-                Swal.close();
-                if (data.success) {
-                    console.log('Sale processed successfully:', data);
-                    Swal.fire({
-                        title: "Success",
-                        text: "Processing Receipt",
-                        icon: "success"
-                    });
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            } else {
+                throw new Error('Network response was not ok.');
+            }
+        })
+        .then(data => {
+            Swal.close();
+            if (data.success) {
+                console.log('Sale processed successfully:', data);
+                Swal.fire({
+                    title: "Success",
+                    text: "Processing Receipt",
+                    icon: "success"
+                });
 
-                    // Clear the cart and reset UI
-                    cart = [];
-                    updateOrderDetails();
-                    chargeModal.hide();
-                    clearChangeData()
-                    console.log('cleared')
+                cart = [];
+                updateOrderDetails();
+                chargeModal.hide();
+                clearChangeData();
 
-                    // Generate and print receipt
-                    const receiptContent = generateReceiptContent(data.data);
-                    printReceiptSilently(receiptContent);
+                const receiptContent = generateReceiptContent(data.data);
+                printReceiptSilently(receiptContent);
 
-                } else {
-                    Swal.fire({
-                        title: "Error",
-                        text: data.message,
-                        icon: "error"
-                    });
-                    chargeModal.hide();
-                }
-            })
-            .catch(error => {
-                Swal.close();
-                console.error('Error:', error);
+            } else {
                 Swal.fire({
                     title: "Error",
-                    text: "An error occurred while processing the sale.",
+                    text: data.message,
+                    icon: "error"
+                });
+                chargeModal.hide();
+            }
+        })
+        .catch(error => {
+            Swal.close();
+            console.error('Fetch error:', error);
+            saveSale(saleData).then(() => {
+                return navigator.serviceWorker.ready;
+            }).then(swRegistration => {
+                return swRegistration.sync.register('sync-pending-sales');
+            }).then(() => {
+                Swal.fire({
+                    title: "Offline",
+                    text: "Sale saved locally. It will be synced when you're back online.",
+                    icon: "info"
+                });
+                cart = [];
+                updateOrderDetails();
+                chargeModal.hide();
+                clearChangeData();
+            }).catch(error => {
+                console.error('Error saving sale offline:', error);
+                Swal.fire({
+                    title: "Error",
+                    text: "Could not save sale locally.",
                     icon: "error"
                 });
             });
+        });
     }
 
     function generateReceiptContent(saleData) {
@@ -1398,9 +1488,10 @@
         const changeAmount = parseFloat(document.getElementById('change_amount').value);
         document.getElementById('balance').value = changeAmount - amountGiven;
     })
-    cashupButton.addEventListener('click', ()=>{
+    document.getElementById('cashup').addEventListener('click', ()=>{
         authenticateModal.show()
     })
+    
    /* var cashupButton = document.getElementById('cashupButton')
         function cashup(){
             cashupButton.addEventListener('click', function () {
@@ -1631,7 +1722,9 @@ function generateAccountantCashUp(userId) {
                 }).then(() => {
                     if(data.role !== "cashier")
                     {
-                        processsCashUp()
+                        //Add modal to verify if end of day
+                        showConfirmationDialog();
+                        
                     }
                     else{
                         //function for  cashier modal
@@ -1657,6 +1750,52 @@ function generateAccountantCashUp(userId) {
         });
     }
 
+    function showConfirmationDialog() {
+        Swal.fire({
+            title: 'Is this the endy of day cashup?',
+            text: "Do you want to proceed?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes',
+            cancelButtonText: 'No',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+            doYesAction();
+            processsCashUp();
+
+            } else {
+            doNoAction();
+            processsCashUp();
+            }
+        });
+    }
+
+    function doYesAction() {
+        console.log("User clicked Yes");
+
+        fetch("{% url 'inventory:product_history' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        }).then(response => response.json())
+        .then(data => {
+            if(data.success){
+                console.log({product_history:data})
+            }
+            else{
+                console.log(data)
+            }
+        })
+
+    }
+
+    function doNoAction() {
+        console.log("User clicked No");
+    }
+
     const processsCashUp = () => {
         fetch(`/pos/cash_up/{{ request.user.id }}/`, {
             method: 'GET'
@@ -1666,7 +1805,6 @@ function generateAccountantCashUp(userId) {
             console.log(data)
             if (data.success) {
                 let cashupContent = generateCashUpContent(data.data);
-                console.log({CashUp:data.data});
                 Swal.fire({
                     title: "Processing...",
                     text: "Please wait while printing the cash up.",
@@ -1678,6 +1816,7 @@ function generateAccountantCashUp(userId) {
                 });
                 setTimeout(() => {
                     Swal.close();
+                    console.log('here')
                     printCashUpSilently(cashupContent);
                 }, 2000); 
             } else {
@@ -1689,25 +1828,11 @@ function generateAccountantCashUp(userId) {
         })
     }
     
-    function checkAuthorization() {
-        fetch('{% url "pos:authorizationstatus" %}', {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (!data.success) {
-                sellAuthorizationModal.show();
-            }
-        });
-    }
-
+   
     const authorization = () => {
         const username = document.querySelector('#s_username').value;
         const password = document.querySelector('#s_password').value;
-        const save = "save";
+        //const save = "save";
         
         fetch('{% url "pos:void_authenticate" %}', {
             method: 'POST',
@@ -1715,7 +1840,7 @@ function generateAccountantCashUp(userId) {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCookie('csrftoken')
             },
-            body: JSON.stringify({ username, password, save}) 
+            body: JSON.stringify({ username, password}) 
         })
         .then(response => response.json())
         .then(authData => {
@@ -1725,7 +1850,9 @@ function generateAccountantCashUp(userId) {
                     text: 'Authentication successful!',
                     icon: 'success',
                 }).then(() => {
-                    window.location.reload();
+                    productionModalAuth = true;
+                    sellAuthorizationModal.hide();
+                    addModal();
                 });
             } else {
                 Swal.fire({
@@ -1739,16 +1866,67 @@ function generateAccountantCashUp(userId) {
 
     function generateCashUpContent(cashUpData) {
         console.log({CashUpData: cashUpData})
-        const { total_sales, total_expenses, total_change, cash_in_hand, sales_portions, total_accumulated_change, void_sales_portions, staff_meal_portions, expense, previous_change_given, variance, sales_total} = cashUpData;
+        const { 
+            sales_summary, 
+            staff_sales_summary, 
+            total_summary_sales,
+            total_sales, 
+            total_expenses, 
+            total_change, 
+            cash_in_hand, 
+            sales_portions, 
+            total_accumulated_change,
+            void_sales_portions, 
+            staff_meal_portions, 
+            expense, 
+            previous_change_given, 
+            variance, 
+            sales_total, 
+            staff_total,
+            finished_product,
+            eco_cash_total,
+            eco_cash_tax,
+            collected_changes = 0,
+            cashier
+        } = cashUpData; 
         
+        //finished products
+        const finished_products = finished_product.map(product => {
+            return `
+                <tr>
+                    <td>${product.Product_Name}</td>
+                    <td>${product.Start}</td>
+                    <td>${product.Stock}</td>
+                    <td>${product.Sold}</td>
+                    <td>${product.Current}</td>
+                </tr>
+            `;
+        }).join('');
+
         // Generate table rows for sales portions
-        const salesRows = sales_portions.map(portion => {
+        const salesPortionsRows = sales_portions.map(portion => {
             return `
                 <tr>
                     <td>${portion.Name}</td>
                     <td>${portion.Quantity}</td>
                     <td>$${portion.Price}</td>
                     <td>$${portion.Total}</td>
+                </tr>
+            `;
+        }).join('');
+
+
+        const salesRows = Object.entries(sales_summary).map(([name, details]) => {
+            const quantity = details.quantity;
+            const price = parseFloat(details.price);
+            const total = (price * quantity).toFixed(2);
+
+            return `
+                <tr>
+                    <td>${name}</td>
+                    <td>${quantity}</td>
+                    <td>$${price.toFixed(2)}</td>
+                    <td>$${total}</td>
                 </tr>
             `;
         }).join('');
@@ -1765,16 +1943,20 @@ function generateAccountantCashUp(userId) {
             `;
         }).join('');
 
-        const staffMealRows = staff_meal_portions.map(portion => {
+        const staffMealRows = Object.entries(staff_sales_summary).map(([name, details]) => {
+            const quantity = details.quantity;
+            const price = parseFloat(details.price);
+            const total = (price * quantity).toFixed(2);
+
             return `
                 <tr>
-                    <td>${portion.Name}</td>
-                    <td>${portion.Quantity}</td>
-                    <td>$${portion.Price}</td>
-                    <td>$${portion.Total}</td>
+                    <td>${name}</td>
+                    <td>${quantity}</td>
+                    <td>$${price.toFixed(2)}</td>
+                    <td>$${total}</td>
                 </tr>
-            `
-        }).join('');
+            `;
+        }).join('')
 
         const expenseDetail = expense.map(item => {
             return `
@@ -1826,8 +2008,9 @@ function generateAccountantCashUp(userId) {
                     width: 100%;
                     border-collapse: collapse;
                     margin-bottom: 40px;
-                    font-family: Arial, sans-serif;
-                    font-size: 10px;
+                    font-family: Helvetica, Arial, sans-serif;
+                    font-size: 11px;
+                    border-spacing: 0;
                 }
 
                 th {
@@ -1856,29 +2039,38 @@ function generateAccountantCashUp(userId) {
                 "
                 >
                 <h3 style="text-align: center;">Parsles Investments (Urban Eats)</h3>
-                <h4 style="text-align: center;">Cash Up</h4>
-                <hr>
-                <p>Cashier: {{ request.user.first_name }}</p>
-                <p>Date: ${new Date().toLocaleDateString()}</p>
-                <p>Time: ${new Date().toLocaleTimeString()}</p>
-                <div class="totals">
-
-                    <h2>Sales</h2>
+                    Cashier: ${cashier}
+                    Date: ${new Date().toLocaleDateString()}
                     <table>
                         <thead>
                             <tr>
-                                <th>Name</th>
-                                <th>Portions</th>
+                                <th>sold</th>
                                 <th>Price</th>
                                 <th>Total</th>
                             </tr>
                         </thead>
                         <tbody>
-                            ${salesRows}
+                            ${salesPortionsRows}
                             <tr>
                                 <td colspan="3" style="font-weight: bold;">Total Sales</td>
                                 <td style="font-weight: bold;">$${sales_total}</td>
                             </tr>
+                        </tbody>
+                    </table>
+                    <hr>
+                    <h2>Finished Products</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Start</th>
+                                <th>In</th>
+                                <th>Out</th>
+                                <th>Left</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${finished_products}
                         </tbody>
                     </table>
                     <hr>
@@ -1902,13 +2094,17 @@ function generateAccountantCashUp(userId) {
                         <thead>
                             <tr>
                                 <th>Name</th>
-                                <th>Portions</th>
+                                <th>Quantity</th>
                                 <th>Price</th>
                                 <th>Total</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${staffMealRows}
+                            <tr>
+                                <td colspan="3" style="font-weight: bold;">Total Staff Sales</td>
+                                <td style="font-weight: bold;">$${staff_total}</td>
+                            </tr>
                         </tbody>
                     </table>
                     <hr>
@@ -1954,31 +2150,42 @@ function generateAccountantCashUp(userId) {
                     </table> {% endcomment %}
 
                     <div class="line">
-                        <span>Total Sales:</span>
-                        <span>$${total_sales}</span>
+                        <span style="font-weight:bold;">Total Sales:</span>
+                        <span style="font-weight:bold;">$${total_sales}</span>
                     </div>
                     <div class="line">
                         <span>Total Expenses:</span>
-                        <span>$${total_expenses}</span>
+                        <span>-$${total_expenses}</span>
                     </div>
                     <div class="line">
-                        <span>Todays Change:</span>
-                        <span>$${total_change}</span>
+                        <span>Today's Change:</span>
+                        <span>+$${total_change}</span>
                     </div>
                     <div class="line">
-                        <span>Total Change In System:</span>
-                        <span>$${total_accumulated_change}</span>
+                        <span>Collected Changes:</span>
+                        <span>-$${collected_changes || '0.00'}</span>
                     </div>
+                    <hr>
                     <div class="line">
-                        <span>Chash In Hand:</span>
-                        <span>$${cash_in_hand}</span>
+                        <span style="font-weight:bold; font-size:14;">Cash In Hand:</span>
+                        <span style="font-weight:bold; font-size:14;">$${cash_in_hand}</span>
                     </div>
+                    <hr>
+                    <div class="line" style='margin-top:10px;'>
+                        <span style="font-size:10;"><span style="font-weight:bold;"">Nb</span>Total Change In Sytem: $${total_accumulated_change}</span>
+                    </div>
+                    <hr>
+                    <div class="line" style='margin-top:10px;'>
+                        <span style="font-size:10;"><span style="font-weight:bold;"">Nb</span>Total Eco Cash Sales: $${eco_cash_total}</span>
+                        <span style="font-size:10;"><span style="font-weight:bold;"">Nb</span>Total Eco Cash Tax: $${parseFloat(eco_cash_tax).toFixed(2)}</span>
+                    </div>
+
             </div>
         `;
     }
 
     function printCashUpSilently(content) {
-        console.log(content)
+        console.log(content, 'here')
         let printFrame = document.getElementById("print-frame-cash-up");
 
         if (!printFrame) {
@@ -2032,65 +2239,107 @@ function generateAccountantCashUp(userId) {
         });
     }
 
-// function to filter items displayed on pos based on selected category
-function filterItemsByCategory(categoryName) {
-    console.log(categoryName);
-    fetch("{% url 'inventory:filter_meal_category' %}?category=" + encodeURIComponent(categoryName), { 
-        method: 'GET'
-    })
-    .then(response => response.json())
-    .then(data =>{
-        console.log({filtered:data})
-        const itemsContainer = document.getElementById('itemsContainer');
-        itemsContainer.innerHTML = '';
+    // function to filter items displayed on pos based on selected category
+    {% comment %} function filterItemsByCategory(categoryName) {
+        console.log(categoryName);
+        fetch("{% url 'inventory:filter_meal_category' %}?category=" + encodeURIComponent(categoryName), { 
+            method: 'GET'
+        })
+        .then(response => response.json())
+        .then(data =>{
+            console.log({filtered:data})
+            const itemsContainer = document.getElementById('itemsContainer');
+            itemsContainer.innerHTML = '';
 
-        data.forEach(item => {
-            const itemCard = document.createElement('div');
-            itemCard.className = 'col-md-3';
-            
-            itemCard.innerHTML = `
-                <div class="card mb-4">
-                    <img src="${item.image ? '/media/' + item.image : '/media/' + 'placeholder.png'}" 
+            data.forEach(item => {
+                console.log({Image:item.image})
+                console.log(item.meal, item.dish)
+                const itemCard = document.createElement('div');
+                itemCard.className = 'col-md-3';
+                itemCard.innerHTML = `
+                    <div class="card mb-4 position-relative overflow-hidden">
+                        <img src="${item.image ? '/media/' + item.image : '/media/' + 'placeholder.jpg'}" 
                         class="card-img-top" 
+                        style = "object-fit: center;"
                         alt="${item.name}" 
                         onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
-                    <div class="card-body p-3 d-flex align-items-center bg-warning" style="height:50px;" 
-                        onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
-                        <p class="card-text text text-center">${item.name}</p>
+                         
+                        <div class="color-bg position-absolute top-0 w-100 text-center py-2"
+                            onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})"
+                        ">
+                            <span class="dish-writing fs-5 fw-bold"
+                                readonly
+                            >
+                                ${item.name}
+                            </span>
+                        </div>
+
+                        <div class="border border-dark border-rounded card-body text-center rounded-0 d-flex justify-content-center align-items-center color-bg position-absolute bottom-0 w-100"
+                            style="height: 50px; padding: 0; margin: 0; line-height: 50px; margin-top:-10px;"
+                            onclick="addToCart('${item.id}', '${item.name}', ${item.price}, ${item.finished_product}, ${item.meal}, ${item.dish})">
+                            
+                            <span class="dish-writing fw-bold fs-5">$${parseFloat(item.price).toFixed(2)}</span>
+                        </div>
                     </div>
-                </div>
-            `;
 
-            itemsContainer.appendChild(itemCard);
+                `;
+                itemsContainer.appendChild(itemCard);
+            });
         });
-    });
-}
-window.addEventListener('load', function () {
-    setTimeout(()=>{
-        //document.getElementById('loader').style.display = 'none';
-    }, 1000)
-}); 
+    }
+    window.addEventListener('load', function () {
+        setTimeout(()=>{
+            //document.getElementById('loader').style.display = 'none';
+        }, 1000)
+    }); 
+ {% endcomment %}
 
+    populateSidebarCategories();
 
-populateSidebarCategories();
-
-/*Function to search within category
-function searchItems() {
-    const query = document.getElementById("searchInput").value.toLowerCase();
-    const itemCards = document.querySelectorAll("#itemsContainer .col-2");
-    itemCards.forEach(card => {
-        const titleElement = card.querySelector(".card-title");
-        if (titleElement) {
-            const titleText = titleElement.textContent.toLowerCase();
-            if (titleText.includes(query)) {
-                card.style.display = "";
-            } else {
-                card.style.display = "none";
+    /*Function to search within category
+    function searchItems() {
+        const query = document.getElementById("searchInput").value.toLowerCase();
+        const itemCards = document.querySelectorAll("#itemsContainer .col-2");
+        itemCards.forEach(card => {
+            const titleElement = card.querySelector(".card-title");
+            if (titleElement) {
+                const titleText = titleElement.textContent.toLowerCase();
+                if (titleText.includes(query)) {
+                    card.style.display = "";
+                } else {
+                    card.style.display = "none";
+                }
             }
+        });
+    }*/
+
+    function cacheImages() {
+        if (imageUrlsToCache.length > 0) {
+            caches.open('pos-cache-v1').then(cache => {
+                cache.addAll(imageUrlsToCache).then(() => {
+                    Swal.fire({
+                        title: "Success",
+                        text: "All images have been cached for offline use.",
+                        icon: "success"
+                    });
+                }).catch(error => {
+                    console.error('Error caching images:', error);
+                    Swal.fire({
+                        title: "Error",
+                        text: "Could not cache all images.",
+                        icon: "error"
+                    });
+                });
+            });
+        } else {
+            Swal.fire({
+                title: "Info",
+                text: "Image URLs are still being loaded. Please try again in a moment.",
+                icon: "info"
+            });
         }
-    });
-}*/
-    checkAuthorization();
+    }
+
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -2104,6 +2353,233 @@ function searchItems() {
             }
         }
         return cookieValue;
+    }
+
+
+    $(document).ready(function() {
+        let cart = [];
+        let portion_multiplier = 1;
+        let ingredientsData = [];
+    
+        const lf = document.getElementById('id_lf_carried_forward_quantity');
+        const rm = document.getElementById('id_rm_carried_forward_quantity');
+        const quantity = document.getElementById('id_quantity');
+        const actual = document.getElementById('id_actual_quantity');
+    
+        // $('#id_dish').select2();
+    
+        // Reset button functionality
+        $('#id_reset').on('click', function() {
+            cart = [];
+            updateCartTable();
+        });
+    
+        // Submit button functionality
+        $('#id_submit').on('click', function() {
+            const postData = {
+                csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
+                cart: cart,
+                auto: true
+            };
+    
+            fetch('{% url "inventory:create_production_plan" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()
+                },
+                body: JSON.stringify(postData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: "Success",
+                        text: "Production plan created successfully!",
+                        icon: "success"
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                    cart = [];
+                    updateCartTable();
+                } else {
+                    Swal.fire({
+                        title: "Error",
+                        text: data.message,
+                        icon: "error"
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error submitting production plan:', error);
+            });
+        });
+    
+        // Dish selection event
+        $('#id_dish').on('change', function(e) {
+            const selectedProductId = e.target.value;
+            
+            // Don't make the API call if no dish is selected
+            if (!selectedProductId || selectedProductId === '') {
+                ingredientsData = []; // Clear ingredients data
+                portion_multiplier = 1; // Reset portion multiplier
+                return;
+            }
+    
+            const postData = {
+                csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
+                dish_id: selectedProductId,
+            };
+    
+            fetch('{% url "inventory:dish_json_detail" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()
+                },
+                body: JSON.stringify(postData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    ingredientsData = data.data; 
+                    portion_multiplier = data.portion_multiplier;
+                } else {
+                    if (selectedProductId && selectedProductId !== '') {
+                        Swal.fire({
+                            title: "Error",
+                            text: data.message,
+                            icon: "error"
+                        });
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error posting product data:', error);
+            });
+        });
+
+        $('#id_quantity').on('input', function(e) {
+            let quantityVal = parseFloat(e.target.value) || 0;
+            let lfVal = parseFloat(lf.value) || 0;
+            let rmVal = parseFloat(rm.value) || 0;
+    
+            let value = quantityVal - (lfVal + rmVal);
+            actual.value = value < 0 ? 0 : value;
+            actual.readOnly = true;
+            actual.style.backgroundColor = 'lightgray';
+        });
+ 
+        function total_dish_cost(portions) {
+            let cost_per_kg = 0;
+            let kgs = portions / portion_multiplier;
+    
+            ingredientsData.forEach((i) => {
+                cost_per_kg += i.quantity * i.cost;
+            });
+    
+            return kgs * cost_per_kg;
+        }
+    
+        $('#save-button').on('click', function() {
+            const portions = parseFloat($('#id_portions').val());
+            const dish_name = $('#select2-id_dish-container').text();
+
+            console.log(dish_name)
+
+            if (!ingredientsData.length || isNaN(portions) || portions <= 0) {
+                Swal.fire({
+                    title: "Invalid Entry",
+                    text: "Please select a dish and enter a valid portion size.",
+                    icon: "warning"
+                });
+                return;
+            }
+            /*
+            const item = {
+                dish: $('#id_dish option:selected').text(),
+                portions: portions,
+                total_cost: total_dish_cost(portions)
+            };
+    
+            cart.push(item);
+            updateCartTable();
+            */
+            
+            const dish_text = $('#id_dish option:selected').text();
+            const itemIndex = cart.findIndex(entry => entry.dish === dish_text);
+
+            if (itemIndex !== -1) {
+                cart[itemIndex].portions += portions;
+                cart[itemIndex].total_cost = total_dish_cost(cart[itemIndex].portions);
+            } else {
+                const item = {
+                    dish: dish_text,
+                    portions: portions,
+                    total_cost: total_dish_cost(portions)
+                };
+                cart.push(item);
+            }
+
+            updateCartTable();
+            $('#id_dish').val(null).trigger('change');
+            $('#id_portions').val(0);
+        });
+    
+        function updateCartTable() {
+            const cartItems = $('#cart-items');
+            cartItems.empty();
+    
+            cart.forEach((item, index) => {
+                cartItems.append(`
+                    <tr>
+                        <td>
+                            <button class="btn border bx bx-trash" onclick="deleteItem(${index})"></button>
+                            <span class='mx-2'>${item.dish}</span>
+                        </td>
+                        <td>
+                            <input type="number" class="form-control" value="${item.portions}" onchange="updateQuantity(${index}, this.value)">
+                        </td>
+                        <td>${item.total_cost.toFixed(2)}</td>
+                    </tr>
+                `);
+            });
+        }
+    
+        window.deleteItem = function(index) {
+            cart.splice(index, 1);
+            updateCartTable();
+        }
+    
+        window.updateQuantity = function(index, newPortions) {
+            newPortions = parseFloat(newPortions);
+    
+            if (isNaN(newPortions) || newPortions <= 0) {
+                Swal.fire({
+                    title: "Invalid Portion",
+                    text: "Please enter a valid portion number.",
+                    icon: "warning"
+                });
+                return;
+            }
+    
+            const item = cart[index];
+            item.portions = newPortions;
+            item.total_cost = total_dish_cost(newPortions);
+            updateCartTable();
+        }
+    });
+
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+            .then(registration => {
+                console.log('Service Worker registered with scope:', registration.scope);
+            })
+            .catch(error => {
+                console.error('Service Worker registration failed:', error);
+            });
+        });
     }
     </script>
 {% endblock %}

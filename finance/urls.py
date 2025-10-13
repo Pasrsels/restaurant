@@ -48,4 +48,12 @@ urlpatterns = [
 
     #cashier expenses
     path('cashier-expenses/<int:cashier_id>/', cashier_expenses, name='cashier_expenses'),
+
+    # Form to select cashier and date
+    path('cashier-report/', cashier_report_form, name='cashier_report_form'),
+    
+    # API endpoint to get cash up data
+    path('cash-up/<int:cashier_id>/', cash_up, name='cash_up'),
+    
 ]
+

@@ -7,7 +7,7 @@
 {% endblock title %}
 {% block content %}
 
-<div class="inventory">
+<div class="inventory container-fluid">
     <div class='add-production-plan'>
         <div class='production-plan mt-2 d-flex justify-content-between align-items-center'>
             <div>
@@ -35,12 +35,12 @@
             </div>
         </div>
         <div class="row">
-            <div class="">
+            <div class="table-responsive">
                 <div class="d-flex align-items-center justify-content-between border rounded p-2 bg-dark text-light">
                     <h5 class="fw-bold">Dishes</h5>
                     <h5 class="fw-bold">Total Cost: ${{ total_cost_items }}</h5>
                 </div>
-                <table class="table" id='plan_item_table' style="width:100%;">
+                <table class="table table-hover" id='plan_item_table' style="width:100%;">
                     <thead class="bg-primary">
                         <th>Dish</th>
                         <th>Portions</th>
@@ -49,7 +49,20 @@
                     <tbody>
                         {% for item in production_plan_items  %}
                           <tr>
-                            <td><small>{{ item.dish.name }}</small></td>
+                            <td>
+                                <small>
+                                        <strong>{{ item.dish.name }}</strong>
+                                        <p>
+                                            (
+                                            {% for items in dish_ing %}
+                                                {% if item.dish.name == items.dish.name %}
+                                                    {{items.minor_raw_material.name}} => {{items.quantity}}{{items.minor_raw_material.unit.unit_name}}
+                                                {% endif %}
+                                            {% endfor %}
+                                            )
+                                        </p>
+                                </small>
+                            </td>
                             <td><small>{{ item.portions }} {{ item.raw_material.unit }}</small></td>
                             <td><small>${{ item.total_cost }}</small></td>
                           </tr>
@@ -62,13 +75,14 @@
                     <h5 class="fw-bold">Raw Materials</h5>
                 </div>
 
-                <table class="table" id="minor">
+                <table class="table table-hover" id="minor">
                     <thead class="bg-primary">
                         <tr>
                             <th>Raw Material</th>
                             <th>Planned Quantity</th>
                             <th>Allocated Quantity</th>
                             <th>Remaining Quantity</th>
+                            <th>Variance</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -86,7 +100,14 @@
                             <td>
                                 {% for allocated in allocated_rm %}
                                     {% if allocated.raw_material.name == item.name %}
-                                        <small>{{ allocated.remaining_quantity }}</small>
+                                        <small>{{ allocated.remaining_quantity|floatformat:"2"}}</small>
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+                            <td>
+                                {% for variance in p_rm_variance %}
+                                    {% if variance.ingredient.name == item.name %}
+                                        <small>{{ variance.quantity|floatformat:"3" }}</small>
                                     {% endif %}
                                 {% endfor %}
                             </td>

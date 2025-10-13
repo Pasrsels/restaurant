@@ -1,67 +1,396 @@
+{% load dish_extras %}
 <!DOCTYPE html>
 <html>
 <head>
+    <title>End Of Day PDF</title>
     <style>
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-family: Arial, sans-serif;
-        }
-
-        th, td {
-            border: 1px solid #ddd;
-            text-align: left;
-            padding: 8px;
-        }
-
-        th {
-            background-color: #f2f2f2;
-            font-weight: bold;
-        }
-
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-
-        tr:hover {
-            background-color: #eaeaea;
-        }
+      :root {
+          --primary: #11998e;
+          --primary-no-gradient: #11998e;
+          --glass: rgba(255, 255, 255, 0.1);
+          --glass-border: rgba(255, 255, 255, 0.2);
+          --border-radius: 16px;
+          --border-radius-sm: 8px;
+          --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .amount-right{
+          text-align: right;
+      }
+      .color-back{
+          background: #f8f9fa!important;
+      }
+      .color-back-2{
+          background: #e8f5f4 !important;
+      }
     </style>
 </head>
 <body>
+    <h2>End Of Day #{{ end_of_day.id }}</h2>
+    <p>Date: {{ end_of_day.date }}</p>
+    
+    <div class="main mt-2 p-1">
+        <h3 class="mt-2 mb-2">Dishes</h3>
+        <div class="table-container">
+            <table class="table w-100 table-borderless table-hover" id="endofday_table">
+                <thead class="color-back-2">
+                    <tr> 
+                        <th>#</th>
+                        <th>Dish</th>
+                        <th class="amount-right color-back-2">Planned</th>
+                        <!-- <th class="amount-right">Previous Left Overs</th> -->
+                        <th class="amount-right color-back"><i class="bx bx-plus fw-bold text-success"></i><span class="text-success">Declared</span></th>
+                        <th class="amount-right color-back"><i class="bx bx-minus fw-bold text-danger"></i><span class="text-danger">Sold</span></th>
+                        <th class="amount-right color-back"><i class="bx bx-minus fw-bold text-danger"></i><span class="text-danger">Staff</span></th>
+                        <th class="amount-right color-back"><i class="bx bx-minus fw-bold text-danger"></i><span class="text-danger">Wastage</span></th>
+                        <th class="amount-right color-back"><i class="bx bx-minus fw-bold text-danger"></i><span class="text-danger">Leftovers</span></th>
+                        <th class="amount-right color-back"><i class="bx bx-equal fw-bold text-primary"></i><span class="text-primary">Variance</span></th>
+                    </tr>
+                    <!-- Totals Row -->
+                    <tr class="background totals-row">
+                        <td><strong>Total</strong></td>
+                        <td><strong>-</strong></td>
+                        <td class="amount-right color-back-2"><strong id="total-planned">0 &nbsp;|&nbsp; <span class="amount-right">$0.00</span></strong></td>
+                        <td class="amount-right color-back"><strong id="total-declared">0 &nbsp;|&nbsp; <span class="amount-right">$0.00</span></strong></td>
+                        <td class="amount-right color-back"><strong id="total-sold">0 &nbsp;|&nbsp; <span class="amount-right">$0.00</span></strong></td>
+                        <td class="amount-right color-back"><strong id="total-staff">0 &nbsp;|&nbsp; <span class="amount-right">$0.00</span></strong></td>
+                        <td class="amount-right color-back"><strong id="total-wastage">0 &nbsp;|&nbsp; <span class="amount-right">$0.00</span></strong></td>
+                        <td class="amount-right color-back"><strong id="total-leftovers">0 &nbsp;|&nbsp; <span class="amount-right">$0.00</span></strong></td>
+                        <td class="amount-right color-back"><strong id="total-variance" class="amount-right">$0.00</strong></td>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% with total_expected=0 %}
+                        {% for item in end_of_day_items %}
+                        {% if item.dish_name and not item.finished_product %}
+                                <tr>
+                                    <td><small>{{ forloop.counter }} </small></td>
+                                    <td><small>{{ item.dish_name|default_if_none:"0" }}</small></td>
+                                    <td class="amount-right color-back-2">
+                                        <small>{{ item.expected|default_if_none:"0" }} &nbsp;|&nbsp; </small>
+                                        {% with dish=dishes|get_by_name:item.dish_name %}
+                                            {% if dish and item.expected %}
+                                                {% with expected_value=dish.price|default:0|mul:item.expected|floatformat:2 %}
+                                                    <small class="amount-right">${{ expected_value }}</small>
+                                                    {% widthratio total_expected|add:expected_value 1 1 as total_expected %}
+                                                {% endwith %}
+                                            {% else %}
+                                                <small class="amount-right">$0.00</small>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    <td class="amount-right color-back">
+                                        <small>{{ item.declared|default_if_none:"0" }} &nbsp;|&nbsp; </small>
+                                        {% with dish=dishes|get_by_name:item.dish_name %}
+                                            {% if dish and item.declared %}
+                                                {% with expected_value=dish.price|default:0|mul:item.declared|floatformat:2 %}
+                                                    <small class="amount-right">${{ expected_value }}</small>
+                                                    {% widthratio total_expected|add:expected_value 1 1 as total_expected %}
+                                                {% endwith %}
+                                            {% else %}
+                                                <small class="amount-right">$0.00</small>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    <td class="amount-right color-back">
+                                        <small>{{ item.total_sold|default_if_none:"0" }} &nbsp;|&nbsp; </small>
+                                        {% with dish=dishes|get_by_name:item.dish_name %}
+                                            {% if dish and item.total_sold%}
+                                                {% with expected_value=dish.price|default:0|mul:item.total_sold|floatformat:2 %}
+                                                    <small class="amount-right">${{ expected_value }}</small>
+                                                    {% widthratio total_expected|add:expected_value 1 1 as total_expected %}
+                                                {% endwith %}
+                                            {% else %}
+                                                <small class="amount-right">$0.00</small>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    <td class="amount-right color-back">
+                                        <small>{{ item.staff_portions}} &nbsp;|&nbsp; </small>
+                                        {% with dish=dishes|get_by_name:item.dish_name %}
+                                            {% if dish and item.staff_portions %}
+                                                {% with expected_value=dish.price|default:0|mul:item.staff_portions|floatformat:2 %}
+                                                    <small class="amount-right">${{ expected_value }}</small>
+                                                    {% widthratio total_expected|add:expected_value 1 1 as total_expected %}
+                                                {% endwith %}
+                                            {% else %}
+                                                <small class="amount-right">$0.00</small>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    <td class="amount-right color-back">
+                                        <small>{{ item.wastage }} &nbsp;|&nbsp; </small>
+                                        {% with dish=dishes|get_by_name:item.dish_name %}
+                                            {% if dish and item.wastage %}
+                                                {% with expected_value=dish.price|default:0|mul:item.wastage|floatformat:2 %}
+                                                    <small class="amount-right">${{ expected_value }}</small>
+                                                    {% widthratio total_expected|add:expected_value 1 1 as total_expected %}
+                                                {% endwith %}
+                                            {% else %}
+                                                <small class="amount-right">$0.00</small>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    <td class="amount-right color-back">
+                                        <small>{{ item.leftovers|default_if_none:"0" }} &nbsp;|&nbsp; </small>
+                                        {% with dish=dishes|get_by_name:item.dish_name %}
+                                            {% if dish and item.leftovers %}
+                                                {% with expected_value=dish.price|default:0|mul:item.leftovers|floatformat:2 %}
+                                                    <small class="amount-right">${{ expected_value }}</small>
+                                                    {% widthratio total_expected|add:expected_value 1 1 as total_expected %}
+                                                {% endwith %}
+                                            {% else %}
+                                                <small class="amount-right">$0.00</small>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    <td class="amount-right color-back">
+                                        <small>{{ item.servers_variance|default_if_none:"0" }} | </small>
+                                        {% with dish=dishes|get_by_name:item.dish_name %}
+                                            {% if dish and item.servers_variance %}
+                                                {% with expected_value=dish.price|default:0|mul:item.servers_variance|floatformat:2 %}
+                                                    <small class="amount-right">${{ expected_value }}</small>
+                                                    {% widthratio total_expected|add:expected_value 1 1 as total_expected %}
+                                                {% endwith %}
+                                            {% else %}
+                                                <small class="amount-right">$0.00</small>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                </tr>
+                            {% else %}
+                            {% endif %}
+                        {% endfor %}
+                    {% endwith %}
+                </tbody>
+                <tfoot>
+                    <tr class="background">
+                        <td colspan="6" class="text-end"><strong>Grand Total:</strong></td>
+                        <td colspan="3" class="amount-right"><strong id="grand-total">$0.00</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        <div class="main mt-4 p-1">
+            <h3 class="mt-2 mb-2">Finished Products</h3>
+            <div class="table-container">
+                <table class="table w-100 table-borderless table-hover" id="finished_products_table">
+                    <thead class="color-back-2">
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th class="amount-right color-back-2">Opening Stock</th>
+                            <th class="amount-right color-back">Additions</th>
+                            <th class="amount-right color-back">Sold</th>
+                            <th class="amount-right color-back">Closing Stock</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in end_of_day_items %}
+                            {% if item.finished_product %}
+                                <tr>
+                                    <td><small>{{ forloop.counter }}</small></td>
+                                    <td><small>{{ item.finished_product }}</small></td>
+                                    <td class="amount-right color-back-2"><small>{{ item.open_stock }}</small></td>
+                                    <td class="amount-right color-back"><small>{{ item.purchase_units|default_if_none:"0" }}</small></td>
+                                    <td class="amount-right color-back"><small>{{ item.total_sold|default_if_none:"0" }}</small></td>
+                                    <td class="amount-right color-back">
+                                        <small>
+                                            {{ item.close_stock }}
+                                        </small>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        calculateTotals();
+        setupSearch();
+    });
 
-<h2>End of Day Production Report</h2>
+    function calculateTotals() {
+        const table = document.getElementById('endofday_table');
+        const rows = table.querySelectorAll('tbody tr');
+        
+        let totalPlannedQty = 0, totalPlannedValue = 0;
+        let totalDeclaredQty = 0, totalDeclaredValue = 0;
+        let totalSoldQty = 0, totalSoldValue = 0;
+        let totalStaffQty = 0, totalStaffValue = 0;
+        let totalWastageQty = 0, totalWastageValue = 0;
+        let totalLeftoversQty = 0, totalLeftoversValue = 0;
+        let totalVariance = 0;
 
-<table>
-  <thead>
-    <tr>
-      <th>Dish</th>
-      <th>Total Portions</th>
-      <th>Sold</th>
-      <th>Staff</th>
-      <th>Wastage</th>
-      <th>Leftovers</th>
-      <th>Expected</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for item in productions_today %}
-      <tr>
-        <td>{{ item.Name }}</td>
-        <td>{{ item.Total_Portions }}</td>
-        <td>{{ item.Sold }}</td>
-        <td>{{ item.Staff_Portions }}</td>
-        <td>{{ item.Wastage }}</td>
-        <td>{{ item.Leftovers }}</td>
-        <td>{{ item.Expected }}</td>
-      </tr>
-    {% empty %}
-      <tr>
-        <td colspan="7">No data for today.</td>
-      </tr>
-    {% endfor %}
-  </tbody>
-</table>
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            
+            if (cells.length >= 9) {
+                function extractValues(cellText) {
+                    const match = cellText.match(/(\d+(?:\.\d+)?)\s*[|&]\s*\$?(\d+(?:\.\d+)?)/);
+                    if (match) {
+                        return {
+                            quantity: parseFloat(match[1]) || 0,
+                            value: parseFloat(match[2]) || 0
+                        };
+                    }
+                    return { quantity: 0, value: 0 };
+                }
 
+                // Planned (column 2)
+                const plannedData = extractValues(cells[2].textContent.trim());
+                totalPlannedQty += plannedData.quantity;
+                totalPlannedValue += plannedData.value;
+
+                // Declared (column 3)
+                const declaredData = extractValues(cells[3].textContent.trim());
+                totalDeclaredQty += declaredData.quantity;
+                totalDeclaredValue += declaredData.value;
+
+                // Sold (column 4)
+                const soldData = extractValues(cells[4].textContent.trim());
+                totalSoldQty += soldData.quantity;
+                totalSoldValue += soldData.value;
+
+                // Staff (column 5)
+                const staffData = extractValues(cells[5].textContent.trim());
+                totalStaffQty += staffData.quantity;
+                totalStaffValue += staffData.value;
+
+                // Wastage (column 6)
+                const wastageData = extractValues(cells[6].textContent.trim());
+                totalWastageQty += wastageData.quantity;
+                totalWastageValue += wastageData.value;
+
+                // Leftovers (column 7)
+                const leftoversData = extractValues(cells[7].textContent.trim());
+                totalLeftoversQty += leftoversData.quantity;
+                totalLeftoversValue += leftoversData.value;
+
+                // Variance (column 8) - only extract first number
+                const varianceText = cells[8].textContent.trim();
+                const varianceMatch = varianceText.split('$')[1].trim();
+                if (varianceMatch) {
+                    totalVariance += parseFloat(varianceMatch) || 0;
+                }
+            }
+        });
+
+        // Update totals in header row
+        document.getElementById('total-planned').innerHTML = 
+            `${totalPlannedQty.toFixed(0)} &nbsp;|&nbsp; <span class="amount-right">$${totalPlannedValue.toFixed(2)}</span>`;
+            
+        document.getElementById('total-declared').innerHTML = 
+            `${totalDeclaredQty.toFixed(0)} &nbsp;|&nbsp; <span class="amount-right">$${totalDeclaredValue.toFixed(2)}</span>`;
+        
+        document.getElementById('total-sold').innerHTML = 
+            `${totalSoldQty.toFixed(0)} &nbsp;|&nbsp; <span class="amount-right">$${totalSoldValue.toFixed(2)}</span>`;
+        
+        document.getElementById('total-staff').innerHTML = 
+            `${totalStaffQty.toFixed(0)} &nbsp;|&nbsp; <span class="amount-right">$${totalStaffValue.toFixed(2)}</span>`;
+        
+        document.getElementById('total-wastage').innerHTML = 
+            `${totalWastageQty.toFixed(0)} &nbsp;|&nbsp; <span class="amount-right">$${totalWastageValue.toFixed(2)}</span>`;
+        
+        document.getElementById('total-leftovers').innerHTML = 
+            `${totalLeftoversQty.toFixed(0)} &nbsp;|&nbsp; <span class="amount-right">$${totalLeftoversValue.toFixed(2)}</span>`;
+        
+        document.getElementById('total-variance').textContent = totalVariance.toFixed(0);
+        
+        const grandTotal = totalPlannedValue + totalDeclaredValue + totalSoldValue + totalStaffValue + totalWastageValue + totalLeftoversValue;
+        document.getElementById('grand-total').textContent = `$${grandTotal.toFixed(2)}`;
+    }
+
+    function calculateVisibleTotals() {
+        const table = document.getElementById('endofday_table');
+        const visibleRows = table.querySelectorAll('tbody tr[style=""], tbody tr:not([style])');
+        
+        let totalPlannedQty = 0, totalPlannedValue = 0;
+        let totalDeclaredQty = 0, totalDeclaredValue = 0;
+        let totalSoldQty = 0, totalSoldValue = 0;
+        let totalStaffQty = 0, totalStaffValue = 0;
+        let totalWastageQty = 0, totalWastageValue = 0;
+        let totalLeftoversQty = 0, totalLeftoversValue = 0;
+        let totalVariance = 0;
+
+        visibleRows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            
+            if (cells.length >= 9) {
+                function extractValues(cellText) {
+                    const match = cellText.match(/(\d+(?:\.\d+)?)\s*[|&]\s*\$?(\d+(?:\.\d+)?)/);
+                    if (match) {
+                        return {
+                            quantity: parseFloat(match[1]) || 0,
+                            value: parseFloat(match[2]) || 0
+                        };
+                    }
+                    return { quantity: 0, value: 0 };
+                }
+
+                const plannedData = extractValues(cells[2].textContent.trim());
+                totalPlannedQty += plannedData.quantity;
+                totalPlannedValue += plannedData.value;
+
+                const declaredData = extractValues(cells[3].textContent.trim());
+                totalDeclaredQty += declaredData.quantity;
+                totalDeclaredValue += declaredData.value;
+
+                const soldData = extractValues(cells[4].textContent.trim());
+                totalSoldQty += soldData.quantity;
+                totalSoldValue += soldData.value;
+
+                const staffData = extractValues(cells[5].textContent.trim());
+                totalStaffQty += staffData.quantity;
+                totalStaffValue += staffData.value;
+
+                const wastageData = extractValues(cells[6].textContent.trim());
+                totalWastageQty += wastageData.quantity;
+                totalWastageValue += wastageData.value;
+
+                const leftoversData = extractValues(cells[7].textContent.trim());
+                totalLeftoversQty += leftoversData.quantity;
+                totalLeftoversValue += leftoversData.value;
+
+                const varianceText = cells[8].textContent.trim();
+                const varianceMatch = varianceText.match(/(-?\d+(?:\.\d+)?)/);
+                if (varianceMatch) {
+                    totalVariance += parseFloat(varianceMatch[1]) || 0;
+                }
+            }
+        });
+
+        document.getElementById('total-planned').innerHTML = 
+            `${totalPlannedQty.toFixed(0)} &nbsp;|&nbsp; <span class="amount-right">$${totalPlannedValue.toFixed(2)}</span>`;
+            
+        document.getElementById('total-declared').innerHTML = 
+            `${totalDeclaredQty.toFixed(0)} &nbsp;|&nbsp; <span class="amount-right">$${totalDeclaredValue.toFixed(2)}</span>`;
+        
+        document.getElementById('total-sold').innerHTML = 
+            `${totalSoldQty.toFixed(0)} &nbsp;|&nbsp; <span class="amount-right">$${totalSoldValue.toFixed(2)}</span>`;
+        
+        document.getElementById('total-staff').innerHTML = 
+            `${totalStaffQty.toFixed(0)} &nbsp;|&nbsp; <span class="amount-right">$${totalStaffValue.toFixed(2)}</span>`;
+        
+        document.getElementById('total-wastage').innerHTML = 
+            `${totalWastageQty.toFixed(0)} &nbsp;|&nbsp; <span class="amount-right">$${totalWastageValue.toFixed(2)}</span>`;
+        
+        document.getElementById('total-leftovers').innerHTML = 
+            `${totalLeftoversQty.toFixed(0)} &nbsp;|&nbsp; <span class="amount-right">$${totalLeftoversValue.toFixed(2)}</span>`;
+        
+        document.getElementById('total-variance').textContent = totalVariance.toFixed(0);
+
+        const grandTotal = totalPlannedValue + totalDeclaredValue + totalSoldValue + totalStaffValue + totalWastageValue + totalLeftoversValue;
+        document.getElementById('grand-total').textContent = `$${grandTotal.toFixed(2)}`;
+    }
+
+
+    function printEndOfDaySheet() {
+        window.print();
+    }
+
+</script>
 </body>
 </html>

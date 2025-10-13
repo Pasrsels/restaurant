@@ -3,88 +3,109 @@
 {% load crispy_forms_tags %}
 {% block title%} Users {% endblock%}
 {% block content %}
-<div class="users container">
-    <div class='mb-2'>
-        <div class='d-flex justify-content-between align-items-center border-bottom rounded'>
-            <div>
+<div class="users me-3">
+    <div class='mb-4 mt-2'>
+        <div class='d-flex justify-content-between align-items-center rounded'>
+            <div class="d-flex align-items-center">
                 <a href='/' class='bx bx-home btn border fs-5'></a>
-                <span class='mt-2 fs-5 mx-2'>Users</span>
-                <a href='/' class='bx bx-home btn border fs-5'></a>
-                <span class='mt-2 fs-5 mx-2'>Users</span>
+                <h2 class='aria-labelledby ms-2'>Users</h2>
             </div>
-            <div>
-                <ul class="list-unstyled mt-3">
-                    <li>
-                        <button id="addUser" class="btn btn-outline-dark">Add User</button>
-                    </li>
-                </ul>
-            </div>
+            <form class="d-flex align-items-center gap-2" method="get">
+                <input type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="Search name or email">
+                <select name="role" class="form-select">
+                    <option value="">All roles</option>
+                    <option value="admin" {% if filter_role == 'admin' %}selected{% endif %}>Admin</option>
+                    <option value="chef" {% if filter_role == 'chef' %}selected{% endif %}>Chef</option>
+                    <option value="sales" {% if filter_role == 'sales' %}selected{% endif %}>Salesperson</option>
+                    <option value="accountant" {% if filter_role == 'accountant' %}selected{% endif %}>Accountant</option>
+                    <option value="owner" {% if filter_role == 'owner' %}selected{% endif %}>Owner</option>
+                    <option value="stores_person" {% if filter_role == 'stores_person' %}selected{% endif %}>Stores Person</option>
+                </select>
+                <input type="date" name="start_date" value="{{ start_date }}" class="form-control">
+                <input type="date" name="end_date" value="{{ end_date }}" class="form-control">
+                <button type="submit" class="btn btn-primary">Apply</button>
+                <button type="button" id="addUser" class="btn btn-success">
+                    <i class='bx bx-user-plus'></i>
+                </button>
+            </form>
         </div>
     </div>
 
-    <table class="table table-striped" style='width:100%;' id='users_table'>
-        <thead class="table-dark">
-            <tr>
-                <th>#</th>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for user in users %}
-            <tr>
-                <td><small>{{ forloop.counter }}</small></td>
-                <td><small>{{ user.id }}</small></td>
-                <td><small>{{ user.get_full_name|default:user.username }}</small></td>
-                <td><small>{{ user.email }}</small></td>  
-                <td><small>{{ user.role }}</small></td>  
-                <td>
-                    <small>
-                        <a data-toggle="tooltip" data-placement="top" title="view user profile" href="{% url 'users:user_detail' user.id %}" class="btn btn-light btn-sm ">
-                            <i class="bx bx-show"></i>
-                        </a>
-                    </small>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-          <div class="modal-content w-100 p-4">
-            <h6 class="fw-bold">Add User</h6>
-            <form method="post">
-                {% csrf_token %}
-                {{form|crispy}}
-                <div class="d-flex justify-content-end">
-                    <div class="">
-                        <button type="reset" class="btn btn-danger btn-sm">
-                            <i class="bx bx-reset"></i>
-                            Reset
-                        </button>
+    <div class="row g-3">
+        {% for user in users %}
+        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body d-flex flex-column">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="rounded-circle bg-brand text-white d-flex align-items-center justify-content-center" style="width:44px;height:44px;">
+                            <span class="fw-bold">{{ user.first_name|default:user.username|first|upper }}{{ user.last_name|first|upper }}</span>
+                        </div>
+                        <div class="ms-3">
+                            <div class="fw-semibold">{{ user.get_full_name|default:user.username }}</div>
+                            <div class="text-muted small">ID: {{ user.id }}</div>
+                        </div>
                     </div>
-                    <span class="px-2"></span>
-                    <div class="">
-                        <button type="submit" class="btn btn-secondary btn-sm">
-                            <i class="bx bx-save"></i>
-                            Save
+
+                    <div class="mb-2 small">
+                        <i class='bx bx-envelope'></i>
+                        <span class="ms-1">{{ user.email|default:"—" }}</span>
+                    </div>
+                    <div class="mb-3">
+                        <span class="badge bg-secondary text-light text-uppercase">{{ user.role }}</span>
+                    </div>
+
+                    <div class="mt-auto d-flex justify-content-between">
+                        <button type="button" class="btn btn-primary btn-sm viewUserBtn" data-user-id="{{ user.id }}">
+                            <i class="bx bx-show"></i>
+                            View
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm editUserBtn" data-user-id="{{ user.id }}">
+                            <i class="bx bx-edit"></i>
+                            Edit
                         </button>
                     </div>
                 </div>
-            </form>
             </div>
         </div>
-      </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="text-center text-muted py-5">No users found for the selected filters.</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content w-100 p-4">
+                <h6 class="fw-bold">Add User</h6>
+                <form method="post">
+                    {% csrf_token %}
+                    {{form|crispy}}
+                    <div class="d-flex justify-content-end">
+                        <div class="">
+                            <button type="reset" class="btn btn-danger btn-sm">
+                                <i class="bx bx-reset"></i>
+                                Reset
+                            </button>
+                        </div>
+                        <span class="px-2"></span>
+                        <div class="">
+                            <button type="submit" class="btn btn-secondary btn-sm">
+                                <i class="bx bx-save"></i>
+                                Save
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
     
     <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content w-100 p-4">
                 <h6 class="fw-bold">Edit User</h6>
-                <form method="post" id="editUserForm" action="{% url 'users:user_edit' 0 %}">
+                <form method="post" id="editUserForm" action="{% url 'users:edit_user' 0 %}">
                     {% csrf_token %}
                     <input type="hidden" name="user_id" id="editUserId">
                     {{ user_details_form|crispy }}
@@ -106,54 +127,185 @@
                 </form>
             </div>
         </div>
-      </div>
+    </div>
+
+    <div class="modal fade" id="viewUserModal" tabindex="-1" aria-labelledby="viewUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content w-100 p-4">
+                <h6 class="fw-bold">User Details</h6>
+                <div class="row g-2">
+                    <div class="col-6"><small class="text-muted">First name</small><div id="v_first_name" class="fw-semibold"></div></div>
+                    <div class="col-6"><small class="text-muted">Last name</small><div id="v_last_name" class="fw-semibold"></div></div>
+                    <div class="col-6"><small class="text-muted">Username</small><div id="v_username" class="fw-semibold"></div></div>
+                    <div class="col-6"><small class="text-muted">Email</small><div id="v_email" class="fw-semibold"></div></div>
+                    <div class="col-6"><small class="text-muted">Phone</small><div id="v_phone" class="fw-semibold"></div></div>
+                    <div class="col-6"><small class="text-muted">Role</small><div id="v_role" class="fw-semibold text-uppercase"></div></div>
+                </div>
+                <div class="d-flex justify-content-end mt-3">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="addBranchModal" tabindex="-1" aria-labelledby="addBranchModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content w-100 p-4">
+                <h6 class="fw-bold">Add Branch</h6>
+                <form method="POST" action="{% url 'users:create_branch' %}">
+                    {% csrf_token %}
+                    {{branch|crispy}}
+                    <div class="d-flex justify-content-end">
+                        <div class="">
+                            <button type="reset" class="btn btn-danger btn-sm">
+                                <i class="bx bx-reset"></i>
+                                Reset
+                            </button>
+                        </div>
+                        <span class="px-2"></span>
+                        <div class="">
+                            <button type="submit" class="btn btn-secondary btn-sm">
+                                <i class="bx bx-save"></i>
+                                Save
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
 </div>
 
 <script src="{% static 'css/bootstrap/js/bootstrap.bundle.min.js'%}"></script>  
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-    new DataTable('#users_table', {
-        paging:false
-    })
-
     const addBtn = document.getElementById('addUser');
     const addModal = new bootstrap.Modal(document.getElementById('addUserModal'));
-
-    const editUserBtn = document.getElementById('editUser');
-    const editUserBtns = document.querySelectorAll('.editUserBtn');
     const editModal = new bootstrap.Modal(document.getElementById('editUserModal'));
-    
-    
-    addBtn.addEventListener('click', ()=>{
-        addModal.show()
-    })
-    
-    editUserBtn.addEventListener('click', ()=>{
-        editModal.show()
-    })
-    
+    const viewModal = new bootstrap.Modal(document.getElementById('viewUserModal'));
+
+    const editUserBtns = document.querySelectorAll('.editUserBtn');
+    const viewUserBtns = document.querySelectorAll('.viewUserBtn');
+
+    addBtn.addEventListener('click', () => {
+        addModal.show();
+    });
+
+    document.querySelector('#addUserModal form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const form = this;
+        const url = "{% url 'users:users' %}";
+        
+        $.ajax({
+            url: url,
+            method: "POST",
+            data: $(form).serialize(),
+            success: function(response) {
+                addModal.hide();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success',
+                    text: response.message,
+                    timer: 2000,
+                    showConfirmButton: false
+                }).then(() => {
+                    location.reload();
+                });
+            },
+            error: function(xhr) {
+                const errors = xhr.responseJSON.errors;
+                let errorMsg = '';
+                for (let field in errors) {
+                    errorMsg += `${field}: ${errors[field].join(', ')}\n`;
+                }
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: errorMsg
+                });
+            }
+        });
+    });
+
     editUserBtns.forEach(btn => {
         btn.addEventListener('click', function() {
             const userId = this.getAttribute('data-user-id');
-            const url = "{% url 'users:user_edit' 0 %}".replace('0', userId);
-    
+            const fetchUrl = "{% url 'users:get_user_data' 0 %}".replace('0', userId);
+
             $.ajax({
-                url: "{% url 'users:ajax_get_user_data' 0 %}".replace('0', userId),
+                url: fetchUrl,
                 success: function(data) {
-                    $('#editUserForm').attr('action', url);
-                    $('#editUserId').val(userId);
+                    $('#editUserForm').attr('action', "{% url 'users:edit_user' 0 %}".replace('0', userId));
+                    $('#editUserId').val(data.id);
                     $('#editUserModal input[name="first_name"]').val(data.first_name);
                     $('#editUserModal input[name="last_name"]').val(data.last_name);
                     $('#editUserModal input[name="username"]').val(data.username);
                     $('#editUserModal input[name="email"]').val(data.email);
                     $('#editUserModal input[name="phonenumber"]').val(data.phonenumber);
-                    $('#editUserModal select[name="edit_company"]').val(data.company);
-                    $('#editUserModal select[name="edit_branch"]').val(data.branch);
+                    $('#editUserModal select[name="branch"]').val(data.branch);
                     $('#editUserModal select[name="role"]').val(data.role);
                     editModal.show();
                 }
             });
         });
     });
+
+    document.querySelector('#editUserForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const form = this;
+        const url = form.getAttribute('action');
+
+        $.ajax({
+            url: url,
+            method: "POST",
+            data: $(form).serialize(),
+            success: function(response) {
+                editModal.hide();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Updated',
+                    text: response.message,
+                    timer: 2000,
+                    showConfirmButton: false
+                }).then(() => {
+                    location.reload(); 
+                });
+            },
+            error: function(xhr) {
+                const errors = xhr.responseJSON.errors;
+                let errorMsg = '';
+                for (let field in errors) {
+                    errorMsg += `${field}: ${errors[field].join(', ')}\n`;
+                }
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: errorMsg
+                });
+            }
+        });
+    });
+
+    viewUserBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const userId = this.getAttribute('data-user-id');
+            const url = "{% url 'users:get_user_data' 0 %}".replace('0', userId);
+
+            $.ajax({
+                url: url,
+                success: function(data) {
+                    $('#v_first_name').text(data.first_name || '');
+                    $('#v_last_name').text(data.last_name || '');
+                    $('#v_username').text(data.username || '');
+                    $('#v_email').text(data.email || '');
+                    $('#v_phone').text(data.phonenumber || '');
+                    $('#v_role').text((data.role || '').toUpperCase());
+                    viewModal.show();
+                }
+            });
+        });
+    });
 </script>
+
 {% endblock content %}

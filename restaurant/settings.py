@@ -1,6 +1,10 @@
 import os
 from pathlib import Path
 import dj_database_url
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -16,14 +20,10 @@ DEBUG = True
 
 ALLOWED_HOSTS = [
     'localhost',
-    '127.0.0.1', 
-    'web-production-20d8.up.railway.app',
-    '192.168.10.156',
-    '192.168.10.173',
-    '192.168.10.38',
-    '192.168.10.181',
-    'c845-196-27-126-114.ngrok-free.app',
-    '192.168.1.146'
+    '127.0.0.1',
+    '192.168.1.133',
+    '196.27.126.114',
+    '192.168.1.2'
 ]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -41,12 +41,14 @@ DJANGO_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.humanize",
 ]
 
 THIRD_PARTY_APPS = [
   "crispy_forms",
   "crispy_bootstrap5",
   'django_extensions',
+  'debug_toolbar',
 ]
 
 LOCAL_APPS = [
@@ -55,7 +57,8 @@ LOCAL_APPS = [
     'inventory',
     'finance',
     'analytics',
-    'settings'
+    'settings',
+    'production'
 ]
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
@@ -76,10 +79,16 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+
+    #third party
+    # 'debug_toolbar.middleware.DebugToolbarMiddleware',
     
     # custom
+    'middleware.request_logging.RequestLoggingMiddleware',
     'users.middleware.CompanySetupMiddleware',
     'middleware.sales_middleware.SalesAccessMiddleware',
+    'middleware.chef_middleware.ChefAccessMiddleware',
+    'middleware.stores_person_middleware.StoresPersonAccessMiddleware',
 ]
 
 ROOT_URLCONF = 'restaurant.urls'
@@ -98,7 +107,10 @@ TEMPLATES = [
                 
                 # customm
                 'inventory.context_processors.notification_processor', 
-                'inventory.context_processors.check_list_processor'
+                'inventory.context_processors.check_list_processor',
+                'inventory.context_processors.all_meals_dishes',
+                'users.context_processors.branches',
+                'inventory.context_processors.products'
             ],
         },
     },
@@ -113,23 +125,15 @@ LOGIN_URL = "users:login"
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
 DATABASES = {
-    # 'default': dj_database_url.config(
-    #     default='postgresql://postgres:bsgtOvAIFbBQgIcHLvlUFlvIiAiapbHm@autorack.proxy.rlwy.net:44818/railway'
-    # )
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'restaurant',  
         'USER': 'postgres',
         'PASSWORD': 'neverfail',
+        'HOST':'192.168.1.2',
         'PORT': '5432',
+        # 'HOST': '192.168.1.2'
     }
-    # 'default': {
-    #     'ENGINE': 'django.db.backends.postgresql',
-    #     'NAME': 'test',  
-    #     'USER': 'postgres',
-    #     'PASSWORD': 'neverfail',
-    #     'PORT': '5432',
-    # }
 }
 
 AUTH_USER_MODEL = 'users.User'
@@ -220,6 +224,7 @@ CELERY_ACCEPT_CONTENT = os.environ.get('CELERY_ACCEPT_CONTENT', 'json').split(',
 CELERY_TASK_SERIALIZER = os.environ.get('CELERY_TASK_SERIALIZER', 'json')
 CELERY_RESULT_SERIALIZER = os.environ.get('CELERY_RESULT_SERIALIZER', 'json')
 CELERY_TIMEZONE = os.environ.get('CELERY_TIMEZONE', 'Africa/Johannesburg')
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 # Email Backend Configuration
 # EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -231,10 +236,11 @@ CELERY_TIMEZONE = os.environ.get('CELERY_TIMEZONE', 'Africa/Johannesburg')
 
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "127.0.0.1"
-EMAIL_PORT = 1025
-EMAIL_HOST_USER = ""
-EMAIL_HOST_PASSWORD = ""
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 465
+EMAIL_USE_SSL = True
+EMAIL_HOST_USER = "chinomonateddym@gmail.com"
+EMAIL_HOST_PASSWORD = "wxsh mufd blej nyvq"
 EMAIL_USE_TLS = False
 
 # channels
@@ -311,3 +317,15 @@ CONNECTION_TIME_EXEMPT_URLS = [
     '/connection-error/',
 ]
 
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "SERIALIZER": "django_redis.serializers.json.JSONSerializer",
+        }
+    }
+}
+
+INTERNAL_IPS = ['127.0.0.1'] 

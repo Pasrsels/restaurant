@@ -1,0 +1,278 @@
+<div class="container-fluid row">
+            {% comment %} <div class="mt-2 col-5">
+                <div class="table-responsive plans_list">
+                    <table class='table table-hover' id='production_table'>
+                            <thead class='bg-primary-subtle'>
+                                <tr>
+                                    <th class="text-center">Date</th>
+                                    {% if request.user.role != 'chef'%}
+                                        <th class="text-center">Declared</th>
+                                            <span class='text-danger'>BY CHEF</span>
+                                            <span class='mx-2'>(Confimation Status)</span>
+                                        </th>
+                                    {% endif %}
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                                </thead>
+                            <tbody>
+                                {% for plan in plans %}
+                                    <tr>
+                                        <td class="text-center px-1 py-1">
+                                            <small>
+                                                {{ plan.date_created }} {{ plan.time_created }}
+                                            </small>
+                                            {% if request.user.role != 'accountant' %}
+                                            <p>
+                                                <small>
+                                                    {% if plan.status %}
+                                                        <small class="but text-success p-2 rounded text-center w-100">Confirmed</small>
+                                                    {%else %}
+                                                        {% if request.user.role == 'chef' or request.user.role == 'admin' %}
+                                                            <a href="{% url 'inventory:confirm_production_plan' plan.id %}" class="but1 text-danger p-2 rounded text-center w-100">Please Confirm</a>
+                                                        {% else %}
+                                                            <small class="but1 text-danger p-2 rounded text-center w-100">Awaiting Confirmation</small>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                </small>
+                                            </p>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center px-1">
+                                            <small>
+                                                {{ plan.date_created }} {{ plan.time_created }}
+                                            </small>
+                                            {% if request.user.role == 'stores_person' or request.user.role == 'admin'%}
+                                            <p>
+                                                <small>
+                                                    {% if plan.declared %}
+                                                        <small class="but text-success p-2 rounded text-center w-100" disabled>Declared</small>
+                                                    {% else %}
+                                                        {% if plan.status %}
+                                                            <a href="{% url 'inventory:declare_production' plan.id %}" class="but1 text-danger p-2 rounded text-center w-100">Waiting declaration</a>
+                                                        {% else %}
+                                                            <small class="but1 text-danger p-2 rounded text-center w-100">Awaiting production plan confirmation</small>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                </small>
+                                            </p>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center py-4">
+                                            <small>
+                                                <a href="{% url 'inventory:production_plan_detail' plan.id %}" class="bx bx-show mx-2"></a>
+                                                {% if plan.declared %}
+                                                    <a href="{% url 'inventory:view_production_plan' plan.id %}" class="bx bx-bar-chart-alt-2 mx-2" title="View Analysis" style="color: #6f42c1; font-size: 1.2em;"></a>
+                                                {% endif %}
+                                                <a href="" class="bx bx-printer"></a>
+                                                {% if plan.status %}
+                                                {% else %}
+                                                    {% if request.user.role == 'chef' or request.user.role == 'admin' %}
+                                                        <a href="{% url 'inventory:production_plan_delete' plan.id %}" class="bx bx-trash mx-2"></a>
+                                                    {% endif %}
+                                                {% endif %}
+                                            </small>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                    </table>
+                </div>
+            </div> {% endcomment %}
+
+            <div class="mt-2">
+                <div class="table_container_dish table-responsive">
+                    <table class="table bg-light table-hover">
+                        <thead class="sticky-header bg-primary-subtle">
+                            <tr>
+                                <th>Dish</th>
+                                <th>Value(Price)</th>
+                                <th>Declared Portions </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Dishes will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Ingredients Table -->
+                <div>
+                    <div class="text-center text-light py-2 mb-1">
+                        <h5>Ingredients</h5>
+                    </div>
+
+                    <div class="table_container_ing">
+                        <table class="table bg-light table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Ingredients</th>
+                                    <th class="text-center">Planned Units</th>
+                                    <th class="text-center">Actual Units</th>
+                                    <th class="text-center">Variance Units</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table_ing">
+                                <!-- Ingredients will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal fade" id="statusFormModal" tabindex="-1" aria-labelledby="loaderModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-body">
+                        <h5 class="fw-bold">Change Status</h5>
+                        <form action="">
+                            {% csrf_token %}
+                            {{ status_form }}
+                            <div class="d-flex justify-content-end">
+                                <div class="">
+                                    <button type="reset" class="btn btn-danger btn-sm w-100">
+                                        <i class='bx bx-reset'></i>
+                                        Reset
+                                    </button>
+                                </div>
+                                <span class="px-1"></span>
+                                <div class="">
+                                    <button type="button" onclick="changeStatus()" class="btn btn-secondary btn-sm w-100">
+                                        <i class='bx bx-save'></i>
+                                        change
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="loaderModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-body text-center">
+                        <h5 class="fw-bold">Status Successfully Changed and Related Accounts updated</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    <script>
+        {% comment %} new DataTable('#production_table',{
+            pageLength: 10  
+        }); {% endcomment %}
+
+        document.addEventListener('DOMContentLoaded', function() {
+        const rows = document.querySelectorAll('.parent-row');
+        const detailContainer = document.getElementById('detail-container');
+
+        rows.forEach(row => {
+            row.addEventListener('click', function() {
+            const planId = this.dataset.id;
+            detailContainer.innerHTML = '';
+            fetch(`/inventory/production-plan/${planId}/detail/`)
+                .then(response => response.json())
+                .then(data => {
+                detailContainer.innerHTML = data.html;
+                detailContainer.scrollIntoView({ behavior: 'smooth' });
+                })
+                .catch(error => {
+                console.error('Error loading production plan detail:', error);
+                });
+            });
+        });
+        });
+
+        document.addEventListener("DOMContentLoaded", function () {
+            fetch("{% url 'inventory:latest_declare_production' %}")
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        populateDishes(data.data.production_plan, data.data.total_price, data.data.total_portions, data.data.price);
+                        populateIngredients(data.data.ingridients, data.data.total, data.data.raw_material_variance);
+                    } else {
+                        alert("Failed to load production plan");
+                    }
+                })
+                .catch(error => console.error('Error fetching production plan:', error));
+        });
+
+        function populateDishes(dishes, totalPrices, totalPortions, totalPrice) {
+            const dishTableBody = document.querySelector(".table_container_dish tbody");
+            dishTableBody.innerHTML = ''; // Clear existing rows
+
+            let totalRowHTML = '';
+
+            dishes.forEach(dish => {
+                const dishPrice = totalPrices.find(p => p.name === dish.dish.name)?.total_price || 0;
+                const row = `
+                    <tr>
+                        <td><small>${dish.dish.name}@$${dish.dish.price}</small></td>
+                        <td><small>$${dishPrice}</small></td>
+                        <td><small>${dish.portions}</small></td>
+                    </tr>
+                `;
+                dishTableBody.insertAdjacentHTML('beforeend', row);
+            });
+
+            // Add totals row
+            totalRowHTML = `
+                <tr class="dish-total-rows sticky-header">
+                    <td class="bg-secondary text-light"><strong>Totals</strong></td>
+                    <td class="bg-secondary text-light"><small><strong>$${totalPrice}</strong></small></td>
+                    <td class="bg-secondary text-light"><small><strong>${totalPortions} Portions</strong></small></td>
+                </tr>
+            `;
+            dishTableBody.insertAdjacentHTML('beforeend', totalRowHTML);
+        }
+
+
+        function populateIngredients(ingredients, totalCost, raw_material_variance) {
+            console.log(
+                {
+                    'ingridients': ingredients,
+                    'totalCost': totalCost,
+                    'Raw Materials': raw_material_variance
+                }
+            )
+            const ingTableBody = document.getElementById("table_ing");
+            ingTableBody.innerHTML = ''; // Clear existing rows
+            let var_quantity = 0;
+            let actual = 0;
+            ingredients.forEach(ing => {
+
+                for (let i = 0; i < raw_material_variance.length; i++) {
+                    const variance = raw_material_variance[i];
+                    if (variance.name === ing.name) {
+                        var_quantity = variance.quantity;
+                        break;
+                    }
+                }
+                actual = ing.quantity - var_quantity;
+                const row = `
+                    <tr>
+                        <td><small>${ing.name}</small></td>
+                        <td class="text-center"><small>${parseFloat(ing.quantity).toFixed(3)}${ing.unit} [$${parseFloat(ing.cost).toFixed(2)}]</small></td>
+                        <td class="text-center"><small>${actual.toFixed(3)}</small></td>
+                        <td class="text-center"><small>${var_quantity}</small></td>
+                    </tr>
+                `;
+                ingTableBody.insertAdjacentHTML('beforeend', row);
+            });
+
+            // Add totals row
+            const totalsRow = `
+                <tr class="ing-total-rows">
+                    <td class="bg-secondary text-light"><strong>Totals</strong></td>
+                    <td class="planned-cost text-center bg-secondary text-light d-none"><small><strong>$${totalCost}</strong></small></td>
+                    <td class="text-center bg-secondary text-light"><small><strong>$${totalCost}</strong></small></td>
+                    <td class="bg-secondary"></td>
+                    <td class="bg-secondary"></td>
+                </tr>
+            `;
+            ingTableBody.insertAdjacentHTML('beforeend', totalsRow);
+        }
+
+    </script>

@@ -1,0 +1,117 @@
+/* Global Theme - Blues */
+:root {
+  --baby-blue: #68bbe3;
+  --blue-grotto: #0e86d4;
+  --blue: #055c9d;
+  --navy-blue: #003060;
+
+  --primary: var(--blue-grotto);
+  --primary-dark: var(--blue);
+  --primary-contrast: #ffffff;
+
+  --bg-soft: #f5faff;
+  --text-color: #0f172a;
+  /* Light hover shades */
+  --hover-primary-bg: rgba(14, 134, 212, 0.10);
+  --hover-secondary-bg: rgba(0, 48, 96, 0.10);
+  --hover-text: #003a63;
+}
+/* Links */
+a { color: var(--blue-grotto); }
+a:hover { color: var(--blue); }
+
+/* Buttons (Bootstrap compatible override) */
+.btn-primary {
+  background-color: var(--blue-grotto) !important;
+  border-color: var(--blue-grotto) !important;
+  color: var(--primary-contrast) !important;
+}
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: var(--blue) !important;
+  border-color: var(--blue) !important;
+}
+
+.btn-outline-primary {
+  color: var(--blue-grotto) !important;
+  border-color: var(--blue-grotto) !important;
+}
+.btn-outline-primary:hover,
+.btn-outline-primary:focus {
+  background-color: var(--blue-grotto) !important;
+  color: var(--primary-contrast) !important;
+}
+
+/* Secondary buttons repurposed into navy */
+.btn-secondary {
+  background-color: var(--navy-blue) !important;
+  border-color: var(--navy-blue) !important;
+  color: var(--primary-contrast) !important;
+}
+.btn-outline-secondary {
+  color: var(--navy-blue) !important;
+  border-color: var(--navy-blue) !important;
+}
+.btn-outline-secondary:hover,
+.btn-outline-secondary:focus {
+  background-color: var(--navy-blue) !important;
+  color: var(--primary-contrast) !important;
+}
+
+/* THEME HOVER OVERRIDES (light shades) */
+.table-hover tbody tr:hover,
+.table-hover>tbody>tr:hover,
+.table tbody tr:hover { background-color: var(--hover-primary-bg) !important; }
+.dropdown-item:hover,
+.list-group-item-action:hover,
+.nav-link:hover { background-color: var(--hover-primary-bg) !important; color: var(--hover-text) !important; }
+.page-link:hover,
+a:hover { background-color: var(--hover-primary-bg) !important; color: var(--hover-text) !important; }
+.hover-secondary-light:hover { background-color: var(--hover-secondary-bg) !important; color: var(--hover-text) !important; }
+
+/* Alerts */
+.alert-primary { background-color: #e7f3ff; color: var(--blue); border-color: #cfe8ff; }
+
+/* Navbar / top bar accents */
+.top-bar, .navbar {
+  background: #ffffff;
+  color: var(--text-color);
+}
+
+/* Cards and containers */
+.card, .modal-content, .dropdown-menu {
+  border-radius: 10px;
+  border-color: rgba(0,0,0,0.05);
+}
+
+/* Badges */
+.badge.bg-danger { background-color: var(--baby-blue) !important; color: #001b2e !important; }
+
+/* Inputs focus */
+.form-control:focus, .form-select:focus {
+  border-color: var(--blue-grotto);
+  box-shadow: 0 0 0 .2rem rgba(14, 134, 212, 0.25);
+}
+
+/* Tables */
+.table thead th {
+  background-color: transparent;
+}
+
+/* Sidebar accents */
+#main-sidebar, #pos-sidebar {
+  border-color: var(--blue-grotto) !important;
+}
+
+/* text-font */
+.text-blue{
+  color:var(--blue) !important;
+}
+
+/* Utility classes */
+.text-brand { color: var(--blue-grotto) !important; }
+.bg-brand { background-color: var(--blue-grotto) !important; }
+.bg-navy { background-color: var(--navy-blue) !important; }
+.bg-baby { background-color: var(--baby-blue) !important; }
+
+

@@ -3,15 +3,21 @@
 {% load static %}
 {% block title %}Cash Ups{% endblock title %}
 {% block content %}
+<style>
+    .nav-back-btn{
+        background:rgba(14, 134, 212, 0.10);
+    }
+</style>
 <div>
-    <nav class="d-flex justify-content-between align-items-center rounded mb-2 py-2 border-bottom">
+    <nav class="d-flex justify-content-between align-items-center rounded mb-2 py-2">
         <div>
-            <a href='{% url "finance:finance"%}' class='border btn bx bx-arrow-back fs-5'></a>
-            <a href='/' class='bx bx-home btn border fs-5 mx-2'></a>
-            <span class='mt-2 fs-5'>Cash Ups</span>
+            <a href='{% url "finance:finance"%}' class='border btn bx bx-arrow-back nav-back-btn fs-5'></a>
+            <a href='/' class='bx bx-home btn nav-back-btn fs-5 ms-1'></a>
+            <span class='me-1 fs-5'>Cash Ups</span>
         </div>
         <div class="d-flex justify-content-between mt-1">
             <div>
+                <a href="{% url 'finance:casgier_report_form'%}" class="btn btn-primary">Reports</a>
                 <select class="form-select" id="filterSelect" onchange="filterCashBook()">
                     <option value="today" {% if filter_option == 'today' %}selected{% endif %}>Today</option>
                     <option value="this_week" {% if filter_option == 'this_week' %}selected{% endif %}>This Week</option>
@@ -30,12 +36,14 @@
         </div>
     </nav>
     
+    <div class="d-flex justify-content-end mb-2">
+        <input id="cashups_search" type="text" class="form-control w-100" placeholder="Search..." oninput="filterTable('cash_up_table','cashups_search')">
+    </div>
     <div class="table-responsive">
-        <table class="table table-hover table-striped table-bordered" id="cash_up_table">
-            <thead>
+        <table class="table table-hover" id="cash_up_table">
+            <thead class='bg-primary-subtle'>
                 <th>date</th>
                 <th>Cashier</th>
-                <th>Done By</th>
                 <th>Sales</th>
                 <th>Voided Sales</th>
                 <th>Change</th>
@@ -43,47 +51,43 @@
                 <th>Cashed Amount</th>
                 <th>Cashed Amnt Diff</th>
                 <th>Status</th>
-                <!-- <th>Action</th> -->
             </thead>
             <tbody>
                 {% for cashup in cashups %}
                     <tr data-cashup-id="{{ cashup.id }}">
-                        <td><small>{{ cashup.date }}</small></td>
-                        <td><small>{{ cashup.cashier }}</small></td>
-                        <td><small>{{ cashup.user }}</small></td>
-                        <td><small class="sales">{{ cashup.sales }}</small></td>
-                        <td><small>{{ cashup.void_amount }}</small></td>
-                        <td><small>{{ cashup.change }}</small></td>
-                        <td><small>{{ cashup.expenses }}</small></td>
                         <td>
-                            <small>
-                                {% if not cashup.cashed_amount %}
-                                    <input 
-                                        type="number" 
-                                        class="form-control form-control-sm cashed-amount-input" 
-                                        value="{{ cashup.cashed_amount }}" 
-                                        data-cashup-id="{{ cashup.id }}" 
-                                    />
-                                {% else %}
-                                    {{ cashup.cashed_amount }}
-                                {% endif %}
-                            </small>
+                            <span class="">
+                                {{ cashup.date }} <br>
+                                <span class='text-muted'>
+                                    <i class="bx bx-user"></i>
+                                    {{ cashup.user.first_name }}
+                                </span>
+                            </span>
                         </td>
-                        <td><small>{{ cashup.difference }}</small></td>
+                        <td>{{ cashup.cashier }}</td>
+                  
+                        <td class="sales">{{ cashup.sales }}</td>
+                        <td>{{ cashup.void_amount }}</td>
+                        <td>{{ cashup.change }}</td>
+                        <td>{{ cashup.expenses }}</td>
                         <td>
-                            <small class="status">
+                            {{ cashup.cashed_amount }}
+                        </td>
+                        <td>{{ cashup.difference }}</td>
+                        <td>
+                            <span class="status">
                                 {% if cashup.status %}
-                                    Done
+                                    <span class='bg-success-subtle p-2'>Done</span>
                                 {% else %}
                                     {% if cashup.difference > 0 %}
                                         <a href="" class="btn btn-outline-dark claim-amount w-100">claim</a>
                                     {% elif not cashup.cashed %}
-                                        <button class="btn btn-outline-dark charge-cashier w-100" onclick="chargeCashier({{ cashup.cashier.id }})">charge cashier</a>
+                                        <button class="btn btn-outline-dark charge-cashier w-100" onclick="chargeCashier({{ cashup.cashier.id }})">cashed amount</a>
                                     {% else %}
-                                        Cashed
+                                        <span class='bg-success-subtle p-2 rounded'>Done</span>
                                     {% endif %}
                                 {% endif %}
-                            </small>
+                            </span>
                         </td>
                     </tr>
                 {% endfor %}
@@ -119,7 +123,6 @@
 <script>
     let cashier = null;
 
-    new DataTable('#cash_up_table')
     const cashierModal = new bootstrap.Modal(document.getElementById('cashUpModal'));
 
     const chargeCashier = (cashier_id) =>{
@@ -357,5 +360,15 @@
         });
     });
 
+</script>
+<script>
+    function filterTable(tableId, inputId){
+        const q = document.getElementById(inputId).value.toLowerCase();
+        const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+        rows.forEach(tr => {
+            const text = tr.innerText.toLowerCase();
+            tr.style.display = text.includes(q) ? '' : 'none';
+        });
+    }
 </script>
 {% endblock content %}

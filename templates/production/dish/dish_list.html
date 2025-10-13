@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% load custom_filters %}  
+{% block title %} Dish List {% endblock %}
+{% block content %}
+<div class="dish">
+    <nav class="d-flex justify-content-between align-items-center">
+        <div class='d-flex align-items-center'>
+            <a href='{% url "production:production-list" %}' class='border btn bx bx-arrow-back fs-5'></a>
+            <a href='/' class='bx bx-home btn border fs-5 mx-2'></a>
+            <span class='fs-5'>Dishes</span>
+        </div>
+        <div>
+            <ul class="list-unstyled d-flex mt-3">
+                <li class="">
+                    <a href="{% url 'production:create_dish' %}" class="btn btn-outline-dark mx-2">Add New Dish</a>
+                </li>
+                <li class="">
+                    <button onclick="printTable()" class="btn btn-outline-dark">
+                        Print Table
+                        <i class="bx bx-printer"></i>
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div class='mt-2'>
+        <input type="text" placeholder="Search dishes..." id="dish_search" class="form-control" onkeyup="filterTable()">
+        <div  class="dish-list-container" id="dish-container">
+            <div id="dish-list" class="mt-2">{% include "production/dish/dish_list_items.html" %}</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function filterTable() {
+        const input = document.getElementById("dish_search");
+        const filter = input.value.toLowerCase();
+        const table = document.getElementById("dishes_table");
+        const rows = table.getElementsByTagName("tr");
+
+        for (let i = 1; i < rows.length; i++) {
+            const cells = rows[i].getElementsByTagName("td");
+            let rowContainsFilter = false;
+
+            for (let j = 0; j < cells.length; j++) {
+                const cell = cells[j];
+                if (cell) {
+                    const cellText = cell.textContent || cell.innerText;
+                    if (cellText.toLowerCase().indexOf(filter) > -1) {
+                        rowContainsFilter = true;
+                        break;
+                    }
+                }
+            }
+            rows[i].style.display = rowContainsFilter ? "" : "none";
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const rows = document.querySelectorAll("#dishes_table tbody tr");
+        rows.forEach(row => {
+            const cost = parseFloat(row.querySelector(".cost").textContent.trim()) || 0;
+            const price = parseFloat(row.querySelector(".price").textContent.trim()) || 0;
+            const gpCell = row.querySelector(".gp");
+
+            if (price > 0) {
+                const gp = ((price - cost) / price) * 100;
+                gpCell.textContent = gp.toFixed(2) + " %";
+            } else {
+                gpCell.textContent = "N/A";
+            }
+        });
+    });
+
+    const container = document.getElementById('dish-container');
+    if (container) {
+        container.addEventListener('scroll', () => {
+            if (loading || !hasNext) return;
+            const threshold = 200; 
+            if (container.scrollTop + container.clientHeight >= container.scrollHeight - threshold) {
+                loadMore();
+            }
+        });
+    } else {
+        window.addEventListener('scroll', () => {
+            if (!loading && hasNext && (window.innerHeight + window.scrollY) >= document.body.offsetHeight - 200) {
+                loadMore();
+            }
+        });
+    }
+
+    function loadMore() {
+        loading = true;
+        const loader = document.getElementById('loading');
+        if (loader) loader.style.display = 'block';
+
+        fetch(`?page=${page}`, {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+            .then(res => res.json())
+            .then(data => {
+                const rowsContainer = document.getElementById('dish-rows');
+                if (rowsContainer) {
+                    rowsContainer.insertAdjacentHTML('beforeend', data.productions_html);
+                } else {
+                    document.getElementById('dish-list').insertAdjacentHTML('beforeend', data.productions_html);
+                }
+                hasNext = data.has_next;
+                page++;
+                loading = false;
+                if (loader) loader.style.display = 'none';
+                if (!hasNext) {
+                    console.log('no more pages');
+                }
+            })
+            .catch(err => {
+                console.error('Error loading more productions', err);
+                loading = false;
+                if (loader) loader.style.display = 'none';
+            });
+    }
+</script>
+{% endblock %}

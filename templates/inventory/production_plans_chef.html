@@ -1,0 +1,941 @@
+{% extends "base_chef.html" %}
+{% load static%}
+{% load crispy_forms_tags %}
+{% block title%} Production - Chef Interface {% endblock%}
+
+{% block extra_js %}
+<script>
+    // Define loadPage function immediately when script loads
+    function loadPage(url, clickedElement) {
+        console.log('Loading page:', url);
+        const contentContainer = document.querySelector('.dynamic-content-wrapper');
+        if (!contentContainer) {
+            console.error('Dynamic content wrapper not found!');
+            return;
+        }
+        contentContainer.innerHTML = '<div class="loading">Loading...</div>';
+        
+        // Get CSRF token
+        function getCSRFToken() {
+            const name = 'csrftoken';
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                cookie = cookie.trim();
+                if (cookie.startsWith(name + '=')) {
+                    return decodeURIComponent(cookie.substring(name.length + 1));
+                }
+            }
+            return null;
+        }
+        
+        fetch(url, {
+            method: 'GET',
+            headers: { 
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': getCSRFToken()
+            },
+            credentials: 'same-origin'
+        })
+            .then(response => {
+                console.log('Response status:', response.status); // Debug log
+                if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); }
+                return response.text();
+            })
+            .then(html => {
+                // console.log('Received HTML length:', html.length); // Debug log
+                // console.log('Received HTML preview:', html.substring(0, 500)); // Debug log
+                // console.log('Full URL being loaded:', url); // Debug log
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                // Check what containers exist in the response
+                // console.log('Checking for containers in response:');
+                // console.log('#dynamic-content exists:', !!doc.querySelector('#dynamic-content'));
+                // console.log('.left-content exists:', !!doc.querySelector('.left-content'));
+                // console.log('.container exists:', !!doc.querySelector('.container'));
+                // console.log('main exists:', !!doc.querySelector('main'));
+                // console.log('body exists:', !!doc.querySelector('body'));
+                
+                let content = doc.querySelector('#dynamic-content') || doc.querySelector('.left-content') || doc.querySelector('.container') || doc.querySelector('main') || doc.querySelector('body');
+                console.log('Found content element:', content ? content.tagName : 'none'); // Debug log
+                console.log('Content element class:', content ? content.className : 'none'); // Debug log
+                console.log('Content element ID:', content ? content.id : 'none'); // Debug log
+                
+                if (content && content.tagName !== 'BODY') { 
+                    console.log('Using container content');
+                    contentContainer.innerHTML = content.innerHTML;
+                } else { 
+                    console.log('Using full HTML content');
+                    contentContainer.innerHTML = html; 
+                }
+                console.log('Content loaded successfully'); // Debug log
+                const scripts = contentContainer.querySelectorAll('script');
+                scripts.forEach(script => {
+                    if (script.src) { const newScript = document.createElement('script'); newScript.src = script.src; document.head.appendChild(newScript); } else { try { eval(script.innerHTML); } catch (e) { console.log('Script execution error:', e); } }
+                });
+                
+                // Initialize Select2 and other components after content is loaded
+                if (typeof initializeProductionPlanForm === 'function') {
+                    initializeProductionPlanForm();
+                }
+                
+                if (typeof initializeDishCreationForm === 'function') {
+                    initializeDishCreationForm();
+                }
+                
+                const title = doc.querySelector('title');
+                if (title) { document.title = title.textContent; }
+            })
+            .catch(error => {
+                console.error('Error loading page:', error);
+                contentContainer.innerHTML = `
+                    <div class="loading" style="text-align: center; padding: 40px; color: #dc3545;">
+                        <h4>Error loading content</h4>
+                        <p>Error: ${error.message}</p>
+                        <p>Please try again or contact support if the problem persists.</p>
+                        <button onclick="loadPage('${url}')" style="background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
+                            Retry
+                        </button>
+                    </div>
+                `;
+            });
+    }
+    function loadPageWithDate(url, date) {
+        const urlWithDate = url + '?date=' + date;
+        loadPage(urlWithDate);
+    }
+    window.loadPage = loadPage;
+    window.loadPageWithDate = loadPageWithDate;
+    console.log('loadPage function defined globally');
+</script>
+{% endblock %}
+
+{% block content %}
+<style>
+    body { 
+        background-color: #f8f9fa; /* Light grey background */
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    .chef-container {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin: 15px;
+        padding: 0;
+        overflow: hidden;
+        transform: scale(0.8);
+        transform-origin: top left;
+        width: 125%;
+    }
+    
+    .production-header {
+        background: #667eea;
+        color: white;
+        padding: 16px 24px;
+        border-radius: 8px 8px 0 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .production-title {
+        font-size: 20px;
+        font-weight: 600;
+        margin: 0;
+    }
+    
+    .user-info {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 8px;
+    }
+    
+    .user-detail {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .user-label {
+        font-size: 14px;
+        font-weight: 500;
+        color: rgba(255,255,255,0.8);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .user-name {
+        font-size: 15px;
+        font-weight: 600;
+        color: white;
+    }
+    
+    .user-role {
+        background: rgba(255,255,255,0.2);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 15px;
+        font-size: 12px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .nav-buttons {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+    }
+    
+    .add-production-btn {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    .add-production-btn:hover {
+        background: #218838;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    .nav-link {
+        color: white;
+        text-decoration: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        transition: background-color 0.3s ease;
+        font-weight: 500;
+    }
+    
+    .nav-link:hover {
+        background: rgba(255,255,255,0.2);
+        color: white;
+    }
+    
+    .logout-link {
+        color: #ff6b6b;
+        text-decoration: none;
+        font-weight: 500;
+        padding: 8px 16px;
+        border-radius: 4px;
+        transition: background-color 0.3s ease;
+    }
+    
+    .logout-link:hover {
+        background: rgba(255,107,107,0.1);
+        color: #ff6b6b;
+    }
+    
+    .request-boxes {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 15px;
+        padding: 15px 20px;
+        background: #f8f9fa;
+        margin-bottom: 20px;
+    }
+    
+    .request-box {
+        background: white;
+        padding: 12px;
+        border-radius: 8px 8px 0 0;
+        text-decoration: none;
+        color: #333;
+        border: 1px solid #e0e0e0;
+        border-bottom: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        cursor: pointer;
+        position: relative;
+        transition: all 0.2s ease;
+    }
+    
+    .request-box.active {
+        background: #f8f9fa;
+        border-bottom: 4px solid #0066cc;
+        margin-bottom: -4px;
+        z-index: 1;
+    }
+    
+    /* Ensure text sizes remain consistent */
+    .request-box h4,
+    .request-box-active h4 {
+        font-size: 14px !important;
+        margin: 0 0 5px 0;
+        color: #2c3e50;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .request-box .request-count,
+    .request-box-active .request-count {
+        font-size: 24px !important;
+        font-weight: 700;
+        color: #007bff;
+        transition: none !important;
+    }
+    
+    .request-box h4 {
+        margin: 0 0 5px 0;
+        color: #2c3e50;
+        font-size: 14px;
+        font-weight: 600;
+    }
+    
+    .request-box p {
+        margin: 0;
+        color: #7f8c8d;
+        font-size: 13px;
+    }
+    
+    .request-box .request-count {
+        font-size: 24px;
+        font-weight: 700;
+        color: #007bff;
+    }
+    
+    .chef-requests {
+        color: #28a745;
+    }
+    
+    .declare-dishes {
+        color: #fd7e14;
+    }
+    
+    .main-content {
+        display: grid;
+        grid-template-columns: 1fr 300px;
+        gap: 16px;
+        padding: 16px 24px;
+        background: white;
+        align-items: start;
+    }
+    
+    .left-content {
+        background: white;
+        border-radius: 12px;
+        padding: 0;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        border: none;
+        min-height: 400px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    /* Content Header */
+    .content-header {
+        padding: 30px 30px 20px 30px;
+        text-align: center;
+    }
+    
+    .page-title {
+        margin: 0 0 8px 0;
+        font-size: 28px;
+        font-weight: 700;
+        color: white;
+        letter-spacing: -0.5px;
+    }
+    
+    .page-subtitle {
+        margin: 0;
+        font-size: 16px;
+        color: rgba(255,255,255,0.8);
+        font-weight: 400;
+    }
+    
+    /* Content Header */
+    .content-header {
+        padding: 30px 30px 20px 30px;
+        text-align: center;
+    }
+    
+    .page-title {
+        margin: 0 0 8px 0;
+        font-size: 28px;
+        font-weight: 700;
+        color: white;
+        letter-spacing: -0.5px;
+    }
+    
+    .page-subtitle {
+        margin: 0;
+        font-size: 16px;
+        color: rgba(255,255,255,0.8);
+        font-weight: 400;
+    }
+    
+    /* Summary Cards */
+    .summary-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    
+    .summary-card {
+        background: white;
+        border-radius: 8px;
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        transition: all 0.3s ease;
+    }
+    
+    .summary-card:hover {
+        background: #f9fafb;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    
+    .card-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        color: white;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        flex-shrink: 0;
+    }
+    
+    .card-icon.positive {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
+    
+    .card-icon.negative {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    }
+    
+    .card-icon.neutral {
+        background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+    }
+    
+    .card-content h3 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 700;
+        color: #111827;
+        line-height: 1;
+    }
+    
+    .card-content p {
+        margin: 4px 0 0 0;
+        color: #6b7280;
+        font-size: 14px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        line-height: 1;
+    }
+    
+    .dynamic-content-wrapper {
+        background: white;
+        margin: 0 30px 30px 30px;
+        border-radius: 12px;
+        padding: 0;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        min-height: 300px;
+        overflow: hidden;
+        border: 1px solid #f3f4f6;
+    }
+    
+    .welcome-message {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6c757d;
+        background: white;
+    }
+    
+    .welcome-message h3 {
+        color: #495057;
+        font-size: 24px;
+        margin-bottom: 15px;
+        font-weight: 600;
+    }
+    
+    .welcome-message p {
+        font-size: 16px;
+        margin: 0;
+        opacity: 0.8;
+    }
+    
+    .right-sidebar {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border: 1px solid #e9ecef;
+        height: fit-content;
+    }
+    
+    .right-sidebar h3 {
+        color: #495057;
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #dee2e6;
+    }
+    
+    .stock-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .stock-item:last-child {
+        border-bottom: none;
+    }
+    
+    .stock-name {
+        font-weight: 500;
+        color: #495057;
+    }
+    
+    .stock-quantity {
+        background: #007bff;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 14px;
+    }
+    
+    .welcome-message {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6c757d;
+        background: white;
+    }
+    
+    .welcome-message h3 {
+        color: #495057;
+        font-size: 24px;
+        margin-bottom: 15px;
+        font-weight: 600;
+    }
+    
+    .welcome-message p {
+        font-size: 16px;
+        margin: 0;
+        opacity: 0.8;
+    }
+    
+    .welcome-user-info {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        margin: 20px 0;
+    }
+    
+    .welcome-user-detail {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .welcome-label {
+        font-size: 16px;
+        font-weight: 600;
+        color: #495057;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .welcome-username {
+        font-size: 18px;
+        font-weight: 700;
+        color: #007bff;
+        background: rgba(0,123,255,0.1);
+        padding: 8px 16px;
+        border-radius: 20px;
+        border: 2px solid #007bff;
+    }
+    
+    .user-role-badge {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 8px 20px;
+        border-radius: 25px;
+        font-weight: 600;
+        font-size: 14px;
+        display: inline-block;
+        margin: 0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    .loading {
+        text-align: center;
+        padding: 40px;
+        color: #6c757d;
+        font-size: 16px;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .target-nav-content {
+            flex-direction: column;
+            gap: 15px;
+            align-items: stretch;
+        }
+        
+        .summary-cards-nav {
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 10px 0;
+        }
+        
+        .summary-card-nav {
+            min-width: 120px;
+            flex: 1;
+        }
+        
+        .card-content-nav h3 {
+            font-size: 16px;
+        }
+        
+        .card-content-nav p {
+            font-size: 10px;
+        }
+        
+        .target-nav-buttons {
+            justify-content: center;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .summary-cards-nav {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        
+        .summary-card-nav {
+            min-width: 100px;
+        }
+        
+        .card-content-nav h3 {
+            font-size: 14px;
+        }
+        
+        .card-content-nav p {
+            font-size: 9px;
+        }
+        
+        .target-nav-title {
+            font-size: 18px;
+        }
+    }
+    .page-title {
+        color: #1e293b !important;
+    }
+    
+    .page-subtitle {
+        color: #64748b !important;
+    }
+</style>
+
+<div class="chef-container">
+    <div class="production-header">
+        <div class="production-title">Production Management</div>
+        <div class="user-info">
+            <div class="user-detail">
+                <span class="user-label">Username:</span>
+                <span class="user-name">{{ request.user.first_name }} {{ request.user.last_name }}</span>
+            </div>
+            <div class="user-detail">
+                <span class="user-label">Role:</span>
+                <span class="user-role">{{ request.user.role|title }}</span>
+            </div>
+        </div>
+        <div class="nav-buttons">
+            <a href="#" class="nav-link" onclick="loadPage('{% url 'inventory:meal_list_ajax' %}', this)">
+                <i class="fas fa-drumstick-bite"></i> Meals
+            </a>
+            <a href="#" class="nav-link" onclick="loadPage('{% url 'inventory:chef_checklist_ajax' %}')">
+                <i class="fas fa-clipboard-list"></i> Checklist
+            </a>
+            <a href="{% url 'users:logout' %}" class="logout-link">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div class="left-content" id="dynamic-content">
+            <div class="request-boxes">
+                <a href="#" class="request-box" onclick="loadPage('{% url 'inventory:production_plans_admin' %}', this)">
+                    <h4><i class="fas fa-eye"></i> View Chef Requests</h4>
+                    <div class="request-count chef-requests">{{ plans.count }}</div>
+                </a>
+                <a href="#" class="request-box" onclick="loadPage('{% url 'inventory:production_declaration_table_ajax' %}', this)">
+                    <h4><i class="fas fa-clipboard-check"></i> View Declarations</h4>
+                    <div class="request-count declare-dishes">
+                        {% with pending_declarations=declaration_plans|length %}
+                            {% if pending_declarations > 0 %}{{ pending_declarations }}{% else %}0{% endif %}
+                        {% endwith %}
+                    </div>
+                </a>
+                <a href="#" class="request-box" onclick="loadPage('{% url 'inventory:production_analysis_api' %}', this)">
+                    <h4><i class="fas fa-chart-line"></i> Production Analysis</h4>
+                    <div class="request-count" style="color: #20c997;">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                </a>
+            </div>
+            <!-- Content Header -->
+            <!-- <div class="content-header">
+                <h2 class="page-title">Production Analysis Dashboard</h2>
+                <p class="page-subtitle">Real-time variance analysis and performance metrics</p>
+            </div> -->
+
+            <!-- Summary Cards -->
+            <!-- <div class="summary-cards">
+                <div class="summary-card">
+                    <div class="card-icon">
+                        <i class="fas fa-clipboard-list"></i>
+                    </div>
+                    <div class="card-content">
+                        <h3 id="totalPlans">0</h3>
+                        <p>Total Plans</p>
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <div class="card-icon positive">
+                        <i class="fas fa-arrow-up"></i>
+                    </div>
+                    <div class="card-content">
+                        <h3 id="positiveVariance">0</h3>
+                        <p>Positive Variance</p>
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <div class="card-icon negative">
+                        <i class="fas fa-arrow-down"></i>
+                    </div>
+                    <div class="card-content">
+                        <h3 id="negativeVariance">0</h3>
+                        <p>Negative Variance</p>
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <div class="card-icon neutral">
+                        <i class="fas fa-bullseye"></i>
+                    </div>
+                    <div class="card-content">
+                        <h3 id="onTarget">0</h3>
+                        <p>On Target</p>
+                    </div>
+                </div>
+            </div> -->
+            
+            <!-- Dynamic content will be loaded here -->
+            <div class="dynamic-content-wrapper">
+                <div class="welcome-message">
+                    <h3>Welcome to Production Management</h3>
+                    <p>Click on any button above to get started with your production tasks</p>
+                </div>
+            </div>
+        </div>
+        <div class="right-sidebar">
+            <h3><i class="fas fa-chart-line"></i> Stock Movement</h3>
+            {% for product in products %}
+                <div class="stock-item">
+                    <span class="stock-name">{{ product.name }}</span>
+                    <span class="stock-quantity">{{ product.quantity|floatformat:0 }}</span>
+                </div>
+            {% empty %}
+                <div class="stock-item">
+                    <span class="stock-name">No products found</span>
+                    <span class="stock-quantity">0</span>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% endblock content %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const customDateInput = document.getElementById('customDate');
+        if (customDateInput) {
+            const selectedDate = '{{ selected_date|date:"Y-m-d" }}';
+            customDateInput.value = selectedDate;
+        }
+        console.log('Page loaded, loadPage function is available:', typeof window.loadPage);
+        
+        // Load summary data for navigation cards
+        loadSummaryData();
+    });
+    
+    function loadSummaryData() {
+        // Get today's date for the API call
+        const today = new Date();
+        const startDate = today.toISOString().split('T')[0];
+        const endDate = today.toISOString().split('T')[0];
+        
+        const params = new URLSearchParams();
+        params.append('start_date', startDate);
+        params.append('end_date', endDate);
+        
+        fetch(`/inventory/api/production-analysis-data/?${params.toString()}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateSummaryCards(data.data);
+                } else {
+                    console.error('Error loading summary data:', data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading summary data:', error);
+            });
+    }
+    
+    function updateSummaryCards(data) {
+        // Calculate summary statistics
+        const totalPlans = new Set(data.map(item => item.plan_number)).size;
+        const positiveVariance = data.filter(item => item.variance > 0).length;
+        const negativeVariance = data.filter(item => item.variance < 0).length;
+        const onTarget = data.filter(item => item.variance === 0).length;
+        
+        // Update the navigation cards
+        document.getElementById('totalPlans').textContent = totalPlans;
+        document.getElementById('positiveVariance').textContent = positiveVariance;
+        document.getElementById('negativeVariance').textContent = negativeVariance;
+        document.getElementById('onTarget').textContent = onTarget;
+    }
+    
+    // Request box click functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        // Function to set active tab
+        function setActiveTab(clickedBox) {
+            // Remove active class from all boxes
+            document.querySelectorAll('.request-box').forEach(b => {
+                b.classList.remove('active');
+            });
+            
+            // Add active class to clicked box
+            if (clickedBox) {
+                clickedBox.classList.add('active');
+                // Store active state in sessionStorage
+                const boxText = clickedBox.querySelector('h4').textContent.trim();
+                sessionStorage.setItem('activeRequestBox', boxText);
+            }
+        }
+
+        // Set up click handlers for all request boxes
+        document.querySelectorAll('.request-box').forEach(box => {
+            box.addEventListener('click', function(e) {
+                e.preventDefault();
+                setActiveTab(this);
+                // Load the page content
+                const url = this.getAttribute('onclick').match(/loadPage\('([^']+)'/)[1];
+                loadPage(url, this);
+            });
+        });
+        
+        // Restore active state on page load
+        const activeRequestBox = sessionStorage.getItem('activeRequestBox');
+        if (activeRequestBox) {
+            document.querySelectorAll('.request-box').forEach(box => {
+                const boxText = box.querySelector('h4').textContent.trim();
+                if (boxText === activeRequestBox) {
+                    box.classList.add('active');
+                }
+            });
+        } else {
+            // Set first tab as active by default if none is active
+            const firstBox = document.querySelector('.request-box');
+            if (firstBox) firstBox.classList.add('active');
+        }
+    });
+    
+        // Override the loadPage function to track active tabs
+    const originalLoadPage = window.loadPage;
+    window.loadPage = function(url, clickedElement) {
+        // If clickedElement is provided, update active tab
+        if (clickedElement) {
+            // Set the clicked tab as active
+            document.querySelectorAll('.request-box').forEach(box => {
+                box.classList.remove('active');
+            });
+            clickedElement.classList.add('active');
+            
+            // Store active state
+            const boxText = clickedElement.querySelector('h4').textContent.trim();
+            sessionStorage.setItem('activeRequestBox', boxText);
+            
+            return originalLoadPage(url, clickedElement);
+        }
+        
+        // Find the request box that corresponds to this URL
+        const requestBoxes = document.querySelectorAll('.request-box, .request-box-active');
+        requestBoxes.forEach(box => {
+            const onclick = box.getAttribute('onclick');
+            if (onclick && onclick.includes(url)) {
+                // Remove active class from all request boxes
+                requestBoxes.forEach(b => {
+                    b.classList.remove('request-box-active');
+                    b.classList.add('request-box');
+                });
+                // Add active class to the matching box
+                console.log('box', box)
+                box.classList.remove('request-box');
+                box.classList.add('request-box-active');
+               
+                
+                // Store the active state
+                const boxText = box.querySelector('h4').textContent.trim();
+                sessionStorage.setItem('activeRequestBox', boxText);
+            }
+        });
+        
+        // Call the original loadPage function
+        return originalLoadPage(url, clickedElement);
+    };
+    
+    // Override form submissions to use AJAX
+    document.addEventListener('submit', function(e) {
+        if (e.target.tagName === 'FORM') {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const url = form.action;
+            fetch(url, {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest', }
+            })
+            .then(response => response.text())
+            .then(html => {
+                const contentContainer = document.getElementById('dynamic-content');
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const content = doc.querySelector('#dynamic-content') || doc.querySelector('.left-content') || doc.querySelector('body');
+                if (content) { contentContainer.innerHTML = content.innerHTML; } else { contentContainer.innerHTML = html; }
+            })
+            .catch(error => { console.error('Error submitting form:', error); });
+        }
+    });
+</script>

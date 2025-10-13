@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 {% load static %}
 {% load crispy_forms_tags %}
@@ -16,8 +15,24 @@
         background-size: 20px;
         padding-right: 30px; 
     }    
+    table {
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+    
+    /* Ensure disabled button styling works properly */
+    .btn.disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+    
+    .btn:not(.disabled) {
+        opacity: 1;
+        cursor: pointer;
+        pointer-events: auto;
+    }
 </style>
-<div class="inventory">
+<div class="inventory container-fluid">
     <div class='add-production-plan'>
         <div class='production-plan mt-2 d-flex justify-content-between align-items-center'>
             <div>
@@ -31,10 +46,10 @@
               </div>
             <div>
                 <ul class="list-unstyled mt-3 d-flex align-items-center">
-                    <li>
-                        <a href="{% url 'inventory:production_plans' %}" class="mx-2 btn border">Production Plan</a>
-                    </li>
                     {% if not production_plan.declared %}
+                        <li>
+                            <button class="btn btn-primary" onclick="history()">Override History</button>
+                        </li>
                         {% if not confirm %}
                             <li>
                                 <a href="{% url 'inventory:declare_production_plan' production_plan.id %}" class="btn border btn-dark text-light">Declare production plan</a>
@@ -42,133 +57,221 @@
                         {% endif %}
                     {% else %}
                         <li>
-                            <button class="btn border btn-primary text-light" disabled>Production Plan Declared</pf=>
+                            <button class="btn border btn-primary text-light" disabled>Production Plan Declared</button>
                         </li>
                     {% endif %}
+                    <li>
+                        <a href="{% url 'inventory:production_plans' %}" class="mx-2 btn border">Production Plan</a>
+                    </li>
                 </ul>
             </div>
         </div>
         <div class="row">
-            <div class="">
-                <div class="d-flex align-items-center justify-content-between border rounded p-2 bg-dark text-light">
-                    <h5 class="fw-bold">Major Raw Materials</h5>
+            <div class="table-responsive">
+                <div class="d-flex align-items-center justify-content-between rounded p-2">
+                    <h5 class="fw-bold">Dishes</h5>
                     <h5 class="fw-bold">Total Cost: ${{ total_cost_items }}</h5>
                 </div>
-                <table class="table" id='plan_item_table' style="width:100%;">
-                    <thead class="bg-primary">
+                <table class="table table-hover" id='plan_item_table' style="width:100%;">
+                    <thead class="bg-primary-subtle">
                         <th>Dish</th>
-                        <th>Quantity</th>
-                        <th>RM B/F Quantity</th>
-                        <th>LF B/f Quantity</th>
-                        <th>Actual Quantity</th>
-                        <th>Declared Quantity</th>
-                        <th>Portion Multiplier</th>
                         <th>Portions</th>
                         <th>Total Cost</th>
                     </thead>
                     <tbody>
                         {% for item in production_plan_items  %}
                           <tr>
-                            <td><small>{{ item.dish.name }}</small></td>
-                            <td><small>{{ item.quantity }} {{ item.raw_material.unit }}</small></td>
-                            <td><small>{{ item.rm_carried_forward_quantity }} {{ item.raw_material.unit }}</small></td>
-                            <td><small>{{ item.lf_carried_forward_quantity }} {{ item.raw_material.unit }}</small></td>
-                            <td><small>{{ item.actual_quantity }} {{ item.raw_material.unit }}</small></td>
-                            <td><small>{{ item.declared_quantity }}</small></td>
-                            <td><small>{{ item.dish.portion_multiplier }}</small></td>
-                            <td><small>{{ item.portions }} portions</small></td>
-                            <td><small>{{ item.total_cost }}</small></td>
+                            <td>
+                                <small>
+                                    <strong>{{ item.dish.name }}</strong>
+                                        <p>
+                                            (
+                                            {% for items in dish_ing %}
+                                                {% if item.dish.name == items.dish.name %}
+                                                    {{items.minor_raw_material.name}} => {{items.quantity}}{{items.minor_raw_material.unit.unit_name}}
+                                                {% endif %}
+                                            {% endfor %}
+                                            )
+                                        </p>
+                                </small>
+                            </td>
+                            <td><small>{{ item.portions }} {{ item.raw_material.unit }}</small></td>
+                            <td><small>${{ item.total_cost }}</small></td>
                           </tr>
                         {% endfor %}
                     </tbody>
                 </table>
 
                 
-                <div class=" mt-4 mb-2 d-flex align-items-center justify-content-between border rounded p-2 bg-dark text-light">
-                    <h5 class="fw-bold">Minor Raw Materials</h5>
-                    <h5 class="fw-bold">Total Cost: ${{ total_cost_minor_items }}</h5>
+                <div class="d-flex mt-3 align-items-center justify-content-between rounded p-2">
+                    <h5 class="fw-bold">Raw Materials</h5>
                 </div>
 
-                <table class="table" id="minor">
-                    <thead class="bg-primary">
+                <table class="table table-hover" id="minor">
+                    <thead class="bg-primary-subtle">
                         <tr>
                             <th>Raw Material</th>
                             {% if confirm %}
                                 <th>Quantity B/F (In production)</th>
                             {% endif %}
+                            <th class="text-center">Acc Override</th>
                             <th>Planned Quantity</th>
                             <th>Expected Qnty From Inventory</th>
                             <th>Allocated Qnty From Inventory</th>
                             {% if not confirm %}
                                 <th>Remaing Quantity (kgs)</th>
                             {% endif %}
-                            <th>Total Ingr Quantity (per kg)</th>
-                            <th>Planned Quantity (kgs)</th>
-                            <th>Expected Quantity (Planned x Total Quantity)</th>
-                            <th>Cost (per kg)</th>
-                            <th>Total Cost</th>
                             {% if confirm %}
-                                <th>Kitchen Raw Material</th>
-                            {% endif %}
-                            {% if confirm %}
-                                <th>Actual Quantity Needed</th>
-                            {%else%}
-                                <th>Declared Quantity</th>
-                            {% endif %}
-                            {% if confirm %}
-                                <th>Confirm Raw Material</th>
+                                {% if request.user.role == 'accountant'%}
+                                    <th>Quantity B/F</th>
+                                {% endif %}
                             {% endif %}
                         </tr>
                     </thead>
                     <tbody>
                         {% for item in production_plan_minor_items %}
-                        <tr data-id="{{ item.minor_raw_material.id }}">
-                            <td><small>{{ item.minor_raw_material }}</small></td>
-                            <td><small>{{ item.total_quantity_per_kg }}</small></td>
-                            <td><small>{{ item.planned_quantity }}</small></td>
-                            <td>
-                                <small data-expected-quantity="{{ item.expected_quantity }}">
-                                    {{ item.expected_quantity }}
-                                </small>
-                            </td>
-                            <td><small>{{ item.cost_per_kg }}</small></td>
-                            <td><small>{{ item.total_cost }}</small></td>
+                        <tr data-id="{{ item.id }}">
+                            <td><small>{{ item.name }}</small></td>
                             {% if confirm %}
-                                <td>
-                                    <small data-kitchen-quantity="{{ k_item.quantity }}">
-                                        {% if k_item.id == item.id %}
-                                        {{ k_item.quantity }}
+                                <td class="quantity-bf text-center">
+                                    <small>
+                                        {% if not confirm %}
+
+                                        {% else %}
+                                            {{ item.quantity_b_f|floatformat:2 }}
                                         {% endif %}
                                     </small>
                                 </td>
                             {% endif %}
-                            <td><small id="actual_needed_quantity"></small></td>
-                            {% if confirm %}
-                            <td>
-                                {% csrf_token %}
-                                <input type="number" id="quantity">
+                            <td class="text-center"><small><span class="text-success text-center">{{item.accumulated_overrides_up}}</span> | <span class="text-danger text-center">{{item.accumulated_overrides_down}}</span></small></td>
+                            <td class="text-center"><small>{{ item.quantity|floatformat:2 }}</small></td>
+                            <td class="text-center">
+                                <small>
+                                    {% if item.expected_quantity < 0 %}
+                                        0.0
+                                    {% else %}
+                                        {{ item.expected_quantity|floatformat:2 }}
+                                    {% endif %}
+                                </small>
                             </td>
+
+                            {% if confirm %}
+                                <td class="text-center">
+                                    {% csrf_token %}
+                                    <input type="number" class="checklist-input form-control" min="0" placeholder="Press enter when done">
+                                </td>
+                            {% else %}
+                            <td class="text-center">
+                                {% for allocated in allocated_rm %}
+                                    {% if allocated.raw_material.id == item.id%}
+                                        <small>{{ allocated.quantity }}</small>
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+                            <td class="text-center">
+                                {% for allocated in allocated_rm %}
+                                    {% if allocated.raw_material.name == item.name %}
+                                        <small>{{ allocated.remaining_quantity }}</small>
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+                            {% endif %}
+                            {% if request.user.role == 'accountant'%}
+                                <td><button class="btn btn-danger override-btn">Override</button></td>
                             {% endif %}
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
-                
 
                 {% if confirm %}
                     <div class="d-flex justify-content-end mt-4">
                         <a href="" class="btn btn-danger text-light mx-2">Cancel</a>
-                        <a href="{% url 'inventory:process_production_plan' production_plan.id %}" class="btn-primary text-light btn">Confirm</a>
+                        <a href="{% url 'inventory:process_production_plan' production_plan.id %}" 
+                            class="btn-primary text-light btn disabled" 
+                            id="confirm-btn"
+                            onclick="return false;">Confirm
+                        </a>
                     </div>
                 {% endif %}
             </div>
         </div>
     </div>
+
+    <!--Override History Modal -->
+    <div class="modal fade" id="rawMaterialModal" tabindex="-1" role="dialog" aria-labelledby="rawMaterialModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="rawMaterialModalLabel">Raw Material Movements</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body table-responsive">
+                <table class="table table-hover" id="rawMaterialTable">
+                <thead>
+                    <tr>
+                    <th>Date</th>
+                    <th>Raw Material</th>
+                    <th class="text-center">Up</th>
+                    <th class="text-center">Down</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Rows will be populated by JavaScript -->
+                </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" onclick="Clear('{{request.user.role}}')">Clear History</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 </div>
 <script>
+
     document.addEventListener('DOMContentLoaded', function () {
+        const inputs_state = document.querySelectorAll('.checklist-input');
+        const confirmBtn_state = document.getElementById('confirm-btn');
+        const confirmUrl = confirmBtn_state.getAttribute('href');
+
+        function checkInputs() {
+            let allFilled = true;
+            console.log('Checking inputs...');
+
+            inputs_state.forEach((input, index) => {
+                const isEmpty = input.value.trim() === '';
+                const isDisabled = input.disabled;
+                console.log(`Input ${index}: disabled=${isDisabled}, value="${input.value}", isEmpty=${isEmpty}`);
+                
+                if (!isDisabled && isEmpty) {
+                    allFilled = false;
+                }
+            });
+
+            console.log('All filled:', allFilled);
+
+            if (allFilled) {
+                confirmBtn_state.classList.remove('disabled');
+                confirmBtn_state.onclick = null; 
+                confirmBtn_state.setAttribute('href', confirmUrl); 
+                console.log('Confirm button enabled');
+            } else {
+                confirmBtn_state.classList.add('disabled');
+                confirmBtn_state.onclick = function () { return false; };
+                confirmBtn_state.setAttribute('href', '#');
+                console.log('Confirm button disabled');
+            }
+        }
+
+        inputs_state.forEach(input => {
+            input.addEventListener('input', checkInputs);
+        });
+
+        checkInputs(); 
+
         new DataTable('#plan_item_table');
-        new DataTable('#minor',{paging:false});
     
         document.querySelectorAll('#minor input[type="number"]').forEach(function (input) {
             input.addEventListener('keydown', function (event) {
@@ -177,62 +280,87 @@
 
                     const quantityEntered = parseFloat(this.value);
                     const row = this.closest('tr');
+                    const cells = row.querySelectorAll('td');
 
-                    if (!isNaN(quantityEntered)) {
-                        Swal.fire({
-                            title: 'Processing Allocation',
-                            text: 'Please wait...',
-                            icon: 'info',
-                            showConfirmButton: false,
-                            timer: 1500
-                        });
+                    const plannedQuantity = parseFloat(cells[confirm ? 3 : 2].innerText.trim());
+                    const expectedQuantityText = cells[confirm ? 4 : 3].innerText.trim();
+                    const expectedQuantity = parseFloat(expectedQuantityText) || 0.0;
 
-                        input.classList.add('loading');
-                        input.disabled = true;
+                    console.log({
+                        QuantityEntered: quantityEntered,
+                        PlannedQuantity: plannedQuantity,
+                        ExpectedQuantity: expectedQuantity
+                    });
 
-                        const rawMaterialId = row.getAttribute('data-id');
+                    console.log({Quantity: quantityEntered})
+                    
+                    if (quantityEntered != null){
+                        if (!isNaN(quantityEntered)) {
+                            Swal.fire({
+                                title: 'Processing Allocation',
+                                text: 'Please wait...',
+                                icon: 'info',
+                                showConfirmButton: false,
+                                timer: 1500
+                            });
 
-                        fetch('{% url "inventory:confirm_minor_raw"%}', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val(),
-                            },
-                            body: JSON.stringify({
-                                production_id: {{ production_plan.id }},
-                                raw_material_id: rawMaterialId,
-                                quantity: quantityEntered,
-                                csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
+                            input.classList.add('loading');
+                            input.disabled = true;
+                            checkInputs();
+
+                            const rawMaterialId = row.getAttribute('data-id');
+                        
+                            fetch('{% url "inventory:confirm_minor_raw"%}', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val(),
+                                },
+                                body: JSON.stringify({
+                                    production_id: {{ production_plan.id }},
+                                    raw_material_id: rawMaterialId,
+                                    quantity: quantityEntered,
+                                    PlannedQuantity: plannedQuantity,
+                                    ExpectedQuantity: expectedQuantity
+                                    /*csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),*/
+                                })
                             })
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                input.classList.remove('loading');
-                                // input.disabled = true;
-                                row.style.backgroundColor = '#d3d3d3';
-                                console.log('Quantity confirmed');
-                                focusNextInput(input);
-                            } else {
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    input.classList.remove('loading');
+                                    input.disabled = true;
+                                    checkInputs();
+                                    row.style.backgroundColor = '#d3d3d3';
+                                    console.log('Quantity confirmed');
+                                    focusNextInput(input);
+                                } else {
+                                    Swal.fire({
+                                        title: "Error",
+                                        text: data.message,
+                                        icon: "error"
+                                    });
+                                    input.disabled = false; 
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error:', error);
                                 Swal.fire({
                                     title: "Error",
-                                    text: data.message,
+                                    text: "An error occurred during the request.",
                                     icon: "error"
                                 });
                                 input.disabled = false; 
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            Swal.fire({
-                                title: "Error",
-                                text: "An error occurred during the request.",
-                                icon: "error"
+                            })
+                            .finally(() => {
+                                input.classList.remove('loading');
                             });
-                            input.disabled = false; // Re-enable input in case of a fetch error
-                        })
-                        .finally(() => {
-                            input.classList.remove('loading');
+                        }
+                    }else{
+                        Swal.fire({
+                            title: "Error",
+                            text: "Allocated quantity is greater than  expected quantity",
+                            icon: "error"
                         });
                     }
                 }
@@ -245,8 +373,174 @@
                 inputs[currentIndex + 1].focus();
             }
         }
+
+        const overrideButtons = document.querySelectorAll('.override-btn');
+
+        overrideButtons.forEach(button => {
+            button.addEventListener('click', function () {
+                const row = button.closest('tr');
+                const id  = row.getAttribute('data-id');
+                
+                const quantityCell = row.querySelector('.quantity-bf');
+                
+                const oldValue = quantityCell.textContent.trim();
+                console.log("Old value:", oldValue);
+                console.log('id:',id)
+
+                const currentValue = quantityCell.innerText.trim();
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.className = 'form-control';
+                input.value = currentValue;
+                input.style.width = '100px';
+
+                quantityCell.innerHTML = '';
+                quantityCell.appendChild(input);
+                input.focus();
+
+                input.addEventListener('keypress', function (e) {
+                    if (e.key === 'Enter') {
+                        const newValue = input.value;                    
+                        data = {
+                            id: id,
+                            new_quantity: newValue,
+                            old_quantity: oldValue,
+                        };
+                        
+                        fetch("{% url 'inventory:override' %}",{
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': getCSRFToken()
+                            },
+                            body: JSON.stringify(data)
+                        }).then(response => response.json())
+                        .then(data => {
+                            if(data.success){
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Override successful',
+                                    text: data.message,
+                                });
+                            }
+                            else{
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Override failed',
+                                    text: data.message,
+                                });
+                            }
+                        });
+                        quantityCell.innerHTML = `<small>${parseFloat(newValue).toFixed(2)}</small>`;
+                    }
+                });
+            });
+        });
     });
-    
+
+    const history_overrideModal = new bootstrap.Modal(document.getElementById('rawMaterialModal'))
+
+    function history(){
+        
+        fetch("{% url 'inventory:override' %}",{
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        }).then(response => response.json())
+        .then(data => {
+            if(data.success){
+               const tbody = document.querySelector('#rawMaterialTable tbody');
+                tbody.innerHTML = '';
+                console.log(data.data)
+                data.data.forEach(item => {
+                    const row = document.createElement('tr');
+
+                    row.innerHTML = `
+                    <td class"text-center">${new Date(item.date).toISOString().split('T')[0]}</td>
+                    <td class"text-center">${item.raw_material}</td>
+                    <td class="text-success text-center">
+                        ${item.up}
+                    </td>
+                    <td class="text-danger text-center">
+                        ${item.down}
+                    </td>
+                    `;
+
+                    tbody.appendChild(row);
+                });
+            }
+            else{
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Override failed',
+                    text: data.message,
+                })
+            }
+        });
+        history_overrideModal.show();
+    }
+
+    function Clear(role){
+        console.log(role)
+        if(role === 'accountant'){
+
+            const tableData = [];
+            const seen = new Set();
+
+            document.querySelectorAll('#rawMaterialTable tbody tr').forEach(row => {
+                const value = row.querySelectorAll('td')[1]?.textContent.trim();
+
+                if (value && !seen.has(value)) {
+                    tableData.push(value);
+                    seen.add(value);
+                }
+            });
+
+            console.log(tableData);
+
+            fetch("{% url 'inventory:override' %}",{
+                method: "DELETE",
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                },
+                body: JSON.stringify(tableData)
+            }).then(response => response.json())
+            .then( data => {
+                if(data.success){
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Clearing'
+                    })
+                }
+                else{
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Failed Clearing'
+                    })
+                }
+            })
+        }
+        else{
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Permissions',
+            })
+        }
+    }
+
+    function getCSRFToken() {
+        const name = 'csrftoken';
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            cookie = cookie.trim();
+            if (cookie.startsWith(name + '=')) {
+                return decodeURIComponent(cookie.substring(name.length + 1));
+            }
+        }
+        return null;
+    }
 </script>
 
 {% endblock content %}

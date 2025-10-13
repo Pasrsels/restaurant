@@ -53,4 +53,85 @@
 }
 .Urban-Eat .finance select {
   border: none;
-}/*# sourceMappingURL=main.css.map */
+}
+
+#notification-icon {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#notification-badge {
+    display: none;
+    position: absolute;
+    top: -5px;
+    right: -10px;
+}
+
+.notifications {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 300px;
+    background-color: white;
+    border: 1px solid #ddd;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    display: none;
+    z-index: 1000;
+}
+
+#notification-dropdown.show {
+    display: block;
+}
+
+.notifications ul {
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+.notifications li {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+    cursor: pointer;
+}
+
+.notifications li:hover {
+    background-color: #f8f9fa;
+}
+
+.notification-dropdown-style {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.app-area-style {
+    max-width: 1800px;
+    margin: 0 auto;
+}
+
+.checklist-style {
+    background: #f8f9fa;
+}
+
+@media (max-width: 768px) {
+    .col-2, .col-10 {
+        width: 100%;
+    }
+
+    .d-flex.justify-content-between {
+        flex-direction: column;
+    }
+
+    #pos-sidebar, #main-sidebar {
+        display: none;
+    }
+}
+
+@media (min-width: 769px) {
+    #sidebar-toggle-button {
+        display: none;
+    }
+}

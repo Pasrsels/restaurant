@@ -1,0 +1,1138 @@
+{% load static %}
+
+<style>
+    .declaration-table-container {
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 40px 30px 30px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+        margin: 20px;
+        width: calc(100% - 40px);
+        max-width: 100%;
+        box-sizing: border-box;
+        border: 1px solid #e9ecef;
+        min-height: calc(100vh - 40px);
+    }
+
+    /* Ensure dynamic content wrapper and left content container have consistent width */
+    .dynamic-content-wrapper,
+    .left-content {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    /* Remove any margins or padding that might create gaps */
+    .dynamic-content-wrapper > *,
+    .left-content > * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    /* Style the header text and search bar */
+    .declaration-header h2 {
+        font-size: 24px;
+        font-weight: 700;
+        color: #2c3e50;
+        margin: 0;
+        padding: 0;
+        line-height: 1.2;
+    }
+
+    .declaration-header p {
+        font-size: 16px;
+        color: #6c757d;
+        margin: 8px 0 0 0;
+        padding: 0;
+        line-height: 1.4;
+    }
+
+    /* Modern search input styling */
+    .search-container input[type="text"] {
+        padding: 12px 20px;
+        border: none;
+        border-radius: 8px 0 0 8px;
+        font-size: 15px;
+        transition: all 0.3s ease;
+        height: 48px;
+        background-color: transparent;
+        color: #4a5568;
+    }
+
+    .search-container input[type="text"]:focus {
+        outline: none;
+        border-color: #4a90e2;
+        box-shadow: 0 0 0 4px rgba(74, 144, 226, 0.15);
+    }
+    
+    .declaration-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin: 1.5rem 0 2.5rem;
+        padding: 0 8px;
+    }
+    
+    .search-container {
+        flex-grow: 1;
+        max-width: 600px;
+        margin-right: 1.5rem;
+        margin-top: 0;
+        padding: 4px 0;
+    }
+    
+    .search-container .input-group {
+        height: auto;
+        box-shadow: none;
+        border-radius: 8px;
+        background: transparent;
+        border: 1px solid #e2e8f0;
+        overflow: hidden;
+        margin-left: 15px;
+    }
+    
+    .search-container .btn {
+        height: 48px;
+        width: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        background: #4a90e2;
+        color: white;
+        border: none;
+        border-radius: 0 8px 8px 0;
+        transition: all 0.2s ease;
+    }
+
+    .search-container .btn:hover {
+        background: #3a7bc8;
+    }
+    
+    .search-container .form-control {
+        height: 48px;
+        border: none;
+        border-radius: 0;
+        padding-left: 20px;
+        background-color: #f8fafc;
+        box-shadow: none;
+    }
+    
+    .add-production-btn {
+        height: 48px;
+        min-width: 200px;
+        padding: 0 32px;
+        border-radius: 30px;
+        font-weight: 500;
+        font-size: 15px;
+        letter-spacing: 0.3px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        white-space: nowrap;
+        margin: 0 0 25px 0;
+    }
+    
+    .declaration-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: #2c3e50;
+        margin: 0;
+    }
+    
+    .declaration-subtitle {
+        color: #6c757d;
+        font-size: 13px;
+        margin: 3px 0 0 0;
+    }
+    
+    .table-responsive {
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        border: 1px solid #e9ecef;
+        background: white;
+        margin: 0;
+        padding: 0;
+    }
+    
+    .declaration-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        table-layout: fixed;
+    }
+    
+         .declaration-table td {
+         padding: 15px 12px;
+         border-bottom: 1px solid #e9ecef;
+         font-size: 14px;
+         vertical-align: middle;
+         background: white;
+         overflow: hidden;
+         text-overflow: ellipsis;
+         white-space: nowrap;
+         line-height: 1.4;
+     }
+     
+     .declaration-table td div:first-child {
+         font-size: 11px;
+         font-weight: 500;
+         color: #6c757d;
+         opacity: 0.8;
+         margin-bottom: 4px;
+         text-transform: uppercase;
+         letter-spacing: 0.3px;
+     }
+     
+     .declaration-table td div:last-child {
+         font-size: 13px;
+         font-weight: 600;
+         color: #2c3e50;
+     }
+    
+    .declaration-table tbody tr:nth-child(even) {
+        background-color: #f8f9fa;
+    }
+    
+    .declaration-table tbody tr:nth-child(odd) {
+        background-color: white;
+    }
+    
+         .declaration-table tbody tr:hover {
+         background-color: #e9ecef;
+         transition: background-color 0.2s ease;
+     }
+     
+     .plan-row {
+         cursor: pointer;
+         transition: all 0.2s ease;
+     }
+     
+     .plan-row:hover {
+         background-color: #e3f2fd !important;
+         transform: translateY(-1px);
+         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+     }
+     
+     .plan-row.selected {
+         background-color: #e3f2fd !important;
+         border-left: 4px solid #007bff;
+     }
+    
+    .plan-number {
+        font-weight: 600;
+        color: #2c3e50;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+    }
+    
+    .date-created {
+        color: #6c757d;
+        font-size: 12px;
+    }
+    
+    .portions-cell {
+        text-align: center;
+        font-weight: 600;
+        font-size: 12px;
+    }
+    
+    .variance-positive {
+        color: #007bff;
+        font-weight: 600;
+    }
+    
+    .variance-negative {
+        color: #6c757d;
+        font-weight: 600;
+    }
+    
+    .variance-neutral {
+        color: #6c757d;
+        font-weight: 600;
+    }
+    
+    .status-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .status-confirmed {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    
+    .status-pending {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+    
+    .status-declared {
+        background-color: #d1ecf1;
+        color: #0c5460;
+    }
+    
+    .status-not-declared {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+    
+    .action-btn {
+        padding: 6px 12px;
+        border: none;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+        margin: 2px;
+    }
+    
+    .action-btn-view {
+        background-color: #007bff;
+        color: white;
+    }
+    
+    .action-btn-view:hover {
+        background-color: #0056b3;
+        color: white;
+        text-decoration: none;
+    }
+    
+    .action-btn-declare {
+        background-color: #007bff;
+        color: white;
+    }
+    
+    .action-btn-declare:hover {
+        background-color: #0056b3;
+        color: white;
+        text-decoration: none;
+    }
+    
+    .no-plans-message {
+        text-align: center;
+        padding: 40px;
+        color: #6c757d;
+        font-size: 16px;
+    }
+    
+    .search-container {
+        margin-bottom: 20px;
+    }
+    
+    .search-input {
+        width: 250px;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 12px;
+    }
+    
+         .search-input:focus {
+         outline: none;
+         border-color: #667eea;
+         box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+     }
+     
+     .action-cell {
+         text-align: center;
+         width: 80px;
+     }
+     
+     .info-icon-btn {
+         background: none;
+         border: none;
+         color: #007bff;
+         font-size: 16px;
+         cursor: pointer;
+         padding: 4px 8px;
+         border-radius: 4px;
+         transition: all 0.2s ease;
+     }
+     
+     .info-icon-btn:hover {
+         background-color: #e3f2fd;
+         color: #0056b3;
+         transform: scale(1.1);
+     }
+
+     /* More Info Container Styling */
+     .more-info-row {
+         background: #f8f9fa;
+         border-top: 2px solid #e9ecef;
+     }
+
+     .more-info-cell {
+         padding: 0 !important;
+         border: none !important;
+     }
+
+     .production_plan_more_info {
+         padding: 20px;
+         background: white;
+         border-radius: 8px;
+         margin: 10px;
+         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+     }
+
+     .loading-spinner {
+         text-align: center;
+         padding: 20px;
+         color: #6c757d;
+     }
+
+     /* Chevron Animation */
+     .fas.fa-chevron-down {
+         transition: transform 0.3s ease;
+     }
+
+     .fas.fa-chevron-down.rotated {
+         transform: rotate(180deg);
+     }
+     
+     .allocations-modal {
+         display: none;
+         position: fixed;
+         z-index: 1000;
+         left: 0;
+         top: 0;
+         width: 100%;
+         height: 100%;
+         background-color: rgba(0,0,0,0.5);
+     }
+     
+     .allocations-modal-content {
+         background-color: white;
+         margin: 5% auto;
+         padding: 20px;
+         border-radius: 8px;
+         width: 80%;
+         max-width: 800px;
+         max-height: 80vh;
+         overflow-y: auto;
+         box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+     }
+     
+     .allocations-modal-header {
+         display: flex;
+         justify-content: space-between;
+         align-items: center;
+         margin-bottom: 20px;
+         padding-bottom: 10px;
+         border-bottom: 1px solid #e9ecef;
+     }
+     
+     .allocations-modal-title {
+         font-size: 20px;
+         font-weight: 600;
+         color: #2c3e50;
+         margin: 0;
+     }
+     
+     .close-modal {
+         background: none;
+         border: none;
+         font-size: 24px;
+         cursor: pointer;
+         color: #6c757d;
+         padding: 0;
+         width: 30px;
+         height: 30px;
+         display: flex;
+         align-items: center;
+         justify-content: center;
+     }
+     
+          .close-modal:hover {
+         color: #dc3545;
+     }
+     
+     .declaration-table thead th {
+        background-color: #f8f9fa;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-weight: 500;
+        font-size: 13px;
+        letter-spacing: 0.3px;
+        padding: 14px 16px;
+        border-bottom: 2px solid #dee2e6;
+        color: #4a5568;
+        text-transform: none;
+    }
+     
+     }
+
+     /* Column width specifications for consistent sizing */
+     .declaration-table th:nth-child(1) { width: 18%; } /* Plan Number & Date */
+         .declaration-table th:nth-child(2) { width: 12%; background-color: #f8f9fa; } /* Planned Production */
+    .declaration-table th:nth-child(3) { width: 12%; } /* Actual Production */
+     .declaration-table th:nth-child(4) { width: 12%; } /* Production Cost */
+     .declaration-table th:nth-child(5) { width: 12%; } /* Negative Variance */
+     .declaration-table th:nth-child(6) { width: 12%; } /* Positive Variance */
+     .declaration-table th:nth-child(7) { width: 12%; } /* Status */
+     .declaration-table th:nth-child(8) { width: 10%; } /* Actions */
+
+         .declaration-table td:nth-child(1) { width: 18%; }
+    .declaration-table td:nth-child(2) { width: 12%; background-color: #f8f9fa; }
+    .declaration-table td:nth-child(3) { width: 12%; }
+     .declaration-table td:nth-child(4) { width: 12%; }
+     .declaration-table td:nth-child(5) { width: 12%; }
+     .declaration-table td:nth-child(6) { width: 12%; }
+     .declaration-table td:nth-child(7) { width: 12%; }
+     .declaration-table td:nth-child(8) { width: 10%; }
+     
+     .declaration-table thead th::first-letter {
+         text-transform: capitalize;
+     }
+     
+     .declaration-table thead th:first-child {
+         text-align: left;
+     }
+     
+     .declaration-table tbody td {
+         color: #4a4a4a;
+         font-size: 12px;
+     }
+     
+     .add-production-btn {
+         background: #007bff;
+         color: white;
+         border: none;
+         padding: 12px 24px;
+         border-radius: 6px;
+         cursor: pointer;
+         font-size: 16px;
+         font-weight: 600;
+         margin-right: 15px;
+         transition: all 0.3s ease;
+     }
+     
+     .add-production-btn:hover {
+         background: #0056b3;
+         transform: translateY(-1px);
+         box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+     }
+     
+     .declare-btn {
+         background: #4da6ff;
+         color: white;
+         border: none;
+         padding: 6px 12px;
+         border-radius: 4px;
+         cursor: pointer;
+         font-size: 12px;
+         font-weight: 600;
+         transition: all 0.3s ease;
+     }
+     
+     .declare-btn:hover {
+         background: #3399ff;
+         transform: scale(1.05);
+     }
+
+     /* More Info Container Styling */
+     .more-info-row {
+         background: #f8f9fa;
+         border-top: 2px solid #e9ecef;
+     }
+
+     .more-info-cell {
+         padding: 0 !important;
+         border: none !important;
+     }
+
+     .production_plan_more_info {
+         padding: 20px;
+         background: white;
+         border-radius: 8px;
+         margin: 10px;
+         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+     }
+
+     .expand-icon-btn {
+         background: none;
+         border: none;
+         color: #6c757d;
+         cursor: pointer;
+         padding: 5px;
+         border-radius: 4px;
+         transition: all 0.3s ease;
+     }
+
+     .expand-icon-btn:hover {
+         background: #e9ecef;
+         transform: scale(1.1);
+     }
+
+     .expand-icon-btn i {
+         font-size: 14px;
+         transition: transform 0.3s ease;
+     }
+
+     .expand-icon-btn.expanded i {
+         -webkit-transform: rotate(90deg);
+         -ms-transform: rotate(90deg);
+         transform: rotate(90deg);
+     }
+
+     .fas.fa-chevron-down.rotated {
+         -webkit-transform: rotate(90deg);
+         -ms-transform: rotate(90deg);
+         transform: rotate(90deg);
+     }
+     
+     .declared-badge {
+         background: #d4edda;
+         color: #155724;
+         padding: 4px 8px;
+         border-radius: 12px;
+         font-size: 11px;
+         font-weight: 600;
+         text-transform: uppercase;
+         letter-spacing: 0.5px;
+     }
+
+
+ </style>
+
+ <div class="declaration-table-container">
+     <div class="declaration-header">
+         <!-- Search Container -->
+         <div class="search-container">
+             <div class="input-group input-group-sm">
+                 <input type="text" 
+                        id="searchInput" 
+                        class="form-control form-control-sm" 
+                        placeholder="Search plans..."
+                        aria-label="Search production plans">
+                 <button class="btn btn-outline-secondary" 
+                         type="button"
+                         aria-label="Search">
+                     <i class="fas fa-search"></i>
+                 </button>
+             </div>
+         </div>
+         
+         <!-- Add Production Button -->
+         <div>
+             <button type="button" 
+                     class="btn btn-primary btn-sm add-production-btn" 
+                     onclick="window.loadPage('{% url 'inventory:declare_production' pp_id=0 %}', this);">
+                 <i class="fas fa-plus me-1"></i>
+                 <span>Add Production</span>
+             </button>
+         </div>
+     </div>
+    
+    <div class="table-responsive">
+        {% if plans %}
+                         <table class="declaration-table" id="declarationTable">
+                 <thead>
+                     <tr>
+                         <th>Plan number & date</th>
+                         <th>Planned production</th>
+                         <th>Actual production</th>
+                         <th>Production cost</th>
+                         <th>Negative variance</th>
+                         <th>Positive variance</th>
+                         <th>Status</th>
+                         <th>Actions</th>
+                     </tr>
+                 </thead>
+                 <tbody>
+                                         {% for plan in plans %}
+                         <tr class="plan-row" data-plan-id="{{ plan.id }}" style="cursor: pointer;" onclick="toggleMoreInfo({{ plan.id }}, document.getElementById('viewMoreInfo-{{ plan.id }}'))">
+                             <td>
+                                 <span class="plan-number">{{ plan.production_plan_number }}</span>
+                                 <br>
+                                 <small class="date-created">{{ plan.date_created|date:"M d, Y" }} at {{ plan.time_created|time:"H:i" }}</small>
+                             </td>
+                             <td class="portions-cell">
+                                 ${{ plan.planned_amount|default:0|floatformat:2 }}
+                             </td>
+                             <td class="portions-cell">
+                                 ${{ plan.actual_production_amount|default:0|floatformat:2 }}
+                             </td>
+                             <td class="portions-cell">
+                                 ${{ plan.production_cost|default:0|floatformat:2 }}
+                             </td>
+                             <td class="portions-cell">
+                                 {% if plan.negative_variance > 0 %}
+                                     $<span class="variance-negative">{{ plan.negative_variance|floatformat:2 }}</span>
+                                 {% else %}
+                                     $<span class="variance-neutral">0.00</span>
+                                 {% endif %}
+                             </td>
+                             <td class="portions-cell">
+                                 {% if plan.positive_variance > 0 %}
+                                     $<span class="variance-positive">{{ plan.positive_variance|floatformat:2 }}</span>
+                                 {% else %}
+                                     $<span class="variance-neutral">0.00</span>
+                                 {% endif %}
+                             </td>
+                             <td class="status-cell">
+                                 {% if plan.declared %}
+                                     <span class="declared-badge">Declared</span>
+                                 {% else %}
+                                     <button class="declare-btn" onclick="event.stopPropagation(); loadPage('{% url 'inventory:declare_production' pp_id=plan.id %}', this)" title="Declare Production">
+                                         <i class="fas fa-edit"></i> Declare
+                                     </button>
+                                 {% endif %}
+                             </td>
+                             <td class="action-cell">
+                                 <button class="expand-icon-btn" id="viewMoreInfo-{{ plan.id }}" data-plan-id="{{ plan.id }}" title="View More Information">
+                                     <i class="fas fa-chevron-down" id="chevron-{{ plan.id }}"></i>
+                                 </button>
+                             </td>
+                         </tr>
+                         <tr class="more-info-row" id="more-info-row-{{ plan.id }}" style="display: none;">
+                             <td colspan="8" class="more-info-cell">
+                                 <div class="production_plan_more_info" id="more-info-content-{{ plan.id }}">
+                                     <div class="loading-spinner">
+                                         <i class="fas fa-spinner fa-spin"></i> Loading detailed information...
+                                     </div>
+                                 </div>
+                             </td>
+                         </tr>
+
+                     {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="no-plans-message">
+                <i class="fas fa-inbox fa-3x mb-3" style="color: #dee2e6;"></i>
+                <h4>No Production Plans Found</h4>
+                <p>There are no production plans available for declaration at this time.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    // Define finalConfirm function immediately to prevent "not defined" errors
+    function finalConfirm() {
+        console.warn('finalConfirm function called but not properly loaded. Please refresh the page.');
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Function Not Available',
+                text: 'The confirm function is not available. Please refresh the page and try again.'
+            });
+        } else {
+            alert('The confirm function is not available. Please refresh the page and try again.');
+        }
+    }
+
+    // Global loadPage function for navigation
+    window.loadPage = function(url, button) {
+        if (button) {
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+        }
+        
+        // Show loading state
+        const contentContainer = document.querySelector('.dynamic-content-wrapper') || document.querySelector('.left-content');
+        if (contentContainer) {
+            const originalContent = contentContainer.innerHTML;
+            contentContainer.innerHTML = `
+                <div style="text-align: center; padding: 40px;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-3">Loading page...</p>
+                </div>
+            `;
+            
+            // Navigate to the URL
+            window.location.href = url;
+        } else {
+            // Fallback to direct navigation
+            window.location.href = url;
+        }
+    };
+
+    // Global finalConfirm function as fallback (in case it's called from loaded content)
+    window.finalConfirm = finalConfirm;
+
+    // Initialize view more info buttons
+    const btnViewMoreInfo = document.querySelectorAll('[id^="viewMoreInfo-"]');
+
+    console.log(btnViewMoreInfo);
+
+    btnViewMoreInfo.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent row click when button is clicked
+            console.log(btn.dataset.planId, btn);
+            window.toggleMoreInfo(btn.dataset.planId, btn);
+        });
+    });
+
+    // Global functions - make them accessible from onclick handlers
+     window.toggleMoreInfo = function(planId, button) {
+         console.log('toggleMoreInfo called for plan:', planId);
+         const moreInfoRow = document.getElementById(`more-info-row-${planId}`);
+         const moreInfoContent = document.getElementById(`more-info-content-${planId}`);
+         const chevron = document.getElementById(`chevron-${planId}`);
+         
+         if (!moreInfoRow) {
+             console.error('More info row not found for plan:', planId);
+             return;
+         }
+         
+         if (moreInfoRow.style.display === 'none' || !moreInfoRow.style.display) {
+             // Close all other more info rows
+             document.querySelectorAll('.more-info-row').forEach(row => {
+                 row.style.display = 'none';
+             });
+             
+             // Reset all chevrons
+             document.querySelectorAll('.fas.fa-chevron-down').forEach(chev => {
+                 chev.classList.remove('rotated');
+             });
+             
+             // Show this more info row
+             moreInfoRow.style.display = 'table-row';
+             if (chevron) chevron.classList.add('rotated');
+             
+             // Load content if not already loaded
+             if (moreInfoContent && moreInfoContent.innerHTML.includes('Loading detailed information...')) {
+                 window.loadMoreInfoContent(planId);
+             }
+         } else {
+             // Hide this more info row
+             moreInfoRow.style.display = 'none';
+             if (chevron) chevron.classList.remove('rotated');
+         }
+     };
+
+     window.loadMoreInfoContent = function(planId) {
+         const moreInfoContent = document.getElementById(`more-info-content-${planId}`);
+         
+         if (!moreInfoContent) {
+             console.error('More info content container not found for plan:', planId);
+             return;
+         }
+         
+         fetch(`/inventory/production_plan/detail/${planId}/ajax`, {
+             method: 'GET',
+             headers: { 
+                 'X-Requested-With': 'XMLHttpRequest',
+                 'X-CSRFToken': getCSRFToken()
+             },
+             credentials: 'same-origin'
+         })
+         .then(response => {
+             if (!response.ok) { 
+                 throw new Error(`HTTP error! status: ${response.status}`); 
+             }
+             return response.text();
+         })
+         .then(html => {
+             moreInfoContent.innerHTML = html;
+         })
+         .catch(error => {
+             console.error('Error loading more info:', error);
+             moreInfoContent.innerHTML = `
+                 <div style="text-align: center; padding: 40px; color: #dc3545;">
+                     <h4>Error loading detailed information</h4>
+                     <p>Error: ${error.message}</p>
+                     <button onclick="window.loadMoreInfoContent(${planId})" style="background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
+                         Retry
+                     </button>
+                 </div>
+             `;
+         });
+     };
+         
+
+    document.addEventListener('DOMContentLoaded', function() {
+                 // Initialize DataTable for sorting and pagination
+         if (typeof DataTable !== 'undefined') {
+             new DataTable('#declarationTable', {
+                 pageLength: 10,
+                 order: [[0, 'desc']], // Sort by plan number (most recent first)
+                 responsive: true,
+                 language: {
+                     search: "Search plans:",
+                     lengthMenu: "Show _MENU_ plans per page",
+                     info: "Showing _START_ to _END_ of _TOTAL_ plans",
+                     paginate: {
+                         first: "First",
+                         last: "Last",
+                         next: "Next",
+                         previous: "Previous"
+                     }
+                 }
+             });
+         }
+        
+        // Search functionality
+        const searchInput = document.getElementById('planSearch');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                const query = this.value.toLowerCase();
+                const table = document.getElementById('declarationTable');
+                
+                if (!table) {
+                    console.error('Declaration table not found');
+                    return;
+                }
+                
+                const rows = table.querySelectorAll('tbody tr');
+                
+                rows.forEach(row => {
+                    const planNumber = row.querySelector('.plan-number');
+                    const dateCreated = row.querySelector('.date-created');
+                    
+                    if (!planNumber || !dateCreated) {
+                        return; // Skip rows without required elements
+                    }
+                    
+                    const planNumberText = planNumber.textContent.toLowerCase();
+                    const dateCreatedText = dateCreated.textContent.toLowerCase();
+                    const plannedAmount = row.cells[1] ? row.cells[1].textContent.toLowerCase() : '';
+                    const actualAmount = row.cells[2] ? row.cells[2].textContent.toLowerCase() : '';
+                    
+                    const isVisible = planNumberText.includes(query) || 
+                                    dateCreatedText.includes(query) || 
+                                    plannedAmount.includes(query) || 
+                                    actualAmount.includes(query);
+                    row.style.display = isVisible ? '' : 'none';
+                });
+            });
+        }
+         
+         // Add click functionality to production plan rows
+         const planRows = document.querySelectorAll('.plan-row');
+         planRows.forEach(row => {
+             row.addEventListener('click', function() {
+                 const planId = this.getAttribute('data-plan-id');
+                 
+                 // Remove selected class from all rows
+                 planRows.forEach(r => r.classList.remove('selected'));
+                 
+                 // Add selected class to clicked row
+                 this.classList.add('selected');
+                 
+                 // Load detailed information
+                 loadPlanDetails(planId);
+             });
+         });
+
+         
+         function loadPlanDetails(planId) {
+             // Show loading state
+             const contentContainer = document.querySelector('.dynamic-content-wrapper');
+             
+             if (!contentContainer) {
+                 console.error('Content container not found');
+                 return;
+             }
+             
+             const originalContent = contentContainer.innerHTML;
+             
+             contentContainer.innerHTML = `
+                 <div style="text-align: center; padding: 40px;">
+                     <div class="spinner-border text-primary" role="status">
+                         <span class="visually-hidden">Loading...</span>
+                     </div>
+                     <p class="mt-3">Loading production plan details...</p>
+                 </div>
+             `;
+             
+             // Fetch detailed information
+             fetch(`/inventory/production_plan/detail/${planId}/`, {
+                 method: 'GET',
+                 headers: { 
+                     'X-Requested-With': 'XMLHttpRequest',
+                     'X-CSRFToken': getCSRFToken()
+                 },
+                 credentials: 'same-origin'
+             })
+             .then(response => {
+                 if (!response.ok) { 
+                     throw new Error(`HTTP error! status: ${response.status}`); 
+                 }
+                 return response.text();
+             })
+             .then(html => {
+                 const parser = new DOMParser();
+                 const doc = parser.parseFromString(html, 'text/html');
+                 
+                 // Extract the main content
+                 let content = doc.querySelector('#dynamic-content') || 
+                              doc.querySelector('.left-content') || 
+                              doc.querySelector('.container') || 
+                              doc.querySelector('main') || 
+                              doc.querySelector('body');
+                 
+                 if (content && content.tagName !== 'BODY') { 
+                     contentContainer.innerHTML = content.innerHTML;
+                 } else { 
+                     contentContainer.innerHTML = html; 
+                 }
+                 
+                 // Execute any scripts in the loaded content
+                 const scripts = contentContainer.querySelectorAll('script');
+                 scripts.forEach(script => {
+                     if (script.src) { 
+                         const newScript = document.createElement('script'); 
+                         newScript.src = script.src; 
+                         document.head.appendChild(newScript); 
+                     } else { 
+                         try { 
+                             eval(script.innerHTML); 
+                         } catch (e) { 
+                             console.log('Script execution error:', e); 
+                         } 
+                     }
+                 });
+             })
+             .catch(error => {
+                 console.error('Error loading plan details:', error);
+                 contentContainer.innerHTML = `
+                     <div style="text-align: center; padding: 40px; color: #dc3545;">
+                         <h4>Error loading production plan details</h4>
+                         <p>Error: ${error.message}</p>
+                         <button onclick="location.reload()" style="background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
+                             Retry
+                         </button>
+                     </div>
+                 `;
+             });
+         }
+         
+         function getCSRFToken() {
+             const name = 'csrftoken';
+             const cookies = document.cookie.split(';');
+             for (let cookie of cookies) {
+                 cookie = cookie.trim();
+                 if (cookie.startsWith(name + '=')) {
+                     return decodeURIComponent(cookie.substring(name.length + 1));
+                 }
+             }
+             return null;
+         }
+
+         // Function to load more info content
+         function loadMoreInfoContent(planId) {
+             const moreInfoContent = document.getElementById(`more-info-content-${planId}`);
+             
+             fetch(`/inventory/production_plan/detail/${planId}/ajax`, {
+                 method: 'GET',
+                 headers: { 
+                     'X-Requested-With': 'XMLHttpRequest',
+                     'X-CSRFToken': getCSRFToken()
+                 },
+                 credentials: 'same-origin'
+             })
+             .then(response => {
+                 if (!response.ok) { 
+                     throw new Error(`HTTP error! status: ${response.status}`); 
+                 }
+                 return response.text();
+             })
+             .then(html => {
+                 moreInfoContent.innerHTML = html;
+             })
+             .catch(error => {
+                 console.error('Error loading more info:', error);
+                 moreInfoContent.innerHTML = `
+                     <div style="text-align: center; padding: 40px; color: #dc3545;">
+                         <h4>Error loading detailed information</h4>
+                         <p>Error: ${error.message}</p>
+                         <button onclick="loadMoreInfoContent(${planId})" style="background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
+                             Retry
+                         </button>
+                     </div>
+                 `;
+             });
+         }
+         
+         // Global functions for allocations modal
+         window.showAllocations = function(planId) {
+             const modal = document.getElementById('allocationsModal');
+             const content = document.getElementById('allocationsContent');
+             
+             // Show loading state
+             content.innerHTML = `
+                 <div style="text-align: center; padding: 40px;">
+                     <div class="spinner-border text-primary" role="status">
+                         <span class="visually-hidden">Loading...</span>
+                     </div>
+                     <p class="mt-3">Loading allocations...</p>
+                 </div>
+             `;
+             
+             modal.style.display = 'block';
+             
+             // Fetch allocations data
+             fetch(`/inventory/production_plan/allocations/${planId}/`, {
+                 method: 'GET',
+                 headers: { 
+                     'X-Requested-With': 'XMLHttpRequest',
+                     'X-CSRFToken': getCSRFToken()
+                 },
+                 credentials: 'same-origin'
+             })
+             .then(response => {
+                 if (!response.ok) { 
+                     throw new Error(`HTTP error! status: ${response.status}`); 
+                 }
+                 return response.text();
+             })
+             .then(html => {
+                 content.innerHTML = html;
+             })
+             .catch(error => {
+                 console.error('Error loading allocations:', error);
+                 content.innerHTML = `
+                     <div style="text-align: center; padding: 40px; color: #dc3545;">
+                         <h4>Error loading allocations</h4>
+                         <p>Error: ${error.message}</p>
+                         <button onclick="closeAllocationsModal()" style="background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
+                             Close
+                         </button>
+                     </div>
+                 `;
+             });
+         };
+         
+         window.closeAllocationsModal = function() {
+             const modal = document.getElementById('allocationsModal');
+             modal.style.display = 'none';
+         };
+         
+         // Close modal when clicking outside
+         window.onclick = function(event) {
+             const modal = document.getElementById('allocationsModal');
+             if (event.target === modal) {
+                 modal.style.display = 'none';
+             }
+         };
+     });
+ </script>
+
+<!-- Allocations Modal -->
+<div id="allocationsModal" class="allocations-modal">
+     <div class="allocations-modal-content">
+         <div class="allocations-modal-header">
+             <h3 class="allocations-modal-title">Production Plan Allocations</h3>
+             <button class="close-modal" onclick="closeAllocationsModal()">&times;</button>
+         </div>
+         <div id="allocationsContent">
+             <!-- Content will be loaded here -->
+         </div>
+     </div>
+ </div>

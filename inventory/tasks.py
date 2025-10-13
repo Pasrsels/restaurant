@@ -1,23 +1,53 @@
 from utils.email import EmailThread
 from . models import (
-    Production, 
     Transfer,
     Supplier,
     PurchaseOrderItem,
     Product,
     Budget,
     BudgetItem,
-    Dish,
-    Ingredient
 )
 from django.core.mail import EmailMessage
 from utils.supplier_best_price import best_price
 from loguru import logger
-from settings.models import NotificationEmails
-from utils.email_notification import modules_list
+# from utils.email_notification import modules_list
 from celery import shared_task
 from decimal import Decimal
 from django.core.mail import send_mail
+from datetime import datetime, time, date
+import requests
+
+@shared_task
+def sendProductHistory(product_list):
+    try:
+        logger.info(product_list)
+
+        for product in product_list:
+            report = f"""
+                Please find the stock movement below:
+                Product Name: {product.get('Product_Name')} \n
+                Opening Stock: {product.get('Start')} \n
+                Stock In: {product.get('Stock')} \n
+                Sold: {product.get('Sold')} \n
+                Remaining: {product.get('Current')} \n
+            """
+
+            recipients = ['cassymyo@gmail.com', 'teddychinomona@gmail.com']
+
+            subject = f"End of Day {product.get('Product_Name')} Report:"
+
+            logger.info('Sending Email')
+            mail = EmailMessage(
+                subject=subject,
+                body=report,
+                from_email='Urban Eats',
+                to=recipients,
+            )
+
+            mail.send()
+            logger.info('Email sent successfully.')
+    except Exception as e:
+        logger.error(f"Failed to send email: {e}")
 
 @shared_task
 def inventory_task(product_id):
@@ -54,7 +84,7 @@ def inventory_task(product_id):
 
         # Get recipients configured for dish cost update notifications
         # emails = NotificationEmails.objects.filter(module=modules_list["dish_cost_update"]).values_list("email", flat=True)
-        emails = ['teddychinomona@gmail.com']
+        emails = ['teddychinomona@gmail.com', 'cassymyo@gmail.com', 'mirackletec@gmail.com']
 
         if emails:
             send_email_task.delay(
@@ -149,13 +179,14 @@ def send_email_task(self, subject, message, recipient_list, from_email=None):
     A separate task for sending emails with retry logic
     """
     try:
-        email =send_mail(
+        send_mail(
             subject=subject,
             message=message,
             from_email=from_email,
             recipient_list=recipient_list,
             fail_silently=False,
         )
+
         return f"Email sent to {', '.join(recipient_list)}"
     except Exception as exc:
         logger.warning(f"Email sending failed: {exc}. Retrying in 5 seconds...")
@@ -186,7 +217,7 @@ def send_production_creation_notification(production_id):
         The email is to notify you on the creation of a Production Plan {production.production_plan_number}, and it requires your cornifimation.
         """,
         from_email='admin@techcity.co.zw',
-        to=['cassymyo@gmail.com'],
+        to=['cassymyo@gmail.com', 'teddychinomona@gmail.com', 'mirackletec@gmail.com'],
     )
     
     EmailThread(email).start()
@@ -210,11 +241,11 @@ def transfer_notification(transfer_id):
     
     logger.info(f'Notification for transfer {transfer.transfer_number} sent.')
 
-def supplier_email(supplier_id, purchase_order_item):
-    purchase_order_items = PurchaseOrderItem.objects.filter(purchase_order=purchase_order_item.purchase_order)
-    supplier = Supplier.objects.get(id=supplier_id)
+def supplier_email(supplier_id, purchase_order_item, branch):
+    purchase_order_items = PurchaseOrderItem.objects.filter(purchase_order=purchase_order_item.purchase_order, purchase_order__branch=branch)
+    supplier = Supplier.objects.get(id=supplier_id, branch=branch)
 
-    price_list = [ sup['price'] for sup in best_price(purchase_order_item.product.name)]
+    price_list = [ sup['price'] for sup in best_price(purchase_order_item.product.name, branch=branch)]
 
     min_price = min(price_list)
 
@@ -266,3 +297,90 @@ def CreateBudgetTask(budget_id):
             )
         )
     BudgetItem.objects.bulk_create(budget_items_list)
+
+
+def autoConfirmProdPlan(production_plan_id):
+    logger.info('here')
+    temporay_declaration = Production.objects.get(id = production_plan_id)
+    temporay_declaration.declared = True
+    temporay_declaration.status = False
+    temporay_declaration.save()
+
+    # try:
+    #     logger.info('Sending Email')
+    #     recipients = ['cassymyo@gmail.com', 'teddychinomona@gmail.com', 'mirackletec@gmail.com']
+    #     mail = EmailMessage(
+    #         subject= 'Temporary Production Plan Declared',
+    #         body= f'Production Plan Declared: {temporay_declaration.id} from POS final declaration',
+    #         to=recipients,
+    #     )
+
+    #     mail.send()
+    #     logger.info('Email sent successfully.')
+    # except Exception as e:
+    #     logger.info(f'Sending Email ran into an error')
+
+@shared_task
+def checkLowStock():
+    today = date.today()
+
+    # Get all declared production plans for today
+    production_plan = Production.objects.filter(date_created=today, declared=True)
+
+    production_items = []
+    low_stock_dishes = []
+
+    for prod in production_plan:
+        production_plan_items = ProductionItems.objects.filter(production=prod)
+
+        for pp_item in production_plan_items:
+            dish_name = pp_item.dish.name
+            portions = pp_item.portions
+            sold = pp_item.portions_sold
+            low = pp_item.dish.low_stock
+
+            found = False
+            for item in production_items:
+                if item['dish'] == dish_name:
+                    item['portions'] += portions
+                    item['sold'] += sold
+                    item['left'] = item['portions'] - item['sold']
+                    found = True
+                    break
+
+            if not found:
+                production_items.append({
+                    'dish': dish_name,
+                    'portions': portions,
+                    'sold': sold,
+                    'low': low,
+                    'left': portions - sold
+                })
+
+    logger.info(f"Production items summary: {production_items}")
+
+    now = datetime.now().time()
+
+    if now.hour <= 14 and now.hour >= 7:
+        for item in production_items:
+            if item['left'] <= item['low']:
+                low_stock_dishes.append({
+                    'name': item['dish'],
+                    'left': item['left']
+                })
+    elif now.hour >= 15 and now.hour <= 18:
+        for item in production_items:
+            if item['left'] <= item['low'] - 5:
+                low_stock_dishes.append({
+                    'name': item['dish'],
+                    'left': item['left']
+                })
+
+    if low_stock_dishes:
+        requests.post(
+            "http://127.0.0.1:8000/pos/low-stock/",
+            json={"low_stock": low_stock_dishes},
+            timeout=5
+        )
+    logger.info(f"Low stock dishes at {now}: {low_stock_dishes}")
+    return low_stock_dishes

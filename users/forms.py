@@ -1,7 +1,8 @@
 from django import forms
 from loguru import logger
-from users.models import User, Company
+from users.models import User, Company, Branch
 from django.contrib.auth.forms import UserCreationForm
+
 class UserRegistrationForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput)
 
@@ -15,8 +16,21 @@ class UserRegistrationForm(forms.ModelForm):
             'phonenumber',
             'company',
             'role',
-            'password'
+            'password',
         ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Filter companies
+        if 'company' in self.fields:
+            self.fields['company'].queryset = Company.objects.all()
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.set_password(self.cleaned_data["password"])
+        if commit:
+            user.save()
+        return user
 
 
 class UserDetailsForm(forms.ModelForm):
@@ -30,8 +44,15 @@ class UserDetailsForm(forms.ModelForm):
             'email',
             'phonenumber',
             'role',
+            'company',
+            'branch'
         ]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        if 'branch' in self.fields:
+            self.fields['branch'].queryset = Branch.objects.all()
 
 class UserDetailsForm2(forms.ModelForm):
    
@@ -44,12 +65,25 @@ class UserDetailsForm2(forms.ModelForm):
             'email',
             'phonenumber',
             'role',
+            'branch'
         ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        if 'branch' in self.fields:
+            self.fields['branch'].queryset = Branch.objects.all()
+
 
 class CompanyForm(forms.ModelForm):
     class Meta:
         model = Company
         fields = ['name', 'address']
+
+class BranchForm(forms.ModelForm):
+    class Meta:
+        model = Branch
+        fields = ['branch_name']
 
 class CustomUserCreationForm(UserCreationForm):
     first_name = forms.CharField(max_length=30)

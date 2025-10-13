@@ -5,8 +5,10 @@ from django.contrib import admin
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.urls import include, path
 from django.views import defaults as default_views
+from django.views.generic import TemplateView
 
 urlpatterns = [
+    path('sw.js', TemplateView.as_view(template_name='sw.js', content_type='application/javascript'), name='sw.js'),
     path('pos/', include('pos.urls', namespace='pos')),
     path('', Dashboard, name='dashborad'),
     path("admin/", admin.site.urls),
@@ -15,6 +17,8 @@ urlpatterns = [
     path('analytics/', include('analytics.urls')),
     path('finance/', include('finance.urls', namespace='finance')),
     path('inventory/', include('inventory.urls', namespace='inventory')),
+    path('production/', include('production.urls', namespace='production')),
+    # path('__debug__/', include('debug_toolbar.urls')),
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if settings.DEBUG:

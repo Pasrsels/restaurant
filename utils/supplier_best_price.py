@@ -1,7 +1,7 @@
 from inventory.models import PurchaseOrderItem
 
-def best_price(raw_material_name):
-    purchase_orders = PurchaseOrderItem.objects.filter(product__name=raw_material_name)
+def best_price(raw_material_name, branch):
+    purchase_orders = PurchaseOrderItem.objects.filter(product__name=raw_material_name, purchase_order__branch = branch)
 
     supplier_prices = []
     for item in purchase_orders:
