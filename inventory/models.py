@@ -17,6 +17,26 @@ class UnitOfMeasurement(models.Model):
     
     def __str__(self) -> str:
         return self.unit_name
+    
+class Dish(models.Model):
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
+    name = models.CharField(max_length=100)
+    portion_multiplier = models.FloatField()
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    category = models.CharField(choices=[
+        ('Fast food', 'Fast food'),
+        ('Meat', 'Meat'),
+        ('Starch', 'Starch'),
+        ('Salad', 'Salad')
+    ], max_length=255)
+    dish = models.BooleanField(default=True)
+    low_stock = models.IntegerField(default=10, null=True)
+    image = models.ImageField(upload_to='meal_images/', default='placeholder1.jpg', null=True)
+    # low_stock_time = models.ForeignKey('inventory.MealDishLowStock', on_delete=models.CASCADE, related_name="dish_notification", null=True, blank=True)
+
+    def __str__(self) -> str:
+        return self.name
 
 class Supplier(models.Model):
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
@@ -52,11 +72,11 @@ class Product(models.Model):
     min_stock_level = models.FloatField(default=0, null=True)
     raw_material = models.BooleanField(default=False)
     finished_product = models.BooleanField(default=False)
-    packaging = models.BooleanField(default=False)
+    packaging = models.BooleanField(default=False, null=True)
     description = models.TextField()
     deactivate = models.BooleanField(default=False)
     image = models.ImageField(upload_to='product_images/', default='placeholder1.jpg', null=True)
-    updated_at = models.DateTimeField(auto_now=True, null=True)
+    # updated_at = models.DateTimeField(auto_now=True, null=True)
     
     def __str__(self) -> str:
         return self.name
@@ -101,8 +121,8 @@ class Production(models.Model):
         return self.production_plan_number
     
 class ProductionItems(models.Model):
-    production = models.ForeignKey(Production, on_delete=models.CASCADE)
-    dish = models.ForeignKey('inventory.dish', on_delete=models.CASCADE)
+    production = models.ForeignKey(Production, on_delete=models.CASCADE, null=True)
+    dish = models.ForeignKey('inventory.dish', on_delete=models.CASCADE, null=True)
     lf_brought_forward_quantity = models.FloatField(null=True, blank=True)
     actual_quantity = models.FloatField(null=True, blank=True)
     total_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -120,7 +140,7 @@ class ProductionItems(models.Model):
 
 class MinorProductionItems(models.Model):
     production = models.ForeignKey(Production, on_delete=models.CASCADE)
-    minor_raw_material = models.ForeignKey(Product, on_delete=models.CASCADE)
+    # minor_raw_material = models.ForeignKey(Product, on_delete=models.CASCADE, null=True)
     total_quantity_per_kg = models.FloatField()
     planned_quantity = models.FloatField()
     expected_quantity = models.FloatField()
@@ -131,17 +151,7 @@ class MinorProductionItems(models.Model):
     def __str__(self) -> str:
         return f'{self.minor_raw_material}'
     
-class Declaration(models.Model):
-    dish = models.ForeignKey('inventory.dish', on_delete=models.CASCADE, null=True)
-    meal = models.ForeignKey('inventory.meal', on_delete=models.CASCADE, null=True)
-    kgs = models.FloatField(null=True)
-    expected = models.IntegerField(null=True)
-    declared = models.IntegerField(null=True)
-    sold = models.IntegerField(null=True)
-    staff = models.IntegerField(null=True)
-    left_over = models.IntegerField(null=True)
-    variance = models.FloatField(null=True)
-    
+
 
 class AllocatedRawMaterials(models.Model):
     production = models.ForeignKey(Production, on_delete=models.CASCADE)
@@ -166,49 +176,6 @@ class ProductionInventory(models.Model):
     def __str__(self) -> str:
         return f'{self.raw_material}: ({self.quantity})'
 
-class Dish(models.Model):
-    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
-    name = models.CharField(max_length=100)
-    portion_multiplier = models.FloatField()
-    price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    category = models.CharField(choices=[
-        ('Fast food', 'Fast food'),
-        ('Meat', 'Meat'),
-        ('Starch', 'Starch'),
-        ('Salad', 'Salad')
-    ], max_length=255)
-    dish = models.BooleanField(default=True)
-    low_stock = models.IntegerField(default=10, null=True)
-    image = models.ImageField(upload_to='meal_images/', default='placeholder1.jpg', null=True)
-    low_stock_time = models.ForeignKey('inventory.MealDishLowStock', on_delete=models.CASCADE, related_name="dish_notification", null=True, blank=True)
-
-    def __str__(self) -> str:
-        return self.name
-    
-class Supplies(models.Model):
-    TYPE_CHOICES = (
-        ('dish', 'Dish'),
-        ('meal', 'Meal'),
-    )
-    type = models.CharField(max_length=10, choices=TYPE_CHOICES)
-    dish = models.ForeignKey(Dish, on_delete=models.CASCADE, null=True, blank=True)
-    meal = models.ForeignKey('inventory.Meal', on_delete=models.CASCADE, null=True, blank=True)
-    item = models.ForeignKey(Product, on_delete=models.CASCADE)
-    quantity = models.IntegerField()
-
-    def __str__(self):
-        return f"{self.item.name} ({self.get_type_display()})"
-
-class Ingredient(models.Model):
-    dish = models.ForeignKey(Dish, on_delete=models.CASCADE, null=True)
-    note = models.CharField(max_length=100, null=True)
-    quantity = models.FloatField()
-    cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    minor_raw_material = models.ForeignKey(Product, on_delete=models.CASCADE, null=True)
-
-    def __str__(self) -> str:        
-        return self.minor_raw_material.name if self.minor_raw_material else 'None'        
     
 class MealCategory(models.Model):
     name = models.CharField(max_length=255)
@@ -225,10 +192,34 @@ class Meal(models.Model):
     deactivate = models.BooleanField(default=False)
     meal = models.BooleanField(default=True)
     image = models.ImageField(upload_to='meal_images/', default='placeholder1.jpg', null=True)
-    low_stock_time = models.ForeignKey('inventory.MealDishLowStock', on_delete=models.CASCADE, related_name='meal_notification', null=True, blank=True)
+    # low_stock_time = models.ForeignKey('inventory.MealDishLowStock', on_delete=models.CASCADE, related_name='meal_notification', null=True, blank=True)
     
     def __str__(self) -> str:
         return self.name
+    
+class Supplies(models.Model):
+    TYPE_CHOICES = (
+        ('dish', 'Dish'),
+        ('meal', 'Meal'),
+    )
+    type = models.CharField(max_length=10, choices=TYPE_CHOICES)
+    dish = models.ForeignKey(Dish, on_delete=models.CASCADE, null=True, blank=True)
+    meal = models.ForeignKey(Meal, on_delete=models.CASCADE, null=True, blank=True)
+    item = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.IntegerField()
+
+    def __str__(self):
+        return f"{self.item.name} ({self.get_type_display()})"
+
+class Ingredient(models.Model):
+    dish = models.ForeignKey(Dish, on_delete=models.CASCADE, null=True)
+    note = models.CharField(max_length=100, null=True)
+    quantity = models.FloatField()
+    cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    minor_raw_material = models.ForeignKey(Product, on_delete=models.CASCADE, null=True)
+
+    def __str__(self) -> str:        
+        return self.minor_raw_material.name if self.minor_raw_material else 'None'        
     
 class MealDishLowStock(models.Model):
     dish = models.ForeignKey(Dish, on_delete=models.CASCADE, null=True)
@@ -553,6 +544,7 @@ class StockTakeItem(models.Model):
     
     def __str__(self):
         return f'{self.product.name} - Recorded: {self.recorded_quantity}, Actual: {self.actual_quantity}, Variance: {self.variance}'
+    
 class InventoryNotificationLog(models.Model):
     NOTIFICATION_TYPES = [
         ('create', 'Create'),
@@ -568,3 +560,15 @@ class InventoryNotificationLog(models.Model):
 
     def __str__(self):
         return f"{self.action_type.upper()} - {self.inventory_item.product_name} at {self.created_at}"
+
+class Declaration(models.Model):
+    dish = models.ForeignKey(Dish, on_delete=models.CASCADE, null=True)
+    meal = models.ForeignKey(Meal, on_delete=models.CASCADE, null=True)
+    kgs = models.FloatField(null=True)
+    expected = models.IntegerField(null=True)
+    declared = models.IntegerField(null=True)
+    sold = models.IntegerField(null=True)
+    staff = models.IntegerField(null=True)
+    left_over = models.IntegerField(null=True)
+    variance = models.FloatField(null=True)
+    

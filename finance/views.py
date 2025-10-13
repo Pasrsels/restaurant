@@ -22,6 +22,7 @@ from inventory.models import Logs
 from permisions.permisions import admin_required
 from collections import defaultdict
 from .utilities import *
+from django.db.models import Q
 
 def get_previous_month():
     first_day_of_current_month = datetime.datetime.now().replace(day=1)
@@ -44,7 +45,7 @@ def sale(request):
         }    
     )
  
-@admin_required
+# @admin_required
 @login_required   
 def finance(request):
     sales = Sale.objects.filter(date__month = get_current_month(), void=False, branch = request.user.branch).order_by('-date')[:8]
@@ -1178,3 +1179,424 @@ def cashier_expenses(request, cashier_id):
 
     
     return JsonResponse({'success':False, 'message':'Invalid request method.'}, status=405)
+
+
+@login_required
+def cashier_report_form(request):
+    """Display form to select cashier and date"""
+    cashiers = User.objects.filter().order_by('username')
+
+    context = {
+        'cashiers': cashiers,
+        'today': datetime.date.today(),
+    }
+    return render(request, 'finance/cashier_report.html', context)
+
+
+@login_required
+def cash_up(request, cashier_id):
+    """Generate cash up report for specified cashier and date"""
+    logger.info(f'Cash up requested for cashier_id: {cashier_id} by user: {request.user.username}')
+    
+    if request.method == 'GET':
+        try:
+            report_date_str = request.GET.get('date')
+            if report_date_str:
+                report_date = datetime.datetime.strptime(report_date_str, '%Y-%m-%d').date()
+            else:
+                report_date = datetime.date.today()
+            
+            report_type = request.GET.get('report_type', 'cash_up')
+            
+            logger.info(f'Generating {report_type} report for date: {report_date}')
+            
+            # Validate cashier_id
+            try:
+                cashier = User.objects.get(id=cashier_id)
+                logger.info(f'Found cashier: {cashier.username}')
+            except User.DoesNotExist:
+                logger.error(f'Cashier with id {cashier_id} does not exist')
+                return JsonResponse({'success': False, 'message': 'Cashier not found'}, status=404)
+                
+            if not request.user.branch:
+                logger.error('Request user has no branch assigned')
+                return JsonResponse({'success': False, 'message': 'User has no branch assigned'}, status=400)
+
+            # Get base sales data
+            sales = Sale.objects.filter(
+                cashier__id=cashier_id, 
+                date=report_date, 
+                void=False, 
+                branch=request.user.branch
+            ).values('id', 'total_amount', 'cash_type', 'staff', 'date')
+            
+            sales_items = SaleItem.objects.filter(
+                sale__cashier__id=cashier_id, 
+                sale__date=report_date, 
+                sale__branch=request.user.branch
+            ).select_related('sale', 'dish', 'product', 'meal')
+            
+            void_sales = Sale.objects.filter(
+                cashier__id=cashier_id, 
+                date=report_date, 
+                void=True, 
+                branch=request.user.branch
+            ).values('total_amount')
+
+            # Prepare base data structures
+            sales_dict = {}
+            staff_meals_dict = {}
+            void_sales_dict = {}
+            total_summary_sales = 0
+            total_staff_summary_sales = 0
+            sales_summary = defaultdict(lambda: {'price': 0, 'quantity':0})
+            staff_sales_summary = defaultdict(lambda: {'price': 0, 'quantity':0})
+        
+            # Build sales summaries
+            for sale in sales_items.filter(sale__staff=False):
+                item = sale.meal or sale.product or sale.dish
+                if item:
+                    key = f"{item.name}"
+                    sales_summary[key]['price'] = round(sale.price, 2)
+                    sales_summary[key]['quantity'] += sale.quantity
+                    total_summary_sales += round(sale.price * sale.quantity, 2)
+            
+            for sale in sales_items.filter(sale__staff=True):
+                item = sale.meal or sale.product or sale.dish
+                if item:
+                    key = f"{item.name}"
+                    staff_sales_summary[key]['price'] = round(sale.price, 2)
+                    staff_sales_summary[key]['quantity'] += sale.quantity
+                    total_staff_summary_sales += round(sale.price * sale.quantity, 2)
+
+            # Build detailed dictionaries
+            for items in sales_items.filter(sale__staff=False):
+                if items.dish:
+                    name = [{'Name': items.dish.name, 'Price': items.dish.price}]
+                elif items.product:
+                    name = [{'Name': items.product.name, 'Price': items.product.price}]
+                elif items.meal:
+                    name = [{'Name': dish.name, 'Price': dish.price} for dish in items.meal.dish.all()]
+                else:
+                    name = None
+
+                if name:
+                    for item in name:
+                        dish_name = item['Name']
+                        dish_price = item['Price']
+
+                        if not items.sale.void and not items.sale.staff:
+                            if dish_name in sales_dict:
+                                sales_dict[dish_name]['Quantity'] += items.quantity
+                                sales_dict[dish_name]['Total'] += items.quantity * dish_price
+                            else:
+                                sales_dict[dish_name] = {
+                                    'Name': dish_name,
+                                    'Quantity': items.quantity,
+                                    'Price': dish_price,
+                                    'Total': items.quantity * dish_price
+                                }
+                        elif items.sale.staff:
+                            if dish_name in staff_meals_dict:
+                                staff_meals_dict[dish_name]['Quantity'] += items.quantity
+                                staff_meals_dict[dish_name]['Total'] += items.quantity * dish_price
+                            else:
+                                staff_meals_dict[dish_name] = {
+                                    'Name': dish_name,
+                                    'Quantity': items.quantity,
+                                    'Price': dish_price,
+                                    'Total': items.quantity * dish_price
+                                }
+                        elif items.sale.void:
+                            if dish_name in void_sales_dict:
+                                void_sales_dict[dish_name]['Quantity'] += items.quantity
+                                void_sales_dict[dish_name]['Total'] += items.quantity * dish_price
+                            else:
+                                void_sales_dict[dish_name] = {
+                                    'Name': dish_name,
+                                    'Quantity': items.quantity,
+                                    'Price': dish_price,
+                                    'Total': items.quantity * dish_price
+                                }
+
+            sales_portions_list = list(sales_dict.values())
+            staff_meals_portions_list = list(staff_meals_dict.values())
+            void_sales_portions_list = list(void_sales_dict.values())
+            
+            sale_total = sum(item['Total'] for item in sales_portions_list)
+            staff_total = sum(item['Total'] for item in staff_meals_portions_list)
+            
+            # Calculate eco cash
+            eco_cash_total = sum(item['total_amount'] for item in sales if item['cash_type'] == 'eco-cash' and not item['staff'])
+            eco_cash_tax = 0.00
+
+            # Get expenses
+            expenses = CashierExpense.objects.filter(
+                cashier__id=cashier_id,
+                date=report_date,
+                branch=request.user.branch
+            )
+            
+            expenses_list = []
+            for item in expenses:
+                if item.name:
+                    expenses_list.append({
+                        'Name': item.name, 
+                        'Amount': item.amount,
+                        'time': item.created_at.strftime('%H:%M:%S') if hasattr(item, 'created_at') else 'N/A'
+                    })
+            
+            # Calculate totals
+            total_sales = sum(sale['total_amount'] for sale in sales if not sale['staff'])
+            total_staff_sales = sum(sale['total_amount'] for sale in sales if sale['staff'])
+            total_void_sales = sum(void_sale['total_amount'] for void_sale in void_sales)
+            total_expenses = expenses.aggregate(Sum('amount'))['amount__sum'] or 0
+
+            # Get change information
+            accumulated_change = Change.objects.filter(
+                cashier__id=cashier_id,
+                collected=False,
+                timestamp__date=report_date,
+                sale__branch=request.user.branch
+            )
+
+            collected_changes = Change.objects.filter(
+                Q(cashier__id=cashier_id)|
+                Q(cashier_give__id=cashier_id),
+                timestamp__date=report_date,
+                collected=True,
+                # data_collected=report_date,
+                sale__branch=request.user.branch
+            ).exclude(
+                cashier__id=cashier_id
+            ).aggregate(Sum('amount_collected'))['amount_collected__sum'] or 0
+
+            cashier_partially_collected_changes = Change.objects.filter(
+                timestamp__date=report_date,
+                cashier__id=cashier_id,
+                collected=False,
+                balance__gt=0,
+                sale__branch=request.user.branch
+            ).aggregate(Sum('balance'))['balance__sum'] or 0
+
+            uncollected_change = Change.objects.filter(
+                timestamp__date=report_date,
+                cashier__id=cashier_id,
+                collected=False,
+                amount_collected=0,
+                sale__branch=request.user.branch
+            ).aggregate(Sum('amount'))['amount__sum'] or 0
+            
+            total_change = accumulated_change.aggregate(Sum('amount'))['amount__sum'] or 0
+            cash_in_hand = total_sales - total_expenses - total_void_sales - collected_changes + uncollected_change + cashier_partially_collected_changes 
+            uncollected_change = uncollected_change + cashier_partially_collected_changes
+
+            # Get finished products
+            # finished_product = finishedProduct(cashier_id)
+
+
+            # Only create CashUp record if it's for today
+            if report_date == datetime.date.today():
+                CashUp.objects.create(
+                    branch=request.user.branch,
+                    cashier=cashier,
+                    void_amount=total_void_sales,
+                    sales=total_sales,
+                    change=collected_changes + cashier_partially_collected_changes,
+                    user=request.user,
+                    expenses=total_expenses,
+                    status=False,
+                    cashed=False,
+                )
+
+            # Build base data response
+            data = {
+                "cashier": cashier.get_full_name() or cashier.username,
+                "cashier_name": cashier.get_full_name() or cashier.username,
+                "report_date": report_date.strftime('%Y-%m-%d'),
+                "total_sales": total_sales,
+                'sales_portions': sales_portions_list,
+                'void_sales_portions': void_sales_portions_list,
+                'staff_meal_portions': staff_meals_portions_list,
+                'previous_change_given': [],
+                # 'variance': list(eod_list),
+                'expense': expenses_list,
+                'total_expenses': total_expenses,
+                'total_change': round(uncollected_change, 2),
+                'total_accumulated_change': uncollected_change,
+                'cash_in_hand': round(cash_in_hand, 2),
+                'sales_total': sale_total,
+                'staff_total': staff_total,
+                # 'finished_product': finished_product,
+                'sales_summary': sales_summary,
+                'total_summary_sales': total_summary_sales,
+                'staff_sales_summary': staff_sales_summary,
+                'eco_cash_total': eco_cash_total,
+                'eco_cash_tax': Decimal(eco_cash_tax),
+                'collected_changes': float(collected_changes),
+            }
+
+            # Add report-specific data based on report type
+            if report_type == 'sales_detail':
+                data['sales_detail'] = get_sales_detail(cashier_id, report_date, request.user.branch)
+            elif report_type == 'changes_detail':
+                data.update(get_changes_detail(cashier_id, report_date, request.user.branch))
+            elif report_type == 'staff_meals_detail':
+                data['staff_meals_detail'] = get_staff_meals_detail(cashier_id, report_date, request.user.branch)
+
+            return JsonResponse({'success': True, "data": data})
+            
+        except Exception as e:
+            logger.exception('Error in cash_up view')
+            return JsonResponse({
+                'success': False, 
+                'message': 'An error occurred while processing your request',
+                'error': str(e)
+            }, status=500)
+
+    return JsonResponse({'success': False, 'message': 'Invalid request'}, status=400)
+
+
+def get_sales_detail(cashier_id, report_date, branch):
+    """Get detailed sales information with time and items"""
+    sales = Sale.objects.filter(
+        cashier__id=cashier_id,
+        date=report_date,
+        void=False,
+        staff=False,
+        branch=branch
+    ).order_by('date')
+    
+    sales_detail = []
+    for sale in sales:
+        sale_items = SaleItem.objects.filter(sale=sale)
+        
+        items_list = []
+        for sale_item in sale_items:
+            item = sale_item.meal or sale_item.product or sale_item.dish
+            
+            if item:
+                if sale_item.meal:
+                    # For meals, list all dishes
+                    for dish in sale_item.meal.dish.all():
+                        items_list.append({
+                            'name': f"{sale_item.meal.name} ({dish.name})",
+                            'quantity': sale_item.quantity,
+                            'price': dish.price,
+                            'total': dish.price * sale_item.quantity
+                        })
+                else:
+                    items_list.append({
+                        'name': item.name,
+                        'quantity': sale_item.quantity,
+                        'price': sale_item.price,
+                        'total': sale_item.price * sale_item.quantity
+                    })
+        
+        sales_detail.append({
+            'sale_number': sale.id,
+            'time': sale.date.strftime('%H:%M:%S'),
+            'total_amount': float(sale.total_amount),
+            'cash_type': sale.cash_type,
+            'is_staff': sale.staff,
+            'items': items_list
+        })
+    
+    return sales_detail
+
+
+def get_staff_meals_detail(cashier_id, report_date, branch):
+    """Get detailed staff meals information"""
+    staff_sales = Sale.objects.filter(
+        cashier__id=cashier_id,
+        date=report_date,
+        void=False,
+        staff=True,
+        branch=branch
+    ).order_by('-id')
+    
+    staff_meals_detail = []
+    for sale in staff_sales:
+        sale_items = SaleItem.objects.filter(sale=sale)
+        
+        items_list = []
+        for sale_item in sale_items:
+            item = sale_item.meal or sale_item.product or sale_item.dish
+            
+            if item:
+                if sale_item.meal:
+                    for dish in sale_item.meal.dish.all():
+                        items_list.append({
+                            'name': f"{sale_item.meal.name} ({dish.name})",
+                            'quantity': sale_item.quantity,
+                            'price': dish.price,
+                            'total': dish.price * sale_item.quantity
+                        })
+                else:
+                    items_list.append({
+                        'name': item.name,
+                        'quantity': sale_item.quantity,
+                        'price': sale_item.price,
+                        'total': sale_item.price * sale_item.quantity
+                    })
+        
+        staff_meals_detail.append({
+            'time': sale.date.strftime('%H:%M:%S'),
+            'total_amount': float(sale.total_amount),
+            'items': items_list
+        })
+    
+    return staff_meals_detail
+
+
+def get_changes_detail(cashier_id, report_date, branch):
+    """Get detailed changes information"""
+    changes = Change.objects.filter(
+        Q(cashier__id=cashier_id)|
+        Q(cashier_give__id=cashier_id),
+        timestamp__date=report_date,
+        # data_collected=report_date,
+        sale__branch=branch
+    ).order_by('timestamp')
+    
+    changes_detail = []
+    total_given = 0
+    total_collected = 0
+    total_pending = 0
+    
+    for change in changes:
+        change_data = {
+            'id': change.id,
+            'name': change.name,
+            'time': change.timestamp.strftime('%H:%M:%S'),
+            'amount': float(change.amount),
+            'amount_collected': float(change.amount_collected or 0),
+            'balance': float(change.balance if hasattr(change, 'balance') else change.amount),
+            'collected': change.collected,
+            'recorded_by':change.cashier.username,
+            'issued_by':change.cashier_give.username if change.cashier_give else 'Not yet collected'
+        }
+        
+        if change.collected and hasattr(change, 'data_collected'):
+            try:
+                collector = User.objects.get(id=change.collected_by_id) if hasattr(change, 'collected_by_id') else None
+                change_data['collected_by'] = collector.username if collector else 'N/A'
+                change_data['collection_time'] = change.data_collected.strftime('%H:%M:%S') if change.data_collected else 'N/A'
+            except:
+                change_data['collected_by'] = 'N/A'
+                change_data['collection_time'] = 'N/A'
+        
+        changes_detail.append(change_data)
+        
+        total_given += float(change.amount)
+        if change.collected:
+            total_collected += float(change.amount_collected or 0)
+        # else:
+        #     total_pending += float(change.balance if hasattr(change, 'balance') else change.amount)
+    
+    return {
+        'changes_detail': changes_detail,
+        'total_change_given': total_given,
+        'total_change_collected': total_collected,
+        'total_change_pending': total_pending or 0
+    }

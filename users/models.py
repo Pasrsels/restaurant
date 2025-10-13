@@ -62,7 +62,8 @@ class User(AbstractUser):
         ('sales', 'Salesperson'),
         ('accountant', 'Accountant'),
         ('owner', 'Owner'), 
-        ('stores_person', 'Stores Person')
+        ('stores_person', 'Stores Person'),
+        ('supervisor', 'supervisor')
     )
     
     phonenumber = models.CharField(max_length=13)

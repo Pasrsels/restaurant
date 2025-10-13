@@ -23,7 +23,7 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
     '192.168.1.133',
     '196.27.126.114',
-    '192.168.1.254'
+    '192.168.1.2'
 ]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -56,7 +56,7 @@ LOCAL_APPS = [
     'inventory',
     'finance',
     'analytics',
-    'settings'
+    'settings',
 ]
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
@@ -124,6 +124,7 @@ DATABASES = {
         'NAME': 'restaurant',  
         'USER': 'postgres',
         'PASSWORD': 'neverfail',
+        'HOST':'192.168.1.2',
         'PORT': '5432',
     }
 }
@@ -319,3 +320,5 @@ CACHES = {
         }
     }
 }
+
+

@@ -264,14 +264,7 @@
                 <i class="bx bx-bell" id="notification-icon"></i>
                 <span class="badge" id="notification-badge">2</span>
                 <div class="notifications" id="notification-dropdown">
-                    <ul id="notification-box">
-                        {% for notification in notifications %}
-                            <li>
-                                <small class='text-muted'>{{ notification.timestamp }}</small>
-                                <small>- {{ notification.message }}</small>
-                            </li>
-                        {% endfor %}
-                    </ul>
+                    <ul id="notification-box"></ul>
                 </div>
             </div>
         </h4>

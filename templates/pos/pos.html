@@ -1251,7 +1251,8 @@
             finished_product,
             eco_cash_total,
             eco_cash_tax,
-            collected_changes = 0
+            collected_changes = 0,
+            cashier
         } = cashUpData; 
         
         //finished products
@@ -1394,6 +1395,8 @@
                 "
                 >
                 <h3 style="text-align: center;">Parsles Investments (Urban Eats)</h3>
+                Cashier: ${cashier}
+                Date: ${new Date().toLocaleDateString()}
                 <table>
                     <thead>
                         <tr>
