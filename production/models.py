@@ -44,13 +44,15 @@ class ProductionItem(TimestampModel):
 class ProductionIngredients(models.Model):  
     production = models.ForeignKey(Production, on_delete=models.CASCADE)
     ingredient = models.ForeignKey(Product, on_delete=models.CASCADE)
-    total_quantity_per_kg = models.FloatField()
-    variance_cost = models.FloatField()
-    variance = models.FloatField()
+    declared_quantity = models.FloatField(null=True)
+    variance_cost = models.FloatField(null=True)
+    variance = models.FloatField(null=True)
+    quantity = models.FloatField(null=True)
     actual_quantity = models.FloatField(null=True)
-    cost_per_kg = models.DecimalField(max_digits=10, decimal_places=2, default=1)
-    total_cost = models.DecimalField(max_digits=10, decimal_places=2, default=1)
-
+    cost_per_kg = models.DecimalField(max_digits=10, decimal_places=2, default=1, null=True)
+    total_cost = models.DecimalField(max_digits=10, decimal_places=2, default=1, null=True)
+    remaining_quantity = models.FloatField(null=True)
+    
     def __str__(self) -> str:
         return f'{self.ingredient}'
     

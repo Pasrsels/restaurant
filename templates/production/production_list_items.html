@@ -34,15 +34,15 @@
             <td>{{ plan.actual_cost }}</td>
             <td>{{ plan.variance }}</td>
             <td>
+                 <a href="{% url 'production:confirm_production' plan.id %}" class="badge bg-primary text-white p-2">Confirm</a>
                 {% if plan.declared %}
                     <span class="badge bg-light text-dark p-2">Declared</span>
-                {% elif plan.confirm %}
-                    <span class="badge bg-warning p-2">Confirmed</span>
                 {% else %}
-                    {% if request.user.role == 'sales' or request.user.role == 'owner' or request.user.role == 'chef' and not plan.declared and not confirmed %}
-                        <a href="{% url 'production:confirm_production' plan.id %}" class="badge bg-primary text-white p-2">Confirm</a>
-                    {% elif request.user.role == 'sales' or request.user.role == 'owner' or request.user.role == 'accountant' or request.user.role == 'stores' and not plan.declared %}
-                        <a class="badge bg-secondary text-white p-2">Declare</span>
+                    {% if request.user.role == 'sales' or request.user.role == 'owner' or request.user.role == 'chef' and not plan.confirm %}
+                        <!-- <a href="{% url 'production:confirm_production' plan.id %}" class="badge bg-primary text-white p-2">Confirm</a> -->
+                        <a href="{% url 'production:declare_production' plan.id %}"  class="badge bg-secondary text-white p-2">Declare</span>
+                    {% else %}
+                        <a href="{% url 'production:declare_production' plan.id %}"  class="badge bg-secondary text-white p-2">Declare</span>
                     {% endif %}
                 {% endif %}
             </td>

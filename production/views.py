@@ -132,8 +132,6 @@ def confirm_production(request, pp_id):
                         allocation.expected_quantity=expected_quantity
                         allocation.save()
 
-                    logger.info(f'allocation: {allocation.expected_quantity} : {expected_quantity}')
-
                     raw_material_found = next((rm for rm in raw_materials if rm['id'] == ing.raw_material.id), None)
                     if raw_material_found:
                         raw_material_found['quantity'] += required_quantity
@@ -341,7 +339,7 @@ def create_production_plan(request):
 @login_required
 def declare_production(request, plan_id):
     try:
-        production_plan = Production.objects.get(id=pp_id, branch=request.user.branch)
+        production_plan = Production.objects.get(id=plan_id, branch=request.user.branch)
         production_plan_items = ProductionItem.objects.filter(production=production_plan).select_related('dish')
         dish_ingridients = Ingredient.objects.filter(raw_material__branch=request.user.branch)
         total_cost_items = production_plan_items.aggregate(total_cost=Sum('total_cost'))['total_cost'] or 0
@@ -382,6 +380,7 @@ def declare_production(request, plan_id):
                     raw_material_found['quantity_b_f'] += current_quantity
                     raw_material_found['allocated_quantity'] = allocation.quantity if allocation else None
                 else:
+                    logger.info(f'production: here')
                     raw_materials.append(
                         {
                             'id': ing.raw_material.id,
@@ -395,7 +394,20 @@ def declare_production(request, plan_id):
                         }
                     )
 
-        return render(request, 'production/confirm_production.html', 
+        for raw_material in raw_materials:
+            p_ing, _ = ProductionIngredients.objects.get_or_create(
+                production=production_plan,
+                ingredient_id=raw_material['id'],
+                defaults={
+                    'quantity':raw_material['quantity'],
+                }
+            )
+
+            if p_ing:
+                p_ing.quantity = raw_material['quantity']
+                p_ing.save()
+
+        return render(request, 'production/declare_production.html', 
             {
                 'production': production_plan,
                 'production_plan_items': production_plan_items,
@@ -405,10 +417,8 @@ def declare_production(request, plan_id):
             }
         )
     except Exception as e:
-        logger.error(f'Error in confirm_production: {e}')
+        logger.error(f'Error in declare production: {e}')
         return JsonResponse({'success': False, 'message': f'Error: {e}'}, status=500)
-
-        
 
 @method_decorator([login_required], name='dispatch')
 class DishListView(ListView):

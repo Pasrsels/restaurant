@@ -10,7 +10,11 @@ urlpatterns = [
     path("confirm/production/<int:pp_id>/", confirm_production, name="confirm_production"),
     path("confirm/production/item/", confirm_production_item, name="confirm_production_item"),
     path('confirm/', confirm, name='confirm'), # confirm the whole production
+<<<<<<< HEAD
     path('declare/production/', declare_production, name="declare_production"),
+=======
+    path('declare/production/<int:plan_id>/', declare_production, name="declare_production"),
+>>>>>>> 03bdeb3e (merge:release)
 
     path("dishes/list/", DishListView.as_view(), name="dish_list"),
     path("dish/create/", create_dish, name="create_dish"),

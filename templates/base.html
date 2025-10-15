@@ -121,7 +121,7 @@
                     {% if request.resolver_match.url_name == 'declare_production' %}
                         <div class='production-plan mt-2 d-flex justify-content-between align-items-center'>
                             <div>
-                                <a href='{% url "inventory:production_plans" %}' class='border btn bx bx-arrow-back fs-5'></a>
+                                <a href='{% url "production:production-list" %}' class='border btn bx bx-arrow-back fs-5'></a>
                                 <a href='/' class='bx bx-home btn border fs-5 mx-2'></a>
                                 <span class='mt-2 fs-5'>Production Plan : {{ p_plan.production_plan_number }} Declaration</span>
                             </div>
