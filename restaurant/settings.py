@@ -105,12 +105,13 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 
-                # customm
+                # custom
                 'inventory.context_processors.notification_processor', 
                 'inventory.context_processors.check_list_processor',
                 'inventory.context_processors.all_meals_dishes',
                 'users.context_processors.branches',
-                'inventory.context_processors.products'
+                'inventory.context_processors.products',
+                'users.context_processors.cashiers'
             ],
         },
     },
@@ -130,7 +131,6 @@ DATABASES = {
         'NAME': 'restaurant',  
         'USER': 'postgres',
         'PASSWORD': 'neverfail',
-        'HOST':'192.168.1.2',
         'PORT': '5432',
         # 'HOST': '192.168.1.2'
     }

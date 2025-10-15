@@ -5,7 +5,7 @@ import csv
 from loguru import logger
 from inventory.models import Production, ProductionItems
 
-@admin_required
+
 @login_required
 def Dashboard(request):    
     return render(request, 'dashboard.html')

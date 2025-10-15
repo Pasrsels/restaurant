@@ -183,14 +183,14 @@
                         {% endfor %}
                     </tbody>
                 </table>
-
                 {% if confirm %}
                     <div class="d-flex justify-content-end mt-4">
                         <a href="" class="btn btn-danger text-light mx-2">Cancel</a>
                         <a href="{% url 'inventory:process_production_plan' production_plan.id %}" 
                             class="btn-primary text-light btn disabled" 
                             id="confirm-btn"
-                            onclick="return false;">Confirm
+                            onclick="return false;">
+                            Confirm
                         </a>
                     </div>
                 {% endif %}

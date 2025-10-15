@@ -77,7 +77,6 @@ def get_expense(request, expense_id):
     return JsonResponse({'success': True, 'data': data})
 
 
-@admin_required
 @transaction.atomic #use with atomic
 @login_required
 def expenses(request):
