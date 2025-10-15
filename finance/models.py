@@ -145,7 +145,7 @@ class EmailNotifications(models.Model):
     expense_notification = models.BooleanField(default=True)
     
 class Change(models.Model):
-    # branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name='sale_change')
     name = models.CharField(max_length=100)
     phonenumber = models.CharField(max_length=20)

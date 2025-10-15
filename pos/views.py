@@ -467,7 +467,6 @@ def remove_duplicates(request):
                 tx.delete()
                 removed_count += 1
 
-    
 @login_required
 def process_sale(request):
     if request.method == 'POST':
@@ -534,9 +533,12 @@ def sync_collections(request):
 def deduct_current_production_plan(request, meal, dish, product, quantity, staff):
     pass
 
-@login_required
+
 def change_list(request):
     filter_option = request.GET.get('filter', 'today')
+    cashier = request.GET.get('cashier','')
+    status = request.GET.get('status', '')
+
     now = timezone.now()  
     
     if filter_option == 'today':
@@ -587,8 +589,15 @@ def change_list(request):
     changes = Change.objects.filter(
         timestamp__gte=start_date,
         timestamp__lte=end_date,
-        sale__branch=request.user.branch
-    ).order_by('-timestamp')
+    ).order_by('-data_collected')
+
+    if cashier:
+        changes = changes.filter(cashier__id=cashier)
+
+    if status == 'collected':
+        changes = changes.filter(collected=True)
+    elif status == 'uncollected':
+        changes = changes.filter(collected=False)
 
     change_total = changes.aggregate(total=Sum('amount'))['total'] or 0
     change_collected_total = changes.filter(collected=True).aggregate(total=Sum('amount'))['total'] or 0
@@ -627,7 +636,8 @@ def change_data(request):
     changes = Change.objects.filter(
         Q(name__icontains=name) | 
         Q(receipt_number__icontains=name), 
-        collected=False
+        collected=False,
+        branch=request.user.branch
     ).select_related(
         'branch', 'cashier', 'cashier_give'
     ).values()
@@ -718,6 +728,7 @@ def create_change(request):
                 cashier=request.user,
                 collected=False,
                 claimed=False,
+                branch=request.user.branch
             )
             return JsonResponse({'success':True}, status=201)
         except Exception as e:
@@ -1026,7 +1037,7 @@ def cash_up(request, cashier_id):
             previous_change = Change.objects.filter(
                 cashier__id=cashier_id,
                 collected=True,
-                date_collected=datetime.datetime.today(),
+                data_collected=datetime.datetime.today(),
                 sale__branch=request.user.branch
             ).select_related(
                 'cashier'
@@ -1134,6 +1145,7 @@ def cash_up(request, cashier_id):
                 'eco_cash_total': eco_cash_total,
                 'eco_cash_tax': Decimal(eco_cash_tax),
                 'collected_changes': float(collected_changes),
+                'cashier':request.user.username
             }   
 
             return JsonResponse({'success': True, "data": data})
