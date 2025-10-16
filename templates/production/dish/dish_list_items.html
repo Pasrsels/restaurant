@@ -26,6 +26,7 @@
                 <td>
                     <small>
                         {% for ingredient in ingredients_by_dish|get_ingredient_item:dish.id %}
+                            {{ingredient.dish.name }}
                             {{ ingredient.minor_raw_material.name }} ({{ ingredient.quantity }})<br>
                         {% endfor %}
                     </small>

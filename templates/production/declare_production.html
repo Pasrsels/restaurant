@@ -18,7 +18,6 @@
         cursor: not-allowed;
         pointer-events: none;
     }
-    
     .btn:not(.disabled) {
         opacity: 1;
         cursor: pointer;
@@ -59,23 +58,32 @@
                         </thead>
                         <tbody>
                             {% for item in production_plan_items %}
-                            <tr>
-                                <td>
-                                    <strong>{{ item.dish.name }}</strong>
-                                    <p>
-                                        (
-                                            {% for items in dish_ing %}
-                                                {% if item.dish.name == items.dish.name %}
-                                                    {{items.minor_raw_material.name}} => {{items.quantity}}{{items.minor_raw_material.unit.unit_name}}
-                                                {% endif %}
-                                            {% endfor %}
-                                        )
-                                    </p>
-                                </td>
-                                <td>{{ item.portions }} {{ item.raw_material.unit }}</td>
-                                <td><input type="number" id="portions_declared" class="form-control form-control-sm" onclick="declare(this), {{ item.dish.id }}"></td>
-                                <td id="portion_variance"></td>
-                            </tr>
+                                <tr>
+                                    <td>
+                                        <strong>{{ item.dish.name }}</strong>
+                                        <p>
+                                            (
+                                                {% for items in dish_ing %}
+                                                    {% if item.dish.name == items.dish.name %}
+                                                        {{item.dish.name}}
+                                                        {{items.minor_raw_material.name}} => {{items.quantity}}{{items.minor_raw_material.unit.unit_name}}
+                                                    {% endif %}
+                                                {% endfor %}
+                                            )
+                                        </p>
+                                    </td>
+                                    <td>{{ item.portions }} {{ item.raw_material.unit }}</td>
+                                    <td><input type="number" id="portions_declared" value="{{ item.declared_portions }}" class="form-control form-control-sm" onclick="declarePortion(this, {{ item.dish.id }})"></td>
+                                    <td id="portion_variance">
+                                        {% if item.variance < 0 %}
+                                            <span class="text-danger">{{ item.variance }}</span>
+                                        {% elif item.variance > 0 %}
+                                            <span class="text-success">{{ item.variance }}</span>
+                                        {% else %}
+                                            <span class="">{{ item.variance }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -88,27 +96,12 @@
                     <table class="table table-hover" id="minor">
                         <thead class="bg-primary-subtle">
                             <th>Raw Material</th>
-                            <th>Planned Quantity</th>
-                            <th>Declared (kgs)</th>
+                            <th>System Expected (kgs)</th>
                             <th>Actual usage (kgs)</th>
                             <th>Remaining (kgs)</th>
                             <th>Variance (kgs)</th>
                         </thead>
-                        <tbody>
-                            {% for item in production_plan_minor_items %}
-                                <tr data-id="{{ item.id }}">
-                                    <td>{{ item.name }}</td>
-                                    <td class="text-center">{{ item.quantity|floatformat:2 }}</td>
-                                    <td class="text-center">{{ item.expected_quantity|floatformat:2 }}</td>
-                                    <td>
-                                        {% if not item.allocated_quantity %}
-                                            <input type="number" class="form-control-sm form-control" min="0" placeholder="Press enter when done">
-                                        {% else %}
-                                            {{ item.allocated_quantity }}
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                            {% endfor %}
+                        <tbody id="rawMaterialsBody">
                         </tbody>
                     </table>
                 </div>
@@ -122,30 +115,162 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const inputs = document.querySelectorAll('#minor input[type="number"]');
+
+function updateRawMaterialsTable(rawMaterials) {
+    const tbody = document.getElementById('rawMaterialsBody');
+    tbody.innerHTML = ''; 
+
+    let totalSystemCost = 0;
+    let totalActualCost = 0;
+    let totalRemainingCost = 0;
+    let totalPositive = 0;
+    let totalNegative = 0;
+
+    rawMaterials.forEach(rm => {
+        const tr = document.createElement('tr');
+        tr.setAttribute('data-id', rm.id);
+
+
+        const declaredCost = rm.declared_quantity * rm.cost;
+        const actualCost = rm.actual_quantity * rm.cost;
+        const remainingCost = rm.remaining_quantity * rm.cost;
+
+        totalSystemCost += declaredCost;
+        totalActualCost += actualCost;
+        totalRemainingCost += remainingCost;
+
+        const variance = (rm.quantity - rm.declared_quantity).toFixed(2);
+        const varianceCost = variance * rm.cost;
+
+        let color = "black";
+        let displayVariance = variance;
+
+        if (variance < 0) {
+        color = "red";
+        displayVariance = "-" + '$' + Math.abs(varianceCost).toFixed(2);
+        } else if (variance > 0) {
+        color = "green";
+        displayVariance = "+" + '$' + varianceCost.toFixed(2);
+        }
+
+        tr.innerHTML = `
+        <td>${rm.name} @ ${rm.cost}</td>
+        <td class="text-center">$${declaredCost.toFixed(2)}  |  ${rm.declared_quantity}</td>
+        <td class="text-center">$${actualCost.toFixed(2)}  |  ${rm.actual_quantity || '0.00'}</td>
+        <td>
+            <input 
+                type="number" 
+                class="form-control-sm form-control" 
+                min="0" 
+                value="${rm.remaining_quantity}"
+                placeholder="Press Enter when done" 
+                onkeydown="processInput(event, this, ${rm.id})"
+            >
+        </td>
+        <td class="text-center" style="color:${color}; font-weight:600;">
+            ${displayVariance}  |  ${variance}
+        </td>
+    `;
+
+    tbody.appendChild(tr);
+    });
+
+    const totalRow = document.createElement('tr');
+    totalRow.innerHTML = `
+        <td><strong>Totals</strong></td>
+        <td class="text-center text-muted"><strong>$${totalSystemCost.toFixed(2)}</strong></td>
+        <td class="text-center"><strong>$${totalActualCost.toFixed(2)}</strong></td>
+        <td class="text-center"><strong></strong></td>
+        <td class="text-center">
+            <span style="color:green; font-weight:500;">+$${totalPositive.toFixed(2)}</span> |
+            <span style="color:red; font-weight:500;">-$${totalNegative.toFixed(2)}</span>
+        </td>>
+    `;
+    totalRow.style.backgroundColor = "#f8f9fa";
+    totalRow.style.fontWeight = "bold";
+    tbody.appendChild(totalRow);
+}
+function loadRawmaterials () {
+    fetch('/production/raw-materials/{{ production.id }}/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateRawMaterialsTable(data.raw_materials);
+            }
+        })
+        .catch(error => console.error('Error loading initial raw materials:', error));
+}
+
+loadRawmaterials()
+
+
+function getCSRFToken() {
+
+  const name = 'csrftoken';
+  const cookieValue = document.cookie.split('; ').find(row => row.startsWith(name + '='));
+  return cookieValue ? decodeURIComponent(cookieValue.split('=')[1]) : null;
+}
+
+function processInput(event, input, raw_material_id) {
+  if (event.key === "Enter") {
+    event.preventDefault(); 
+
+    const value = input.value.trim();
+    const productionId = input.dataset.productionId;
+
+    if (value === "") {
+      Swal.fire({
+        icon: "warning",
+        title: "Missing Value",
+        text: "Please enter a value before proceeding.",
+        confirmButtonColor: "#3085d6",
+      });
+      return;
+    }
+  
+    fetch(`/production/process-remaining-kgs/{{ production.id }}/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": getCSRFToken(),
+      },
+      body: JSON.stringify({ remaining_kgs: value, raw_material_id: raw_material_id }),
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        Swal.fire({
+          icon: "success",
+          title: "Saved",
+          text: "Remaining KGs successfully processed.",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+        loadRawmaterials()
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: data.message || "Something went wrong. Please try again.",
+        });
+      }
+    })
+    .catch(error => {
+      console.error("Error:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Network Error",
+        text: "Unable to reach the server.",
+      });
+    });
+  }
+}
+
+
+
+const inputs = document.querySelectorAll('#minor input[type="number"]');
     const confirmBtn = document.getElementById('confirm-btn');
     
-    function declare(input, dish_id){
-        const value = input.value;
-
-        fetch('/production/confirm/production/item/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCSRFToken(),
-            },
-            body: JSON.stringify({
-                production_id: {{ production.id }},
-                dish_id:dish_id
-            })
-            .then(response => response.json())
-            .then(data =>{
-                console.log(data)
-            })
-        })
-    }
-
     function getCSRFToken() {
         const name = 'csrftoken';
         const cookies = document.cookie.split(';');
@@ -158,52 +283,104 @@ document.addEventListener('DOMContentLoaded', function () {
         return null;
     }
 
-    document.getElementById("confirm-btn").addEventListener("click", function(e) {
-        e.preventDefault(); 
+    function declarePortion(input, dishId) {
+        const declaredPortions = parseFloat(input.value);
+        
+        if (isNaN(declaredPortions) || declaredPortions < 0) {
+            Swal.fire({
+                title: "Invalid Input",
+                text: "Please enter a valid number of portions.",
+                icon: "warning"
+            });
+            return;
+        }
 
+        const row = input.closest('tr');
+        const plannedPortionsCell = row.cells[1];
+        const plannedPortions = parseFloat(plannedPortionsCell.innerText.trim());
+        
         Swal.fire({
-            title: 'Confirm Production?',
-            text: "Are you sure you want to confirm this production?",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Yes, confirm it!',
-            cancelButtonText: 'Cancel'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                fetch('/production/confirm/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': getCSRFToken(), 
-                    },
-                    body: JSON.stringify({ production_id: {{ production.id }} }) 
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        Swal.fire(
-                            'Confirmed!',
-                            'Production has been confirmed.',
-                            'success'
-                        );
-                        window.location.href = '{% url "production:production-list" %}'
-                    } else {
-                        Swal.fire(
-                            'Error!',
-                            'There was an issue confirming production.',
-                            'error'
-                        );
-                    }
-                })
-                .catch(error => {
-                    Swal.fire(
-                        'Error!',
-                        'Network error occurred.',
-                        'error'
-                    );
+            title: 'Processing Declaration',
+            text: 'Recalculating raw materials...',
+            icon: 'info',
+            showConfirmButton: false,
+            allowOutsideClick: false
+        });
+
+        fetch('/production/process-dish-declaration/{{ production.id }}/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken(),
+            },
+            body: JSON.stringify({
+                dish_id: dishId,
+                declared_portions: declaredPortions
+            })
+        })
+        
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const varianceCell = row.querySelector('#portion_variance');
+                const variance = data.portion_variance;
+                varianceCell.innerText = variance.toFixed(2);
+         
+                if (variance > 0) {
+                    varianceCell.style.color = 'green';
+                    varianceCell.innerHTML = `+${variance.toFixed(2)}`;
+                } else if (variance < 0) {
+                    varianceCell.style.color = 'red';
+                }
+                
+               loadRawmaterials()
+                
+                Swal.fire({
+                    title: "Success",
+                    text: "Portions declared and raw materials recalculated.",
+                    icon: "success",
+                    timer: 2000,
+                    showConfirmButton: false
                 });
+                
+                input.disabled = true;
+                input.style.backgroundColor = '#e8f5e9';
+            } else {
+                Swal.fire({
+                    title: "Error",
+                    text: data.message || "Failed to process declaration.",
+                    icon: "error"
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                title: "Error",
+                text: "Network error occurred.",
+                icon: "error"
+            });
+        });
+    }
+
+    document.querySelectorAll('input#portions_declared').forEach(input => {
+        const row = input.closest('tr');
+        const dishName = row.cells[0].querySelector('strong').innerText;
+        
+        input.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                const dishId = input.getAttribute('data-dish-id');
+                if (dishId) {
+                    declarePortion(input, dishId);
+                }
+            }
+        });
+        
+        input.addEventListener('blur', function() {
+            const dishId = input.getAttribute('data-dish-id');
+            if (dishId && input.value.trim() !== '') {
+                declarePortion(input, dishId);
             }
         });
     });
@@ -340,6 +517,55 @@ document.addEventListener('DOMContentLoaded', function () {
         this.classList.add("active");
         document.getElementById("showDishesBtn").classList.remove("active");
     });
-});
+
+    document.getElementById("confirm-btn").addEventListener("click", function(e) {
+        e.preventDefault(); 
+
+        Swal.fire({
+            title: 'Confirm Production?',
+            text: "Are you sure you want to confirm this production?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, confirm it!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch('/production/confirm/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCSRFToken(), 
+                    },
+                    body: JSON.stringify({ production_id: {{ production.id }} }) 
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire(
+                            'Confirmed!',
+                            'Production has been confirmed.',
+                            'success'
+                        );
+                        window.location.href = '{% url "production:production-list" %}'
+                    } else {
+                        Swal.fire(
+                            'Error!',
+                            'There was an issue confirming production.',
+                            'error'
+                        );
+                    }
+                })
+                .catch(error => {
+                    Swal.fire(
+                        'Error!',
+                        'Network error occurred.',
+                        'error'
+                    );
+                });
+            }
+        });
+    });
 </script>
 {% endblock content %}

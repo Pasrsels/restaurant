@@ -419,6 +419,194 @@ def declare_production(request, plan_id):
     except Exception as e:
         logger.error(f'Error in declare production: {e}')
         return JsonResponse({'success': False, 'message': f'Error: {e}'}, status=500)
+    
+@login_required
+def process_dish_declaration(request, plan_id):
+    """
+    Process declared portions for dishes and recalculate raw material requirements
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Invalid request method'}, status=405)
+    
+    try:
+        data = json.loads(request.body)
+        dish_id = data.get('dish_id')
+        declared_portions = float(data.get('declared_portions', 0))
+        
+        if not dish_id or declared_portions <= 0:
+            return JsonResponse({
+                'success': False, 
+                'message': 'Invalid dish or portions'
+            }, status=400)
+        
+        with transaction.atomic():
+
+            production_plan = Production.objects.get(id=plan_id, branch=request.user.branch)
+            production_item = ProductionItem.objects.get(
+                production=production_plan,
+                dish_id=dish_id
+            )
+            
+            planned_portions = production_item.portions
+            portion_variance = declared_portions - planned_portions
+            
+            production_item.declared_portions = declared_portions
+            production_item.variance = portion_variance
+            production_item.save()
+            
+            raw_materials_dict = {}
+            all_production_items = ProductionItem.objects.filter(
+                production=production_plan
+            ).select_related('dish')
+            
+            for item in all_production_items:
+                portions_to_use = item.declared_portions if item.declared_portions else item.portions
+                logger.info(f'Dish: {item.dish.id} - Portions to use: {portions_to_use}')
+
+                ingredients_qs = Ingredient.objects.filter(
+                    dish=item.dish,
+                    raw_material__branch=request.user.branch
+                ).select_related('raw_material')
+
+                logger.info(f'Found {ingredients_qs.count()} ingredients for dish {item.dish.name}')
+
+                for ing in ingredients_qs:
+                    logger.info(f'Processing ingredient: {ing.raw_material.name} ({ing.quantity} units per portion)')
+                    
+                    required_quantity = float(ing.quantity) * (portions_to_use / item.dish.portion_multiplier)
+                    
+                    rm = ing.raw_material
+                    rm_id = rm.id
+
+                    if rm_id in raw_materials_dict:
+                        raw_materials_dict[rm_id]['quantity'] += required_quantity
+                    else:
+                        raw_material_inv = ProductionInventory.objects.filter(
+                            raw_material=rm,
+                            branch=request.user.branch
+                        ).first()
+
+                        allocation = ProductionRawMaterialAllocation.objects.filter(
+                            product=rm,
+                            branch=request.user.branch,
+                            production=production_plan,
+                        ).first()
+
+                        raw_materials_dict[rm_id] = {
+                            'id': rm_id,
+                            'name': rm.name,
+                            'quantity': required_quantity,
+                            'quantity_b_f': float(raw_material_inv.quantity if raw_material_inv else 0),
+                            'allocated_quantity': allocation.quantity if allocation and allocation.quantity else 0,
+                        }
+
+            
+            updated_raw_materials = []
+            for rm_id, rm_data in raw_materials_dict.items():
+                expected_quantity = rm_data['quantity'] - rm_data['quantity_b_f']
+                
+                allocation = ProductionRawMaterialAllocation.objects.filter(
+                    product_id=rm_id,
+                    branch=request.user.branch,
+                    production=production_plan
+                ).first()
+                
+                if allocation:
+                    allocation.expected_quantity = expected_quantity
+                    allocation.save()
+                
+                p_ing, _ = ProductionIngredients.objects.update_or_create(
+                    production=production_plan,
+                    ingredient_id=rm_id,
+                ) 
+
+                if p_ing:
+                    if p_ing.declared_quantity:
+                        p_ing.declared_quantity += float(declared_portions / item.dish.portion_multiplier)
+                    else:
+                        p_ing.declared_quantity = 0
+                        p_ing.declared_quantity += float(declared_portions / item.dish.portion_multiplier)
+                    
+                    p_ing.variance = p_ing.quantity - p_ing.declared_quantity
+                    p_ing.save()
+
+                updated_raw_materials.append({
+                    'id': rm_data['id'],
+                    'name': rm_data['name'],
+                    'quantity': float(rm_data['quantity']),
+                    'expected_quantity': float(expected_quantity),
+                    'quantity_b_f': rm_data['quantity_b_f'],
+                    'allocated_quantity': rm_data['allocated_quantity']
+                })
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Dish declaration processed successfully',
+                'portion_variance': float(portion_variance),
+                'declared_portions': float(declared_portions),
+                'planned_portions': float(planned_portions),
+                'raw_materials': updated_raw_materials
+            })
+            
+    except Production.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': 'Production plan not found'
+        }, status=404)
+    except ProductionItem.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': 'Production item not found'
+        }, status=404)
+    except Exception as e:
+        logger.error(f'Error processing dish declaration: {e}')
+        return JsonResponse({
+            'success': False,
+            'message': f'Error: {str(e)}'
+        }, status=500)
+    
+@login_required
+def get_raw_materials(request, production_id):
+    try:
+        production_plan = Production.objects.get(id=production_id, branch=request.user.branch)
+        raw_materials = ProductionIngredients.objects.filter(production=production_plan)
+        data = [{
+            'id': rm.ingredient.id,
+            'cost': float(rm.ingredient.cost),
+            'name': rm.ingredient.name,
+            'remaining_quantity':float(rm.remaining_quantity),
+            'actual_quantity': float(rm.actual_quantity),
+            'quantity': float(rm.quantity),
+            'declared_quantity':float(rm.declared_quantity),
+            'expected_quantity': float(getattr(rm, 'expected_quantity', 0)),
+            'allocated_quantity': float(getattr(rm, 'allocated_quantity', 0)),
+        } for rm in raw_materials]
+
+        return JsonResponse({'success': True, 'raw_materials': data}, status=200)
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+@login_required
+def process_remaining_kgs(request, production_id):
+    try:
+        data = json.loads(request.body)
+        remaining_kgs = float(data.get('remaining_kgs'))
+        raw_material_id = data.get('raw_material_id')
+
+        logger.info(remaining_kgs)
+
+        production_plan = Production.objects.get(id=production_id, branch=request.user.branch)
+        raw_material = ProductionIngredients.objects.filter(production=production_plan, ingredient__id=raw_material_id).first()
+
+        raw_material.remaining_quantity = remaining_kgs
+        raw_material.actual_quantity = raw_material.declared_quantity - remaining_kgs
+        raw_material.variance = raw_material.declared_quantity - raw_material.actual_quantity
+        raw_material.save()
+
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
 
 @method_decorator([login_required], name='dispatch')
 class DishListView(ListView):
@@ -492,7 +680,7 @@ def create_dish(request):
             data = json.loads(request.body)
             logger.info(data)
             dish_info = data.get('dish_info')
-            ingredients = dish_info.get('ingredients', [])
+            ingredients = data.get('ingredients', [])
         
             dish_name = dish_info.get('name').strip()
             portion_multiplier = dish_info.get('portion_multiplier')

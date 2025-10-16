@@ -539,6 +539,8 @@ def change_list(request):
     cashier = request.GET.get('cashier','')
     status = request.GET.get('status', '')
 
+    print('cashier', cashier)
+
     now = timezone.now()  
     
     if filter_option == 'today':
@@ -592,7 +594,8 @@ def change_list(request):
     ).order_by('-data_collected')
 
     if cashier:
-        changes = changes.filter(cashier__id=cashier)
+        changes = changes.filter(cashier__username=cashier)
+        logger.info(f'cashier {changes}')
 
     if status == 'collected':
         changes = changes.filter(collected=True)
