@@ -1297,6 +1297,14 @@
                 .line span {
                     display: inline-block;
                 }
+                .text-center {
+                    text-align: center;
+                }
+                .flex-c {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
             </style>
 
             <div style="
@@ -1305,7 +1313,29 @@
                 font-size: 14px;
                 "
                 >
-                <h3 style="text-align: center;">Parsles Investments (Urban Eats)</h3>
+                
+                {% if request.user.branch.id == 1 %}
+                    <div class="flex-c" style="margin-bottom:10px;">
+                        <div style="font-size:50px;">~</div>
+                        <div style="text-align: center;">
+                            <h1>CHECKOUT OUR NEW BRANCH</h1>
+                            <p style="font-size: 12px;">Corner Robert Mugabe and Second Ndaziya Thaine Building</p>
+                            <p>
+                                <br> <br>
+                                <div class="flex-c">
+                                    <div style="font-size:50px;">~</div>
+                                    <img src="{% static 'assets/glasses.png' %}" alt="New Location" style="width: 100px; height: 100px;">
+                                    <div style="font-size:50px;">~</div>
+                                </div>
+                                <br> <br>
+                                <i style="font-size: 12px;"><strong style="font-size:14px;">Get a free drink</strong> with this receipt <strong style="font-size:12px;">if you spend atleast 2 dollars</strong> at our new at our new location T&C apply</i> 
+                            </p>
+                        </div>
+                        <div style="font-size:50px;">~</div>
+                    </div>
+                {% endif %}
+                <div>
+                <h3 style="text-align: center;">Grab and Eats</h3>
                 <p style="text-align: center;">65 Speke Ave, Harare</p>
                 <hr>
                 <div class='line'>
@@ -1313,9 +1343,11 @@
                     <span><strong>TIN No:</strong> 2001020099</span>
                 </div>
                 <hr>
-                <p>Date: ${new Date().toLocaleDateString()}</p>
-                <p>Time: ${new Date().toLocaleTimeString()}</p>
-                <p>Order Type: ${orderType}</p>
+                <div class="flex-c">
+                    <p>Date: ${new Date().toLocaleDateString()}</p>
+                    <p>Time: ${new Date().toLocaleTimeString()}</p>
+                    <p>Order Type: ${orderType}</p>
+                </div>
                 <hr>
                 ${items.map(item =>`
                     <p class='line'>
@@ -1920,7 +1952,6 @@
         });
     }
     
-
     // get cookie
     function getCookie(name) {
         let cookieValue = null;

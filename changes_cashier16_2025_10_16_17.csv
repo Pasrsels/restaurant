@@ -1,0 +1,4 @@
+id,branch_id,sale_id,name,phonenumber,amount,amount_collected,balance,receipt_number,collected,timestamp,cashier_id,cashier_give_id,claimed,data_collected
+11814,,84480,batman,,2.00,2.00,0.00,82735,True,2025-10-17 06:14:30.988431+00:00,16,16,False,2025-10-17 09:26:08.101429+00:00
+11826,,84570,ocho,,1.00,1.00,0.00,82825,True,2025-10-17 09:38:34.154756+00:00,16,16,False,2025-10-17 09:51:59.809912+00:00
+11804,,84433,anorld,,1.00,1.00,0.00,82688,True,2025-10-16 15:24:26.095928+00:00,16,16,False,2025-10-17 09:57:01.717885+00:00

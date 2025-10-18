@@ -95,7 +95,7 @@ def pos(request):
             'image': meal.image.url if meal.image else '',
             'name':meal.name,
             'price':meal.price,
-            'category':meal.category.name,
+            'category':meal.category.name if meal.category else '',
             'meal':meal.meal,
             'id':f'm-{meal.id}'
         }
@@ -533,7 +533,7 @@ def sync_collections(request):
 def deduct_current_production_plan(request, meal, dish, product, quantity, staff):
     pass
 
-
+@login_required
 def change_list(request):
     filter_option = request.GET.get('filter', 'today')
     cashier = request.GET.get('cashier','')
@@ -592,7 +592,7 @@ def change_list(request):
     ).order_by('-data_collected')
 
     if cashier:
-        changes = changes.filter(cashier__id=cashier)
+        changes = changes.filter(cashier__username=cashier)
 
     if status == 'collected':
         changes = changes.filter(collected=True)
@@ -1061,13 +1061,31 @@ def cash_up(request, cashier_id):
             total_expenses = expenses.aggregate(Sum('amount'))['amount__sum'] or 0
             total_change = accumulated_change.aggregate(Sum('amount'))['amount__sum'] or 0
 
-            collected_changes = Change.objects.filter(
-                cashier__id=cashier_id,
+            yesterday_collected_today = Change.objects.filter(
                 collected=True,
-                data_collected=datetime.datetime.today(),
-                sale__branch=request.user.branch
-            ).exclude(
-                cashier__id=cashier_id
+                timestamp__date__lte=datetime.datetime.today(),
+                data_collected__isnull=False,
+                data_collected__date=datetime.datetime.today(),
+                sale__branch=request.user.branch,
+                cashier_give=cashier_id,
+                balance=0
+            ).aggregate(Sum('amount_collected'))['amount_collected__sum'] or 0
+
+            yesterday_partially_collected_changes = Change.objects.filter(
+                timestamp__date__lte=datetime.datetime.today(),
+                data_collected__isnull=False,
+                data_collected__date=datetime.datetime.today(),
+                sale__branch=request.user.branch,
+                cashier_give=cashier_id,
+                balance__gt=0
+            ).aggregate(Sum('balance'))['balance__sum'] or 0
+
+            today_collected = Change.objects.filter(
+                collected=True,
+                timestamp__date=datetime.datetime.today(),
+                sale__branch=request.user.branch,
+                cashier_give=cashier_id,
+                balance=0
             ).aggregate(Sum('amount_collected'))['amount_collected__sum'] or 0
 
             cashier_partially_collected_changes = Change.objects.filter(
@@ -1077,6 +1095,8 @@ def cash_up(request, cashier_id):
                 balance__gt=0,
                 sale__branch=request.user.branch
             ).aggregate(Sum('balance'))['balance__sum'] or 0
+
+            collected_changes = yesterday_collected_today + yesterday_partially_collected_changes - today_collected + cashier_partially_collected_changes
 
             cashier_self_collected = Change.objects.filter(
                 cashier__id=cashier_id,
@@ -1102,7 +1122,7 @@ def cash_up(request, cashier_id):
 
             logger.info(f'Uncollected changes by cashier: {uncollected_change}')
             
-            cash_in_hand = total_sales - total_expenses - total_void_sales - collected_changes + uncollected_change + cashier_partially_collected_changes 
+            cash_in_hand = total_sales - total_expenses - total_void_sales - collected_changes + uncollected_change
             uncollected_change = uncollected_change + cashier_partially_collected_changes
             
             cashier = User.objects.get(id=cashier_id)
