@@ -27,6 +27,7 @@ from inventory.models import (
     Logs
 )
 from inventory.views import finishedProduct
+from finance.utilities import save_cashier_expenses
 from .models import SaleAuthorization
 from finance.models import SaleItem, Sale
 from permisions.permisions import (
@@ -748,37 +749,46 @@ def collect_change(request):
             change_id = data.get('change_id')
             amount = Decimal(data.get('amount'))
             cashier_id = request.user.id
-            
-            change = Change.objects.get(id=change_id, sale__branch = request.user.branch)
-            cashier = User.objects.get(id = cashier_id)
 
-            if amount > change.amount:
-                return JsonResponse({'success':False, 'message': 'Amount cant be be more than the change amount'})
+            with transaction.atomic():
+                change = Change.objects.get(id=change_id, sale__branch=request.user.branch)
+                cashier = User.objects.get(id=cashier_id)
 
-            new_collected = change.amount_collected + amount
-            new_balance = change.amount - new_collected
+                if amount > change.amount:
+                    return JsonResponse({'success': False, 'message': 'Amount cant be more than the change amount'}, status=400)
 
-            logger.info(change.amount_collected)
+                today = datetime.date.today()
+                change_date = change.date.date() if hasattr(change, 'date') and change.date else None
+                
+                new_collected = change.amount_collected + amount
+                new_balance = change.amount - new_collected
 
-            if new_balance < 0:
-                return JsonResponse({'success': False, 'message': 'Amount collected exceeds the total change amount'}, status=400)
+                logger.info(change.amount_collected)
 
-            change.amount_collected = new_collected
-            change.balance = new_balance
-            change.cashier_give = cashier
-            change.data_collected = datetime.datetime.now()
-            
-            if new_balance == 0:
-                change.collected = True
-            
-            change.save()
-            
-            return JsonResponse({
-                'success': True, 
-                'amount_collected': str(change.amount_collected),
-                'balance': str(change.balance),
-                'collected': change.collected
-            }, status=200)
+                if new_balance < 0:
+                    return JsonResponse({'success': False, 'message': 'Amount collected exceeds the total change amount'}, status=400)
+
+                change.amount_collected = new_collected
+                change.balance = new_balance
+                change.cashier_give = cashier
+                change.data_collected = datetime.datetime.now()
+                
+                if new_balance == 0:
+                    change.collected = True
+                
+                change.save()
+
+                if change_date and change_date != today:
+                    expense_note = f'Change collected for {change.name} (from {change_date})'
+                    save_cashier_expenses(cashier, amount, expense_note, request.user.branch, 'Past Change Collected')
+      
+                return JsonResponse({
+                    'success': True, 
+                    'amount_collected': str(change.amount_collected),
+                    'balance': str(change.balance),
+                    'collected': change.collected,
+                    'is_past_date': change_date != today if change_date else False
+                }, status=200)
         except Exception as e:
             logger.error(f'Error recording change: {e}')
             return JsonResponse({'success':False, 'message':f'{e}'}, status=400)

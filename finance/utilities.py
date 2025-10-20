@@ -34,3 +34,26 @@ def calculate_cashier_expenses(cashier, date, branch):
         'expenses_total':expenses_total
     }
     
+
+def calculate_cashier_expenses(cashier, date, branch):
+    """cashier expense"""
+    expenses_total = Expense.objects.filter(date=date, user=cashier, branch=branch).select_for_update('branch').aggregate(
+        total=models.Sum('amount')
+    )['total'] or 0
+    
+    return {
+        'expenses_total':expenses_total
+    }
+
+def save_cashier_expenses(cashier, amount, description, branch, name):
+    """cashier expense"""
+    
+    Expense.objects.create(
+        name = name,
+        amount = amount,
+        description = description,
+        user = cashier,
+        branch = branch,
+        status = False,
+        track_amount = amount
+    )
