@@ -321,6 +321,78 @@ def productHistory(request):
         return JsonResponse({'success': True}, status = 200)
     return JsonResponse({'success': False, 'message': 'Invalid request'}, status = 505)
 
+@login_required
+def activity_logs_api(request):
+    source = request.GET.get('source', 'inventory')
+    product_id = request.GET.get('product_id')
+    page = int(request.GET.get('page', 1))
+    page_size = int(request.GET.get('page_size', 20))
+
+    if not product_id:
+        return JsonResponse({'success': False, 'message': 'product_id is required'}, status=400)
+
+    start = (page - 1) * page_size
+    end = start + page_size
+
+    items = []
+    last_updated = None
+    product_name = None
+
+    if source == 'inventory':
+        try:
+            product = Product.objects.get(id=product_id, branch=request.user.branch)
+        except Product.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Product not found'}, status=404)
+
+        qs = Logs.objects.filter(product=product, branch=request.user.branch).order_by('-timestamp')
+        total = qs.count()
+        logs = qs[start:end]
+        product_name = product.name
+        for log in logs:
+            if last_updated is None:
+                last_updated = log.timestamp
+            items.append({
+                'timestamp': log.timestamp.strftime('%Y-%m-%d %H:%M'),
+                'action': log.action,
+                'user': log.user.username if log.user else 'System',
+                'quantity': log.quantity,
+                'total_quantity': log.total_quantity,
+                'description': log.description or ''
+            })
+    elif source == 'production':
+        try:
+            prod = Product.objects.get(id=product_id, branch=request.user.branch)
+        except Product.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Product not found'}, status=404)
+
+        qs = ProductionLogs.objects.filter(
+            product__raw_material=prod
+        ).order_by('-timestamp')
+        total = qs.count()
+        logs = qs[start:end]
+        product_name = prod.name
+        for log in logs:
+            if last_updated is None:
+                last_updated = log.timestamp
+            items.append({
+                'timestamp': getattr(log.timestamp, 'strftime', lambda x: str(log.timestamp))('%Y-%m-%d %H:%M') if hasattr(log.timestamp, 'strftime') else str(log.timestamp),
+                'action': log.action,
+                'user': log.user.username if log.user else 'System',
+                'quantity': log.quantity,
+                'total_quantity': log.total_quantity,
+                'description': log.description or ''
+            })
+    else:
+        return JsonResponse({'success': False, 'message': 'Invalid source'}, status=400)
+
+    return JsonResponse({
+        'success': True,
+        'items': items,
+        'next_page': page + 1 if end < total else None,
+        'last_updated': last_updated.strftime('%Y-%m-%d %H:%M') if last_updated else None,
+        'product_name': product_name
+    })
+
 @admin_required
 @login_required
 def inventory(request):
@@ -2916,7 +2988,7 @@ def stock_item_details_api(request, item_id):
         
         if item_type == 'ingredient':
             item = Ingredient.objects.get(id=item_pk)
-            usage_history = []  # You can implement usage history tracking here
+            usage_history = []  #
             
             data = {
                 'id': item.id,

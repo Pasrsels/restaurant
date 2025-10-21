@@ -3,6 +3,11 @@
 {% load crispy_forms_tags %}
 {% block title%} Change list {% endblock%}
 {% block content %}
+<style>
+    .custom-width{
+        width: 150px;
+    }
+</style>
 <div class="Finance">
     <nav class="d-flex justify-content-between align-items-center rounded mb-2 py-2">
         <div class='d-flex justify-content-center'>
@@ -11,44 +16,17 @@
         </div>
         <div>
             <div class="d-flex justify-content-between mt-1">
-                <div>
-                    <select class="form-select" id="filterSelect" onchange="filterCashBook()">
-                        <option value="today" {% if filter_option == 'today' %}selected{% endif %}>Today</option>
-                        <option value="this_week" {% if filter_option == 'this_week' %}selected{% endif %}>This Week</option>
-                        <option value="yesterday" {% if filter_option == 'yesterday' %}selected{% endif %}>Yesterday</option>
-                        <option value="this_month" {% if filter_option == 'this_month' %}selected{% endif %}>This Month</option>
-                        <option value="last_month" {% if filter_option == 'last_month' %}selected{% endif %}>Last Month</option>
-                        <option value="this_year" {% if filter_option == 'this_year' %}selected{% endif %}>This Year</option>
-                    </select>
-                </div>
-                <div id="customDateRange" class="d-flex mx-2">
-                    <input type="date" id="startDate" value="{{ start_date }}" class="form-control" placeholder="Start Date">
-                    <input type="date" id="endDate" value="{{ end_date}}" class="form-control mx-2" placeholder="End Date">
-                    <button class="btn btn-primary" onclick="applyCustomFilter()">Apply</button>
-                </div>
-                <button class="btn btn-secondary" onclick="downloadReport()">Download Report</button>
+                <button class="btn btn-outline-dark" onclick="downloadReport()"><i class="bx bx-download"></i> Report</button>
             </div>
         </div>
     </nav>
    <div class="changes">
         <div class="row">
-            <div class="col-md-4 mb-2">
+            <div class="col-md-6 mb-2">
                 <div class="card h-100">
                     <div class="card-body d-flex justify-content-between align-items-center">
                         <div class="text-start">
-                            <h5 class="card-title mb-0">Total Change</h5>
-                        </div>
-                        <div class="text-end">
-                            <span class="card-text h4">{{ change_total }}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4 mb-2">
-                <div class="card h-100">
-                    <div class="card-body d-flex justify-content-between align-items-center">
-                        <div class="text-start">
-                            <h5 class="card-title mb-0">Collected Change</h5>
+                            <h5 class="card-title mb-0">Change Given</h5>
                         </div>
                         <div class="text-end">
                             <span class="card-text h4">{{ change_collected_total }}</span>
@@ -56,7 +34,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-4 mb-2">
+            <div class="col-md-6 mb-2">
                 <div class="card h-100">
                     <div class="card-body d-flex justify-content-between align-items-center">
                         <div class="text-start">
@@ -71,26 +49,31 @@
         </div>
     </div>
     <div>
-        <ul class="pagination">
-            {% if page_obj.has_previous %}
-                <li><a href="?page={{ page_obj.previous_page_number }}&filter={{ filter_option }}">Previous</a></li>
-            {% endif %}
-            <li>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</li>
-            {% if page_obj.has_next %}
-                <li><a href="?page={{ page_obj.next_page_number }}&filter={{ filter_option }}">Next</a></li>
-            {% endif %}
-        </ul>
+    
     </div>
 
-    <ul class="nav nav-pills mt-2">
-        <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="#">Collected</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="#">Uncollected</a>
-        </li>
-    </ul>
+    <div class="d-flex gap-4 align-items-center mt-2">
+         <select class="form-select custom-width text-primary text-muted" id="filterSelect" onchange="filterChange()">
+            <option value="today" {% if filter_option == 'today' %}selected{% endif %}>Today</option>
+            <option value="this_week" {% if filter_option == 'this_week' %}selected{% endif %}>This Week</option>
+            <option value="yesterday" {% if filter_option == 'yesterday' %}selected{% endif %}>Yesterday</option>
+            <option value="this_month" {% if filter_option == 'this_month' %}selected{% endif %}>This Month</option>
+            <option value="last_month" {% if filter_option == 'last_month' %}selected{% endif %}>Last Month</option>
+            <option value="this_year" {% if filter_option == 'this_year' %}selected{% endif %}>This Year</option>
+        </select>
 
+        <select name="" id="status_filter" class="custom-width text-primary text-muted form-select" onchange="filterChange()">
+            <option value="collected" checked>Change Given</option>
+            <option value="uncollected">Uncollected</option>
+        </select>
+
+        <select name="cashier" id="cashier" class="custom-width text-primary text-muted form-select" onchange="filterChange()">
+            <option value="">Select cashier</option>
+            {% for cashier in cashiers %}
+                <option>{{ cashier.username }}</option>
+            {% endfor %}
+        </select>
+    </div>
 
 <div class='mt-3'>
     <div class="d-flex mb-2">
@@ -100,11 +83,11 @@
         <table class="table table-hover table-borderless p-1 mb-0" id="change_table" style="width: 100%; table-layout: fixed;">
             <thead class="bg-primary-subtle text-white" style="position: sticky; top: 0; z-index: 2;">
                 <tr>
-                    <th>Name</th>
-                    <th>Cashiers</th>
-                    <th>Amount</th>
-                    <th>Balance</th>
-                    <th>Status</th>
+                    <th>Recorded by</th>
+                    <th>Recorded Amount</th>
+                    <th>Given by</th>
+                    <th>Uncollected</th>
+                    <th class="text-center">Status</th>
                 </tr>
             </thead>
             <tbody>
@@ -112,42 +95,50 @@
                     <tr>
                         <td>
                             <span class="text-muted">
-                                <i class="bx bx-receipt"></i>
-                                {{ change.receipt_number }}
+                                {{ change.cashier.username }}
+                                <span class="fs-6" style="font-size: 12px !important;">
+                                    <i class="bx bx-receipt"></i>
+                                    {{ change.receipt_number }}
+                                </span>
                             </span>
                             <br>
-                            {{ change.name }}
+                            <span>
+                                <span style="font-size: 15px !important;" class="text-muted">Customer</span>: {{ change.name }}
+                            </span>
                             <br>
+                            <span style="font-size: 12px !important;">
+                                <i class="bx bx-time"></i>
+                                <span>{{ change.timestamp|date:"Y-m-d" }}</span>
+                                 {{ change.timestamp|time:"H:i" }}
+                            </span>
                             {{ change.phonenumber}}
                         </td>
-                        <td>
-                            <span class="d-flex gap-1 align-items-center">
-                                <i class="bx bx-right-arrow-alt"></i>
-                                {{ change.cashier.username }}
-                                <span style="font-size: 12px !important;">
-                                    {{ change.timestamp|date:"Y-m-d H:i" }}
-                                </span>
-
-                            </span>
-                            <br>
-                            {% if change.cashier_give.username %}
-                                <span class="d-flex gap-1 align-items-center" style="margin-top: -20px;;">
-                                    <i class="bx bx-left-arrow-alt"></i>
-                                    {{ change.cashier_give.username  }}
-                                    <span style="font-size: 12px !important;">{{ change.date_collected|date:"Y-m-d H:i"  }}</span>
-                                </span>                        
-                            {% endif %}
-                        </td>
                         <td>${{ change.amount }}
-                            <br>
-                            ${{ change.amount_collected }}
+                            <!-- <br>
+                            ${{ change.amount_collected }} -->
+                        </td>
+                        <td>
+                            {% if change.cashier_give.username %}
+                                <span class="d-flex gap-1 align-items-center">
+                                    {{ change.cashier_give.username  }}
+                                </span>    
+                                ${{ change.amount_collected }}           
+                                <br>
+                                <span style="font-size: 12px !important;">
+                                    <i class="bx bx-time"></i>
+                                    <span class="text-primary" style="font-size: 14px;">{{ change.data_collected|date:"Y-m-d" }}</span>
+                                    {{ change.data_collected|time:"H:i" }}
+                                </span>      
+                            {% else %}
+                                <span class="mute">----</span>
+                            {% endif %}
                         </td>
                         <td>${{ change.balance }}</td>
                         <td class="text-center">
                             {% if change.collected %}
-                                <span class="badge bg-success text-center btn w-100">Collected</span>
+                                <span class="badge bg-success text-center btn w-50">Change Given</span>
                                 {% else %}
-                                    <button onclick='displayAmount({{ change.id }})' class='btn btn-outline-primary btn-sm w-100'>COLLECT</button>
+                                    <button onclick='displayAmount({{ change.id }})' class='btn btn-outline-primary btn-sm w-50'>COLLECT</button>
                             {% endif %}
                         </td>
                     </tr>
@@ -218,6 +209,11 @@
     </script>
 
    <script>
+
+        let filter = '';
+        let status = '';
+        let cashier = '';
+
         function filterTable(tableId, inputId){
             const q = document.getElementById(inputId).value.toLowerCase();
             const rows = document.querySelectorAll(`#${tableId} tbody tr`);
@@ -292,11 +288,23 @@
             });
         };
 
-        function filterCashBook() {
-            const filter = document.getElementById('filterSelect').value;
-            window.location.href = `?filter=${filter}`;
 
+        function filterChange() {
+            const filter = document.getElementById('filterSelect').value;
+            const status = document.getElementById('status_filter').value;
+            const cashier = document.getElementById('cashier').value;
+
+            localStorage.setItem('filter', filter);
+            localStorage.setItem('status', status);
+            localStorage.setItem('cashier', cashier);
+
+            console.log('Filter:', localStorage.getItem('filter'));
+            console.log('Status:', localStorage.getItem('status'));
+            console.log('Cashier:', localStorage.getItem('cashier'));
+
+            window.location.href = `?filter=${filter}&status=${status}&cashier=${cashier}`;
         }
+
         
 
         function applyCustomFilter() {

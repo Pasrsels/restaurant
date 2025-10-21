@@ -196,7 +196,7 @@
                         </td>
                         <td>
                             <small id="id_quantity_{{ product.id }}">
-                                {{ product.actual_quantity }}
+                                {{ product.actual_quantity|floatformat:2 }}
                             </small>
                         </td>
                         <td>
@@ -209,14 +209,14 @@
                                     onkeydown="if(event.key === 'Enter'){ handleQuantityChange(this.value, {{ product.product.quantity }}, {{ product.product.cost }}, {{ product.id }}) }"
                                 >
                             {% else %}
-                                <small>{{ product.quantity }}</small>
+                                <small>{{ product.quantity|floatformat:2 }}</small>
                             {% endif %}
                         </td>
                         <td>
                             {% if product.variance < 0 %}
-                                <small class="text-danger" id="id_diff_{{ product.id }}">{{ product.variance }}</small>
+                                <small class="text-danger" id="id_diff_{{ product.id }}">{{ product.variance|floatformat:2 }}</small>
                             {% else %}
-                                <small class="text-success" id="id_diff_{{ product.id }}">{{ product.variance }}</small>
+                                <small class="text-success" id="id_diff_{{ product.id }}">{{ product.variance|floatformat:2 }}</small>
                             {% endif %}
                         </td>
                         <td>

@@ -31,6 +31,7 @@ urlpatterns = [
     path('api/stock-analysis-data/', stock_analysis_api, name='stock_analysis_api'),
     path('api/stock-item-details/<int:item_id>/', stock_item_details_api, name='stock_item_details_api'),
     path('api/production-item-details/<int:item_id>/', production_item_details_api, name='production_item_details_api'),
+    path('api/activity-logs/', activity_logs_api, name='activity_logs_api'),
     path('api/notifications/', notifications_api, name='notifications_api'),
     path('api/clear-notifications/', clear_notifications_api, name='clear_notifications_api'),
     path('confirm/minor_raw_materials/', confirm_minor_raw, name='confirm_minor_raw'),

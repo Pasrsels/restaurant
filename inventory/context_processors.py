@@ -35,3 +35,7 @@ def all_meals_dishes(request):
 def products(request):
     products = Product.objects.all()
     return {'products':products}
+
+def categories(request):
+    categories = Category.objects.all()
+    return {'categories':categories}

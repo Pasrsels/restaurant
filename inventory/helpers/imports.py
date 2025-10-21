@@ -61,3 +61,4 @@ from permisions.permisions import admin_required, chef_only_required, stores_per
 from loguru import logger
 from inventory.models import *
 from django.db.models import F, ExpressionWrapper, DecimalField
+from production.models import ProductionLogs

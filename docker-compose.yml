@@ -1,3 +1,4 @@
+version: "3.9"
 
 services:
   web:
@@ -9,10 +10,11 @@ services:
       - media_volume:/app/media
     env_file:
       - .env
-    expose:
-      - "8300"
+    ports:
+      - "8300:8300"
     depends_on:
       - redis
+      - db
     restart: always
 
   redis:
@@ -33,6 +35,20 @@ services:
       - web
     restart: always
 
+  db:
+    image: postgres:16
+    container_name: restaurant-postgres
+    environment:
+      POSTGRES_USER: restaurant_user
+      POSTGRES_PASSWORD: restaurant_pass
+      POSTGRES_DB: restaurant
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: always
+
 volumes:
   static_volume:
   media_volume:
+  postgres_data:

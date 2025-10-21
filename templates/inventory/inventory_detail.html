@@ -55,23 +55,23 @@
                                 </td>
                                 <td><small>
                                     {% if log.action == 'stock in' or log.action == 'Update' or log.action == 'sale cancelled' or log.action == 'Stock in' %}
-                                        <span class='text-success'>{{log.quantity}}</span>
+                                        <span class='text-success'>{{log.quantity|floatformat:2}}</span>
                                         <i class='text-success bx bx-chevron-up'></i>
                                     {% elif log.action == 'defective'%}
-                                        <span class='text-danger'>{{log.quantity}}</span>
+                                        <span class='text-danger'>{{log.quantity|floatformat:2}}</span>
                                         <i class='text-danger bx bx-chevron-down'></i>
                                     {% elif log.action == 'Decline'%}
-                                        <span class='text-danger'>{{log.quantity}}</span>
+                                        <span class='text-danger'>{{log.quantity|floatformat:2}}</span>
                                         <i class='text-danger bx bxs-circle bx-rotate-90 bx-tada'></i>
                                     {% elif log.action == 'Edit' or log.action == 'deactivated' or log.action == 'activated'%}
-                                        <span class='text-dark'>{{log.quantity}}</span>
+                                        <span class='text-dark'>{{log.quantity|floatformat:2}}</span>
                                     {% else %}
-                                        <span class='text-danger'>{{log.quantity}}</span>
+                                        <span class='text-danger'>{{log.quantity|floatformat:2}}</span>
                                         <i class='text-danger bx bx-chevron-down'></i>
                                     {% endif %}
                                     </small>
                                 </td>
-                                <td><small>{{log.total_quantity}}</small></td>
+                                <td><small>{{log.total_quantity|floatformat:2}}</small></td>
                             </tr>
                         {% endfor %}
                     </tbody>
