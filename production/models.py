@@ -36,7 +36,8 @@ class ProductionItem(TimestampModel):
     total_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     declared = models.BooleanField(default=False)
     portions = models.FloatField(default=0, null=True)
-    
+    variance = models.FloatField(default=0, null=True)
+    declared_portions = models.FloatField(default=0, null=True)
 
     def __str__(self):
         return f'{self.production.plan_number}: {self.dish.name}'
@@ -44,13 +45,15 @@ class ProductionItem(TimestampModel):
 class ProductionIngredients(models.Model):  
     production = models.ForeignKey(Production, on_delete=models.CASCADE)
     ingredient = models.ForeignKey(Product, on_delete=models.CASCADE)
-    total_quantity_per_kg = models.FloatField()
-    variance_cost = models.FloatField()
-    variance = models.FloatField()
+    declared_quantity = models.FloatField(null=True, default=0)
+    variance_cost = models.FloatField(null=True)
+    variance = models.FloatField(null=True)
+    quantity = models.FloatField(null=True)
     actual_quantity = models.FloatField(null=True)
-    cost_per_kg = models.DecimalField(max_digits=10, decimal_places=2, default=1)
-    total_cost = models.DecimalField(max_digits=10, decimal_places=2, default=1)
-
+    cost_per_kg = models.DecimalField(max_digits=10, decimal_places=2, default=1, null=True)
+    total_cost = models.DecimalField(max_digits=10, decimal_places=2, default=1, null=True)
+    remaining_quantity = models.FloatField(null=True)
+    planned_quantity = models.FloatField(null=True, default=0)
     def __str__(self) -> str:
         return f'{self.ingredient}'
     
@@ -169,6 +172,7 @@ class ProductionLogs(models.Model):  # kitchen inventory logs
     quantity = models.FloatField()
     total_quantity = models.FloatField()
     description = models.CharField(max_length=255, null=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
 
 
 class AllocatedRawMaterials(models.Model):
@@ -186,6 +190,11 @@ class ProductionRawMaterialAllocation(models.Model):
     quantity = models.FloatField(null=True)
     expected_quantity = models.FloatField(null=True)
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True, related_name='production_productionrawmaterials_set')
-    
+    declared = models.FloatField(null=True)
+    actual_usage = models.FloatField(null=True)
+    remaining = models.FloatField(null=True)
+    variance = models.FloatField(null=True)
+    variance_cost = models.FloatField(null=True)
+
     def __str__(self) -> str:
         return self.product.name

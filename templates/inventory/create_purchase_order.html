@@ -542,6 +542,7 @@
             })
             .then(response => response.json())
             .then((data) => {
+                console.log('unit', data)
             if (data.success) {
                 unitModal.hide()
                 supplierFormModal.show()
@@ -754,7 +755,7 @@
             .then(response => response.json())
             .then(data=>{
                 prodData.push(data)
-     
+                console.log(data)
             })
           .catch(error => console.error('Error:', error))
         

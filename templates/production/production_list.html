@@ -11,29 +11,35 @@
         padding-right: 8px;
     }
 </style>
-<div class="production">
+<div class="production d-flex">
+   <div class="col-10">
         <div class="production-header d-flex justify-content-between align-items-center my-3">
-        <div class="d-flex align-items-center">
-            <a href='/' class='bx bx-home btn nav-back-btn fs-5 ms-1'></a>
-            <h2 class="ms-1">Production Plans</h2>
+            <div class="d-flex align-items-center">
+                <a href='/' class='bx bx-home btn nav-back-btn fs-5 ms-1'></a>
+                <h2 class="ms-1">Production Plans</h2>
+            </div>
+            <div class="production-header-buttons">
+                <a href="{% url 'production:production_inventory' %}" class="btn btn-outline-dark me-2">Inventory</a>
+                <a href="{% url 'production:dish_list' %}" class="btn btn-outline-dark me-2">Dishes</a>
+                <!-- <a href="{% url 'production:dish_list' %}">Meal</a> -->
+                <a href="{% url 'production:create_production' %}" class="btn btn-outline-dark">New Production Plan</a>
+            </div>
         </div>
-        <div class="production-header-buttons">
-            <a href="{% url 'production:dish_list' %}" class="btn btn-outline-dark me-2">Dishes</a>
-            <!-- <a href="{% url 'production:dish_list' %}">Meal</a> -->
-            <a href="{% url 'production:create_production' %}" class="btn btn-outline-dark">New Production Plan</a>
-        </div>
-    </div>
 
-    <div class="production-search">
-        <input type="text" id="searchInput" class="form-control" placeholder="Search Production Plans..." onkeyup="filterPlans()">
-    </div>
-    <div class="production-list-container" id="production-container">
-        <div id="production-list">
-            {% include "production/production_list_items.html" %}
+        <div class="production-search">
+            <input type="text" id="searchInput" class="form-control" placeholder="Search Production Plans..." onkeyup="filterPlans()">
         </div>
-    </div>
+        <div class="production-list-container" id="production-container">
+            <div id="production-list">
+                {% include "production/production_list_items.html" %}
+            </div>
+        </div>
 
-    <div id="loading" style="display:none;">Loading...</div>
+        <div id="loading" style="display:none;">Loading...</div>
+    </div>
+    <div class="col-2">
+        {% include "inventory/check_list.html" %}
+    </div>
 </div>
 
 <script>

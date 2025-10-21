@@ -2,29 +2,37 @@
 {% for plan in productions %}
 <tr>
     <td>
-        {{ plan.plan_number }}
+        <span>{{ plan.plan_number }}</span>
+        <br>
+        <small class="text-muted" >Cost: ${{ plan|calculate_total_cost| floatformat:2 }}</small> <small class="ms-2 text-muted">Sales: ${{ plan|calculate_today_sale|floatformat:2 }}</small>
+        <br>
+        <span class="text-success" style="opacity: 5;">Gp: ${{ plan|calculate_production_gp| floatformat:2 }}</span>
         <br>
         <i class="bx bx-time text-muted"></i>
-        <small class="text-muted">{{ plan.created }}</small>
+        <small class="text-muted" style="font-size: 12px;">{{ plan.created }}</small>
     </td>
-    <td>{{ plan.planned_cost }}</td>
-    <td>{{ plan.actual_cost }}</td>
-    <td>{{ plan.variance }}</td>
+    <td>{{ plan|calculate_planned_cost|floatformat:2 }}</td>
+    <td>{{ plan|calculate_actual_cost|floatformat:2 }}</td>
+    <td>{{ plan|calculate_varience|floatformat:2 }}</td>
     <td>
-        {% if plan.declared %}
-            <span class="badge bg-light text-dark p-2">Declared</span>
-        {% elif plan.confirm %}
-            <span class="badge bg-warning p-2">Confirmed</span>
+        {% if plan.declared and plan.confirm %}
+            <span class="badge bg-success text-white w-100 p-2">Processed</span>
         {% else %}
-            {% if request.user.role == 'sales' or request.user.role == 'owner' or request.user.role == 'chef' and not plan.declared and not confirmed %}
-                <a href="{% url 'production:confirm_production' plan.id %}" class="badge bg-primary text-white p-2">Confirm</a>
-            {% elif request.user.role == 'sales' or request.user.role == 'owner' or request.user.role == 'accountant' or request.user.role == 'stores' and not plan.declared %}
-                <a class="badge bg-secondary text-white p-2">Declare</span>
+            {% if not plan.declared %}
+                <div class="d-flex gap-2">
+                    <a href="{% url 'production:confirm_production' plan.id %}" class="badge bg-primary text-white p-2 flex-fill">Confirm</a>
+                    <a href="{% url 'production:declare_production' plan.id %}" class="badge bg-secondary text-white p-2 flex-fill">Declare</a>
+                </div>
+            {% elif not plan.confirm and plan.declared %}
+                <div class="d-flex gap-2">
+                    <a href="{% url 'production:confirm_production' plan.id %}" class="badge bg-primary text-white p-2 flex-fill">Confirm</a>
+                    <span class="badge bg-secondary text-dark p-2 flex-fill">Declared</span>
+                </div>
             {% endif %}
         {% endif %}
     </td>
     <td>
-        <span class="bx bx-show"></span>
+        <a href="{% url 'production:production-detail' plan.id %}" class="bx bx-show"></a>
         <span class="ms-2 text-primary bx bx-pencil"></span>
     </td>
 </tr>

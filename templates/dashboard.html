@@ -8,92 +8,217 @@
 {% endblock css %}
 
 {% block content %}
-<div class="row mx-3 mt-3 align-items-center dashboard-container">
-    <a href="{% url 'pos:pos'%}" class="col col-4 mb-2">
-        <div class="card dashboard-card">
-            <div class="card-body d-flex justify-content-center align-items-center flex-column">
-                <div>
-                    <img src="{% static 'assets/pngs/sell.png'%}" alt="sell_icon" width="100rem">
+<div class="dashboard-wrapper" data-selected-branch="{{ selected_branch|default:'all' }}">
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">Dashboard</h1>
+        <div class="user-info">
+            <span>{{ user.username }}</span>
+        </div>
+    </div>
+
+    <div class="filters-section">
+        <div class="filter-group">
+            <label>Time Period:</label>
+            <div class="btn-group">
+                <button class="filter-btn active" data-period="today">Today</button>
+                <button class="filter-btn" data-period="weekly">Weekly</button>
+                <button class="filter-btn" data-period="monthly">Monthly</button>
+                <button class="filter-btn" data-period="yearly">Yearly</button>
+            </div>
+        </div>
+        
+        <div class="filter-group">
+            <label>Branch:</label>
+            <div class="btn-group">
+                <button class="branch-btn {% if selected_branch == 'all' %}active{% endif %}" data-branch="all">All Branches</button>
+                {% for branch in branches %}
+                <button class="branch-btn {% if selected_branch|stringformat:'s' == branch.id|stringformat:'s' %}active{% endif %}" data-branch="{{ branch.id }}">{{ branch.name }}</button>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="filter-group">
+            <label>Custom Date:</label>
+            <input type="date" id="start-date" class="date-input">
+            <input type="date" id="end-date" class="date-input">
+            <button id="apply-custom-date" class="btn-primary">Apply</button>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card stat-card-dark">
+            <div class="stat-icon">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <h3 class="stat-value" id="total-menus">{{ total_menus }}</h3>
+                <p class="stat-label">Total Menus</p>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 0%"></div>
+                </div>
+                <div class="progress-labels">
+                    <span>0%</span>
+                    <span>0%</span>
                 </div>
             </div>
         </div>
-    </a>
-    <a href="{% url 'analytics_index' %}" class="col col-4 mb-2">
-        <div class="card dashboard-card">
-            <div class="card-body d-flex justify-content-center align-items-center flex-column">
-                <div>
-                    <img src="{% static 'assets/pngs/dashboard.png'%}" alt="dashboard_icon" width="100rem">
+
+        <div class="stat-card">
+            <div class="stat-icon stat-icon-purple">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <h3 class="stat-value" id="total-orders">{{ total_orders }}</h3>
+                <p class="stat-label">Total Orders Today</p>
+                <div class="progress-bar">
+                    <div class="progress-fill progress-fill-purple" id="orders-progress"></div>
+                </div>
+                <div class="progress-labels">
+                    <span>0%</span>
+                    <span id="orders-percentage">0%</span>
                 </div>
             </div>
         </div>
-    </a>
-    <a href="{% url 'inventory:products' %}" class="col col-4 mb-2">
-        <div class="card dashboard-card">
-            <div class="card-body d-flex justify-content-center align-items-center flex-column">
-                <div>
-                    <img src="{% static 'assets/pngs/product.png'%}" alt="product_icon" width="100rem">
+
+        <div class="stat-card">
+            <div class="stat-icon stat-icon-blue">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <h3 class="stat-value" id="total-clients">{{ total_clients }}</h3>
+                <p class="stat-label">Total Clients Today</p>
+                <div class="progress-bar">
+                    <div class="progress-fill progress-fill-blue" id="clients-progress"></div>
+                </div>
+                <div class="progress-labels">
+                    <span>0%</span>
+                    <span id="clients-percentage">0%</span>
                 </div>
             </div>
         </div>
-    </a>
-    <!--  -->
-    <a href="{% url 'finance:finance' %}" class="col col-4 mb-2">
-        <div class="card dashboard-card">
-            <div class="card-body d-flex justify-content-center align-items-center flex-column">
-                <div>
-                    <img src="{% static 'assets/pngs/bars.png'%}" alt="plan_icon" width="100rem">
+
+        <div class="stat-card">
+            <div class="stat-icon stat-icon-pink">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <h3 class="stat-value" id="revenue-ratio">${{ revenue_day_ratio }}</h3>
+                <p class="stat-label">Revenue Day Ratio</p>
+                <div class="progress-bar">
+                    <div class="progress-fill progress-fill-pink" id="revenue-progress"></div>
+                </div>
+                <div class="progress-labels">
+                    <span>0%</span>
+                    <span id="revenue-percentage">0%</span>
                 </div>
             </div>
         </div>
-    </a>
-    <a href="{% url 'users:users' %}" class="col col-4 mb-2">
-        <div class="card dashboard-card">
-            <div class="card-body d-flex justify-content-center align-items-center flex-column">
-                <div>
-                    <img src="{% static 'assets/pngs/users.png'%}" alt="plan_icon" width="100rem">
+    </div>
+
+    <div class="charts-grid">
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3>Revenue</h3>
+                <div class="chart-tabs">
+                    <button class="chart-tab" data-chart="revenue" data-period="monthly">Monthly</button>
+                    <button class="chart-tab active" data-chart="revenue" data-period="weekly">Weekly</button>
+                    <button class="chart-tab" data-chart="revenue" data-period="today">Today</button>
                 </div>
+            </div>
+            <canvas id="revenue-chart"></canvas>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3>Orders Summary</h3>
+                <div class="chart-tabs">
+                    <button class="chart-tab" data-chart="orders" data-period="monthly">Monthly</button>
+                    <button class="chart-tab active" data-chart="orders" data-period="weekly">Weekly</button>
+                    <button class="chart-tab" data-chart="orders" data-period="today">Today</button>
+                </div>
+            </div>
+            <canvas id="orders-chart"></canvas>
+        </div>
+    </div>
+
+    <div class="table-card">
+        <div class="table-header">
+            <h3>Order List</h3>
+            <div class="chart-tabs">
+                <button class="chart-tab active" data-table="orders" data-period="monthly">Monthly</button>
+                <button class="chart-tab" data-table="orders" data-period="weekly">Weekly</button>
+                <button class="chart-tab" data-table="orders" data-period="today">Today</button>
             </div>
         </div>
-    </a>
-    <a href="{% url 'settings:settings' %}" class="col col-4 mb-2">
-        <div class="card dashboard-card">
-            <div class="card-body d-flex justify-content-center align-items-center flex-column">
-                <div>
-                    <img src="{% static 'assets/pngs/settings.png'%}" alt="plan_icon" width="100rem">
-                </div>
-            </div>
+        <div class="table-responsive">
+            <table class="orders-table">
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>ID <span class="sort-icon">↕</span></th>
+                        <th>Date</th>
+                        <th>Customer Name <span class="sort-icon">↕</span></th>
+                        <th>Location</th>
+                        <th>Amount <span class="sort-icon">↕</span></th>
+                        <th>Status Order <span class="sort-icon">↕</span></th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="orders-tbody">
+                    <!-- Data will be loaded via AJAX -->
+                </tbody>
+            </table>
         </div>
-    </a>
-    <a href="{% url 'inventory:end_of_day_list' %}" class="col col-4 mb-2">
-        <div class="card dashboard-card">
-            <div class="card-body d-flex justify-content-center align-items-center flex-column">
-                <div>
-                    <img src="{% static 'assets/pngs/reports.jpg'%}" alt="plan_icon" width="100rem">
-                </div>
-            </div>
-        </a>
+        <div class="table-pagination">
+            <button id="prev-page" class="pagination-btn">Previous</button>
+            <span id="page-info">Page 1 of 1</span>
+            <button id="next-page" class="pagination-btn">Next</button>
+        </div>
+    </div>
+
+    <div class="quick-actions-section">
+        <h3>Quick Actions</h3>
+        <div class="quick-actions-grid">
+            <a href="{% url 'pos:pos'%}" class="action-card">
+                <img src="{% static 'assets/pngs/sell.png'%}" alt="sell_icon">
+                <span>POS</span>
+            </a>
+            <a href="{% url 'analytics_index' %}" class="action-card">
+                <img src="{% static 'assets/pngs/dashboard.png'%}" alt="dashboard_icon">
+                <span>Analytics</span>
+            </a>
+            <a href="{% url 'inventory:products' %}" class="action-card">
+                <img src="{% static 'assets/pngs/product.png'%}" alt="product_icon">
+                <span>Products</span>
+            </a>
+            <a href="{% url 'finance:finance' %}" class="action-card">
+                <img src="{% static 'assets/pngs/bars.png'%}" alt="plan_icon">
+                <span>Finance</span>
+            </a>
+            <a href="{% url 'users:users' %}" class="action-card">
+                <img src="{% static 'assets/pngs/users.png'%}" alt="plan_icon">
+                <span>Users</span>
+            </a>
+            <a href="{% url 'settings:settings' %}" class="action-card">
+                <img src="{% static 'assets/pngs/settings.png'%}" alt="plan_icon">
+                <span>Settings</span>
+            </a>
+            <a href="{% url 'inventory:end_of_day_list' %}" class="action-card">
+                <img src="{% static 'assets/pngs/reports.jpg'%}" alt="plan_icon">
+                <span>Reports</span>
+            </a>
+        </div>
     </div>
 </div>
 
-<script>
-    const socket = new WebSocket('ws://' + window.location.host + '/ws/sales/');
-
-    socket.onopen = function() {
-        console.log('WebSocket connection established');
-    };
-
-    socket.onerror = function(error) {
-        console.error('WebSocket error:', error);
-    };
-
-    socket.onmessage = function(e) {
-        const message = JSON.parse(e.data);
-        console.log(message['data'], 'web socket data');
-        
-        const totalSalesElement = document.getElementById('total-sales');
-        if (totalSalesElement) {
-            totalSalesElement.innerText = `$${message['data']['total_sales']}`;
-        }
-    };
-</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script src="{% static 'js/dashboard.js' %}"></script>
 {% endblock content %}
