@@ -95,7 +95,7 @@ def pos(request):
             'image': meal.image.url if meal.image else '',
             'name':meal.name,
             'price':meal.price,
-            'category':meal.category.name,
+            'category':None,
             'meal':meal.meal,
             'id':f'm-{meal.id}'
         }
@@ -492,7 +492,25 @@ def process_sale(request):
             remove_duplicates(request)
             
             logger.success(f'sale successfully recorded: {sale}')
-            
+            # Broadcast websocket update for dashboards
+            try:
+                channel_layer = get_channel_layer()
+                if channel_layer is not None:
+                    async_to_sync(channel_layer.group_send)(
+                        'sales_group',
+                        {
+                            'type': 'send_sales_update',
+                            'data': {
+                                'receipt_number': str(sale.receipt_number),
+                                'branch': getattr(request.user.branch, 'id', None),
+                                'total_amount': float(sale.total_amount),
+                                'date': str(localdate()),
+                            }
+                        }
+                    )
+            except Exception as ws_err:
+                logger.error(f'WebSocket broadcast failed: {ws_err}')
+
             return JsonResponse({'success': True, 'data': data}, status=201)
         except Exception as e:
             logger.error(f'Error processing sale: {str(e)}')
@@ -751,37 +769,51 @@ def collect_change(request):
             change_id = data.get('change_id')
             amount = Decimal(data.get('amount'))
             cashier_id = request.user.id
+
+            with transaction.atomic():
             
-            change = Change.objects.get(id=change_id, sale__branch = request.user.branch)
-            cashier = User.objects.get(id = cashier_id)
+                change = Change.objects.get(id=change_id, sale__branch = request.user.branch)
+                cashier = User.objects.get(id = cashier_id)
 
-            if amount > change.amount:
-                return JsonResponse({'success':False, 'message': 'Amount cant be be more than the change amount'})
+                if amount > change.amount:
+                    return JsonResponse({'success':False, 'message': 'Amount cant be be more than the change amount'})
 
-            new_collected = change.amount_collected + amount
-            new_balance = change.amount - new_collected
+                new_collected = change.amount_collected + amount
+                new_balance = change.amount - new_collected
 
-            logger.info(change.amount_collected)
+                logger.info(change.amount_collected)
 
-            if new_balance < 0:
-                return JsonResponse({'success': False, 'message': 'Amount collected exceeds the total change amount'}, status=400)
+                if new_balance < 0:
+                    return JsonResponse({'success': False, 'message': 'Amount collected exceeds the total change amount'}, status=400)
 
-            change.amount_collected = new_collected
-            change.balance = new_balance
-            change.cashier_give = cashier
-            change.data_collected = datetime.datetime.now()
-            
-            if new_balance == 0:
-                change.collected = True
-            
-            change.save()
-            
-            return JsonResponse({
-                'success': True, 
-                'amount_collected': str(change.amount_collected),
-                'balance': str(change.balance),
-                'collected': change.collected
-            }, status=200)
+                change.amount_collected = new_collected
+                change.balance = new_balance
+                change.cashier_give = cashier
+                change.data_collected = datetime.datetime.now()
+                
+                if new_balance == 0:
+                    change.collected = True
+                
+                change.save()
+
+                if change.cashier != cashier:
+                    CashierExpense.objects.create(
+                        branch=request.user.branch,
+                        name=change.name,
+                        track_amount=amount,
+                        cashier=request.user,
+                        amount=amount,
+                        description=f'Change given to {change.name}',
+                        status=False
+                    )
+                    logger.success(f'Change given to {change.name} expensed.')
+                
+                return JsonResponse({
+                    'success': True, 
+                    'amount_collected': str(change.amount_collected),
+                    'balance': str(change.balance),
+                    'collected': change.collected
+                }, status=200)
         except Exception as e:
             logger.error(f'Error recording change: {e}')
             return JsonResponse({'success':False, 'message':f'{e}'}, status=400)
@@ -1064,15 +1096,6 @@ def cash_up(request, cashier_id):
             total_expenses = expenses.aggregate(Sum('amount'))['amount__sum'] or 0
             total_change = accumulated_change.aggregate(Sum('amount'))['amount__sum'] or 0
 
-            collected_changes = Change.objects.filter(
-                cashier__id=cashier_id,
-                collected=True,
-                data_collected=datetime.datetime.today(),
-                sale__branch=request.user.branch
-            ).exclude(
-                cashier__id=cashier_id
-            ).aggregate(Sum('amount_collected'))['amount_collected__sum'] or 0
-
             cashier_partially_collected_changes = Change.objects.filter(
                 timestamp__date=datetime.datetime.today(),
                 cashier__id=cashier_id,
@@ -1080,20 +1103,6 @@ def cash_up(request, cashier_id):
                 balance__gt=0,
                 sale__branch=request.user.branch
             ).aggregate(Sum('balance'))['balance__sum'] or 0
-
-            cashier_self_collected = Change.objects.filter(
-                cashier__id=cashier_id,
-                collected=True,
-                sale__branch=request.user.branch,
-                timestamp__date=datetime.datetime.today(),
-                timestamp__date__lt=datetime.datetime.today()
-            ).aggregate(Sum('amount_collected'))['amount_collected__sum'] or 0
-
-            logger.info(f'Collected changes from others: {collected_changes}')
-            logger.info(f'Partially collected changes by cashier: {cashier_partially_collected_changes}')
-
-            total_collected_change = collected_changes + cashier_partially_collected_changes 
-            collected_change = total_collected_change
 
             uncollected_change = Change.objects.filter(
                 timestamp__date=datetime.datetime.today(),
@@ -1103,10 +1112,12 @@ def cash_up(request, cashier_id):
                 sale__branch=request.user.branch
             ).aggregate(Sum('amount'))['amount__sum'] or 0
 
+            uncollected_change = uncollected_change + cashier_partially_collected_changes
+
             logger.info(f'Uncollected changes by cashier: {uncollected_change}')
             
-            cash_in_hand = total_sales - total_expenses - total_void_sales - collected_changes + uncollected_change + cashier_partially_collected_changes 
-            uncollected_change = uncollected_change + cashier_partially_collected_changes
+            cash_in_hand = total_sales - total_expenses - total_void_sales + uncollected_change
+        
             
             cashier = User.objects.get(id=cashier_id)
 
@@ -1118,7 +1129,7 @@ def cash_up(request, cashier_id):
                 # cashed_amount=cashed_amount,
                 void_amount=total_void_sales,
                 sales=total_sales,
-                change=collected_change,
+                change=uncollected_change,
                 user=request.user,
                 expenses=total_expenses,
                 status=False,
@@ -1147,7 +1158,6 @@ def cash_up(request, cashier_id):
                 'staff_sales_summary': staff_sales_summary,
                 'eco_cash_total': eco_cash_total,
                 'eco_cash_tax': Decimal(eco_cash_tax),
-                'collected_changes': float(collected_changes),
                 'cashier':request.user.username
             }   
 

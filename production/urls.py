@@ -18,5 +18,7 @@ urlpatterns = [
     path("dish/json/detail/", dish_json_detail, name="dish_json_detail"),
     path("process-dish-declaration/<int:plan_id>/", process_dish_declaration, name="process_dish_declaration"),
     path("raw-materials/<int:production_id>/", get_raw_materials, name="get_raw_materials"),
-    path("process-remaining-kgs/<int:production_id>/", process_remaining_kgs, name='process_remaining_kgs')
+    path("process-remaining-kgs/<int:production_id>/", process_remaining_kgs, name='process_remaining_kgs'),
+    path("confirm-declaration/<int:production_id>/", confirm_declaration, name='confirm_declaration'),
+    path("production-inventory", production_inventory, name="production_inventory"),
 ]

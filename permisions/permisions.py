@@ -15,10 +15,33 @@ def admin_required(view_func):
             return redirect('users:login')
     return wrapper
 
+def can_declare_required(view_func):
+    def wrapper(request, *args, **kwargs):
+        try:
+            print(request.user.role, 'user role')
+            if request.user.role in ['chef', 'admin', 'Admin', 'owner', 'Owner', 'sales']:
+                return view_func(request, *args, **kwargs)
+            else:
+                return render(request, '403.html', status=403)
+        except Exception as e:
+            return redirect('users:login')
+    return wrapper
+
+def can_confirm_required(view_func):
+    def wrapper(request, *args, **kwargs):
+        try:
+            if request.user.role in ['stores_person', 'accountant', 'admin', 'Admin', 'owner', 'Owner', 'sales']:
+                return view_func(request, *args, **kwargs)
+            else:
+                return render(request, '403.html', status=403)
+        except Exception as e:
+            return redirect('users:login')
+    return wrapper
+
 def sales_required(view_func):
     def wrapper(request, *args, **kwargs):
         try:
-            if request.user.role in ['sales', 'accountant', 'admin', 'Admin', 'owner', 'Owner']:
+            if request.user.role in ['sales', 'accountant', 'admin', 'Admin', 'owner', 'Owner', 'chef', 'stores_person']:
                 return view_func(request, *args, **kwargs)
             else: return HttpResponseForbidden()
         except Exception as e:

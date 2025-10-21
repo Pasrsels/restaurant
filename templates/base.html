@@ -84,6 +84,28 @@
             top: -5px;
             right: -5px;
         }
+
+        /* Global Loader */
+        #global-loader {
+            position: fixed;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 5000;
+        }
+        .global-loader-spinner {
+            width: 56px;
+            height: 56px;
+            border: 6px solid #e9ecef;
+            border-top-color: #0d6efd;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
@@ -97,13 +119,16 @@
     <script src="{% static 'assets/DataTables/datatables.min.js' %}"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.6.1/toastify.js" crossorigin="anonymous"></script>
     <title>
         {% block title %}{{ request.user.company.name }}{% endblock title %}
     </title>
 </head>
 <body>
+    <div id="global-loader" aria-hidden="true">
+        <div class="global-loader-spinner" role="status"></div>
+    </div>
     <div class="floating-controls d-md-none">
         <button class="btn btn-primary toggle-btn" id="sidebar-toggle-button" title="Toggle Menu">
             <i class="bx bx-menu"></i>
@@ -117,17 +142,6 @@
     <div class="Urban-Eat">
         <div class="row">
             <div class="top-bar">
-                <nav class="p-2">
-                    {% if request.resolver_match.url_name == 'declare_production' %}
-                        <div class='production-plan mt-2 d-flex justify-content-between align-items-center'>
-                            <div>
-                                <a href='{% url "production:production-list" %}' class='border btn bx bx-arrow-back fs-5'></a>
-                                <a href='/' class='bx bx-home btn border fs-5 mx-2'></a>
-                                <span class='mt-2 fs-5'>Production Plan : {{ p_plan.production_plan_number }} Declaration</span>
-                            </div>
-                        </div>
-                    {% endif %}
-                </nav>
                 <div class="row">
                     {% if request.resolver_match.url_name == 'pos' %}
                         <div id="pos-sidebar" class="col-2 d-none d-md-flex justify-content-center border rounded">
@@ -182,7 +196,36 @@
             </div>
         </div>
     </div>
+
+    <!-- Reusable Activity Log Modal -->
+    <div class="modal fade" id="activityLogModal" tabindex="-1" aria-labelledby="activityLogModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="activityLogModalLabel">Activity Logs — <span id="activity-product-name"></span></h5>
+                    <div class="ms-3 small text-muted d-none d-md-inline" id="activity-last-wrap">
+                        <i class="bx bx-time-five me-1"></i>
+                        <span id="activity-last-updated">N/A</span>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <small class="text-muted d-md-none"><i class="bx bx-time-five me-1"></i>Last updated: <span id="activity-last-updated-mobile">N/A</span></small>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="activity-refresh-btn"><i class="bx bx-refresh me-1"></i>Refresh</button>
+                    </div>
+                    <div id="activity-log-list" style="max-height: 60vh; overflow-y: auto;">
+                        <div class="text-center text-muted p-3 loading-placeholder">Loading...</div>
+                        <div id="activity-sentinel"></div>
+                        <div class="text-center text-muted p-4 d-none" id="activity-empty">No activity found.</div>
+                        <div class="text-center text-muted p-3 d-none" id="activity-end">End of activity</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         const BranchModal = new bootstrap.Modal(document.getElementById('switchBranchModal'));
@@ -193,6 +236,11 @@
 
             toggleButton.addEventListener('click', function() {
                 mobileSidebar.classList.toggle('show');
+            });
+
+            // Ensure dropdowns are initialized
+            document.querySelectorAll('[data-bs-toggle="dropdown"]').forEach(function (el) {
+                new bootstrap.Dropdown(el);
             });
         });
 
@@ -254,6 +302,188 @@
                 }
             }
             return null;
+        }
+
+        const globalLoader = document.getElementById('global-loader');
+        function showLoader() {
+            if (globalLoader) globalLoader.style.display = 'flex';
+        }
+        function hideLoader() {
+            if (globalLoader) globalLoader.style.display = 'none';
+        }
+
+        document.addEventListener('click', function (e) {
+            const link = e.target.closest('a');
+            if (!link) return;
+            const href = link.getAttribute('href');
+            const noLoader = link.hasAttribute('data-no-loader') || link.getAttribute('target') === '_blank' || link.getAttribute('download') !== null;
+            if (!href || href.startsWith('#') || href.startsWith('javascript:') || noLoader) return;
+            showLoader();
+        }, true);
+
+        document.addEventListener('submit', function (e) {
+            const form = e.target.closest('form');
+            if (!form) return;
+            if (form.hasAttribute('data-no-loader')) return;
+            showLoader();
+        }, true);
+
+        window.addEventListener('pageshow', hideLoader);
+
+        const activityModalEl = document.getElementById('activityLogModal');
+        const activityModal = activityModalEl ? new bootstrap.Modal(activityModalEl) : null;
+        let actState = { source: 'inventory', productId: null, page: 1, busy: false, nextPage: null };
+
+        function actionBadge(action) {
+            const map = {
+                'stock in': 'success',
+                'sale': 'danger',
+                'declared': 'warning',
+                'to production': 'primary'
+            };
+            const cls = map[action?.toLowerCase?.() || ''] || 'secondary';
+            return `<span class="badge bg-${cls} text-capitalize">${action}</span>`;
+        }
+
+        function renderItems(items) {
+            const ul = document.createElement('ul');
+            ul.className = 'list-group';
+            items.forEach(it => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                const qty = Number(it.quantity ?? 0);
+                const arrow = qty >= 0 ? '<i class="bx bx-trending-up text-success"></i>' : '<i class="bx bx-trending-down text-danger"></i>';
+                const qtyStr = `${arrow} <span class="${qty>=0?'text-success':'text-danger'}">${qty.toFixed(2)}</span>`;
+                li.innerHTML = `
+                    <div class="me-3">
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <strong><i class="bx bx-time-five me-1"></i>${it.timestamp}</strong>
+                            ${actionBadge(it.action)}
+                        </div>
+                        <div class="text-muted small">${it.description || ''}</div>
+                        <small class="text-muted">By ${it.user}</small>
+                    </div>
+                    <div class="text-end">
+                        <div class="d-flex align-items-center gap-1 justify-content-end">Qty: ${qtyStr}</div>
+                        <small class="text-muted">At hand: ${Number(it.total_quantity ?? 0).toFixed(2)}</small>
+                    </div>`;
+                ul.appendChild(li);
+            });
+            return ul;
+        }
+
+        async function loadActivityPage() {
+            if (!actState.productId || actState.busy) return;
+            actState.busy = true;
+            const list = document.getElementById('activity-log-list');
+            try {
+                const url = `/inventory/api/activity-logs/?source=${encodeURIComponent(actState.source)}&product_id=${encodeURIComponent(actState.productId)}&page=${actState.page}&page_size=20`;
+                const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || 'Failed');
+                // set product name in title
+                const prodNameEl = document.getElementById('activity-product-name');
+                if (prodNameEl) prodNameEl.textContent = data.product_name || '';
+                const lastUpd = data.last_updated || 'N/A';
+                const last1 = document.getElementById('activity-last-updated');
+                const last2 = document.getElementById('activity-last-updated-mobile');
+                if (last1) last1.textContent = lastUpd;
+                if (last2) last2.textContent = lastUpd;
+                const itemsEl = renderItems(data.items || []);
+                const sentinel = document.getElementById('activity-sentinel');
+                // clear loading placeholder on first load
+                const loadingEl = list.querySelector('.loading-placeholder');
+                if (loadingEl) loadingEl.remove();
+                const emptyEl = document.getElementById('activity-empty');
+                if (data.items && data.items.length) {
+                    if (emptyEl) emptyEl.classList.add('d-none');
+                    list.insertBefore(itemsEl, sentinel);
+                } else if (actState.page === 1) {
+                    if (emptyEl) emptyEl.classList.remove('d-none');
+                }
+                actState.nextPage = data.next_page;
+                if (actState.nextPage) {
+                    actState.page = actState.nextPage;
+                } else {
+                    const endEl = document.getElementById('activity-end');
+                    if (endEl) endEl.classList.remove('d-none');
+                }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                actState.busy = false;
+            }
+        }
+        if ('IntersectionObserver' in window) {
+            const observer = new IntersectionObserver(entries => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting && actState.nextPage) {
+                        loadActivityPage();
+                    }
+                });
+            });
+            const sentinel = document.getElementById('activity-sentinel');
+            if (sentinel) observer.observe(sentinel);
+        }
+
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('[data-activity-log], .activity-log-btn');
+            if (!btn) return;
+            const productId = btn.getAttribute('data-id') || btn.getAttribute('data-product-id');
+            const source = btn.getAttribute('data-source') || 'inventory';
+            const list = document.getElementById('activity-log-list');
+            if (!productId || !activityModal) return;
+            list.innerHTML = '<div class="text-center text-muted p-3 loading-placeholder">Loading...</div><div id="activity-sentinel"></div>';
+            // reset header fields
+            document.getElementById('activity-product-name').textContent = '';
+            const last1 = document.getElementById('activity-last-updated');
+            const last2 = document.getElementById('activity-last-updated-mobile');
+            if (last1) last1.textContent = 'N/A';
+            if (last2) last2.textContent = 'N/A';
+            actState = { source, productId, page: 1, busy: false, nextPage: null };
+            activityModal.show();
+            loadActivityPage();
+        });
+
+        // Manual refresh
+        const refreshBtn = document.getElementById('activity-refresh-btn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', function(){
+                const list = document.getElementById('activity-log-list');
+                list.innerHTML = '<div class="text-center text-muted p-3 loading-placeholder">Loading...</div><div id="activity-sentinel"></div>';
+                const endEl = document.getElementById('activity-end');
+                const emptyEl = document.getElementById('activity-empty');
+                if (endEl) endEl.classList.add('d-none');
+                if (emptyEl) emptyEl.classList.add('d-none');
+                actState.page = 1; actState.nextPage = null; actState.busy = false;
+                loadActivityPage();
+            });
+        }
+
+        const sidebarLogoutBtn = document.getElementById('sidebarLogoutBtn');
+        if (sidebarLogoutBtn) {
+            sidebarLogoutBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (typeof Swal === 'undefined') {
+                    const logoutModal = new bootstrap.Modal(document.getElementById('logoutModal'));
+                    logoutModal.show();
+                    return;
+                }
+                Swal.fire({
+                    title: 'Are you sure you want to log out?',
+                    text: 'You will be logged out of the system.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Yes, log out',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = '{% url "users:logout" %}';
+                    }
+                });
+            });
         }
     </script>
 </body>

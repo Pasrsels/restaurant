@@ -23,6 +23,16 @@
         cursor: pointer;
         pointer-events: auto;
     }
+    .scroll-thin {
+        max-height: 60vh;
+        min-height: 40vh;
+        overflow-y: auto;
+        scrollbar-width: thin; 
+        scrollbar-color: var(--bs-primary-bg-subtle, #cfe2ff) transparent; 
+    }
+    .scroll-thin::-webkit-scrollbar { width: 6px; }
+    .scroll-thin::-webkit-scrollbar-track { background: transparent; }
+    .scroll-thin::-webkit-scrollbar-thumb { background-color: var(--bs-primary-bg-subtle, #cfe2ff); border-radius: 6px; }
 </style>
 <div class="production">
     <div class='add-production-plan'>
@@ -33,22 +43,19 @@
                 {% if confirm %}
                     <span class='mt-2 fs-5'>Confirm Production Plan : {{ production_plan.production_plan_number }}</span>
                 {% else %}
-                    <span class='mt-2 fs-5'>Production Plan : {{ production.plan_number }} Detail</span>
+                    <span class='mt-2 fs-5'>Production Plan Declaration : {{ production.plan_number }} Detail</span>
                 {% endif %}
             </div>
-            <div>
-                <button id="showDishesBtn" class="btn btn-primary mx-2 active">Show Dishes</button>
-                <button id="showRawBtn" class="btn btn-primary mx-2">Show Raw Materials</button>
-            </div>
         </div>
+
         <div class="row mt-3">
             <div class="table-responsive">
                 <div id="dishesSection" >
                     <div class="d-flex align-items-center justify-content-between rounded p-2">
-                        <h4 class="fw-bold">Dishes</h4>
-                        <h5 class="fw-bold">Total Cost: ${{ total_cost_items }}</h5>
+                        <h5 class="fw-bold">Dishes</h5>
                     </div>
-                    <input type="search" id="search_dish" class="form-control" placeholder="search dish.."/>
+                    <input type="search" id="search_dish" class="form-control" placeholder="Search dish..."/>
+                    <div class="scroll-thin mt-2">
                     <table class="table table-hover" id='plan_item_table' style="width:100%;">
                         <thead class="bg-primary-subtle">
                             <th>Dish</th>
@@ -60,8 +67,8 @@
                             {% for item in production_plan_items %}
                                 <tr>
                                     <td>
-                                        <strong>{{ item.dish.name }}</strong>
-                                        <p>
+                                        {{ item.dish.name }}
+                                        <!-- <p>
                                             (
                                                 {% for items in dish_ing %}
                                                     {% if item.dish.name == items.dish.name %}
@@ -70,10 +77,10 @@
                                                     {% endif %}
                                                 {% endfor %}
                                             )
-                                        </p>
+                                        </p> -->
                                     </td>
                                     <td>{{ item.portions }} {{ item.raw_material.unit }}</td>
-                                    <td><input type="number" id="portions_declared" value="{{ item.declared_portions }}" class="form-control form-control-sm" onclick="declarePortion(this, {{ item.dish.id }})"></td>
+                                    <td><input type="number" id="portions_declared" value="{{ item.declared_portions }}" class="form-control form-control-sm" onkeydown="if(event.key==='Enter'){ event.preventDefault(); declarePortion(this, {{ item.dish.id }}); }"></td>
                                     <td id="portion_variance">
                                         {% if item.variance < 0 %}
                                             <span class="text-danger">{{ item.variance }}</span>
@@ -87,15 +94,18 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                    </div>
                 </div>
 
                 <div id="rawMaterialsSection">
                     <div class="d-flex mt-3 align-items-center justify-content-between rounded p-2">
-                        <h5 class="fw-bold">Raw Materials</h5>
+                        <h5 class="fw-bold">Ingredients</h5>
                     </div>
+                    <input type="search" id="search_ingredient" class="form-control" placeholder="Search ingredient..."/>
+                    <div class="scroll-thin">
                     <table class="table table-hover" id="minor">
                         <thead class="bg-primary-subtle">
-                            <th>Raw Material</th>
+                            <th>Ingredient</th>
                             <th>System Expected (kgs)</th>
                             <th>Actual usage (kgs)</th>
                             <th>Remaining (kgs)</th>
@@ -104,17 +114,61 @@
                         <tbody id="rawMaterialsBody">
                         </tbody>
                     </table>
+                    </div>
                 </div>
                 <div class="d-flex justify-content-end py-4">
                     <a href="" class="btn btn-outline-danger mx-2">Cancel</a>
-                    <a href="" class="btn-primary text-light btn disabled" id="confirm-btn" onclick="return false;">Confirm</a>
+                    <a href="" class="btn-primary text-light btn" id="confirm-btn" onclick="return false;">Declare</a>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+
+
 <script>
+
+document.addEventListener('DOMContentLoaded', function(){
+    const ingInput = document.getElementById('search_ingredient');
+    function filterIngredients() {
+        if (!ingInput) return;
+
+        const q = ingInput.value.trim().toLowerCase();
+        const tbody = document.getElementById('rawMaterialsBody');
+
+        if (!tbody) return;
+        tbody.querySelectorAll('tr').forEach(tr => {
+        const text = tr.textContent.toLowerCase();
+        tr.style.display = text.includes(q) ? '' : 'none';
+        });
+
+    }
+
+    window.filterIngredients = filterIngredients;
+
+    if (ingInput) {
+        ingInput.addEventListener('input', filterIngredients);
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function(){
+    const dishInput = document.getElementById('search_dish');
+    const dishTable = document.getElementById('plan_item_table');
+    const dishTbody = dishTable ? dishTable.querySelector('tbody') : null;
+
+    function filterDishes(){
+        if (!dishInput || !dishTbody) return;
+        const q = dishInput.value.trim().toLowerCase();
+        dishTbody.querySelectorAll('tr').forEach(tr => {
+        const text = tr.textContent.toLowerCase();
+        tr.style.display = text.includes(q) ? '' : 'none';
+        });
+    }
+
+    window.filterDishes = filterDishes;
+    if (dishInput) dishInput.addEventListener('input', filterDishes);
+});
 
 function updateRawMaterialsTable(rawMaterials) {
     const tbody = document.getElementById('rawMaterialsBody');
@@ -139,56 +193,78 @@ function updateRawMaterialsTable(rawMaterials) {
         totalActualCost += actualCost;
         totalRemainingCost += remainingCost;
 
-        const variance = (rm.quantity - rm.declared_quantity).toFixed(2);
-        const varianceCost = variance * rm.cost;
+        const varianceNum = Number((rm.quantity ?? 0) - (rm.declared_quantity ?? 0));
+        const varianceCost = Number(varianceNum) * Number(rm.cost ?? 0);
 
         let color = "black";
-        let displayVariance = variance;
+        let displayVariance = varianceNum.toFixed(2);
 
-        if (variance < 0) {
-        color = "red";
-        displayVariance = "-" + '$' + Math.abs(varianceCost).toFixed(2);
-        } else if (variance > 0) {
-        color = "green";
-        displayVariance = "+" + '$' + varianceCost.toFixed(2);
+        if (varianceNum < 0) {
+            color = "red";
+            totalNegative += Math.abs(varianceCost);
+            displayVariance = "-" + '$' + Math.abs(varianceCost).toFixed(2);
+        } else if (varianceNum > 0) {
+            color = "green";
+            totalPositive += varianceCost;
+            displayVariance = "+" + '$' + varianceCost.toFixed(2);
         }
 
         tr.innerHTML = `
         <td>${rm.name} @ ${rm.cost}</td>
-        <td class="text-center">$${declaredCost.toFixed(2)}  |  ${rm.declared_quantity}</td>
-        <td class="text-center">$${actualCost.toFixed(2)}  |  ${rm.actual_quantity || '0.00'}</td>
+        <td class="text-center">$${declaredCost.toFixed(2)}  |  ${(rm.declared_quantity ?? 0).toFixed(2)}</td>
+        <td class="text-center">$${actualCost.toFixed(2)}  |  ${(rm.actual_quantity ?? 0).toFixed(2)}</td>
         <td>
             <input 
                 type="number" 
                 class="form-control-sm form-control" 
                 min="0" 
-                value="${rm.remaining_quantity}"
+                value="${(rm.remaining_quantity ?? 0).toFixed(2)}"
                 placeholder="Press Enter when done" 
                 onkeydown="processInput(event, this, ${rm.id})"
             >
         </td>
         <td class="text-center" style="color:${color}; font-weight:600;">
-            ${displayVariance}  |  ${variance}
+            ${displayVariance}  |  ${varianceNum.toFixed(2)}
         </td>
     `;
 
     tbody.appendChild(tr);
     });
 
+    document.addEventListener('DOMContentLoaded', function(){
+        const searchInput = document.getElementById('search_dish');
+        const table = document.getElementById('plan_item_table');
+        
+        if (!searchInput || !table) return;
+            const tbody = table.querySelector('tbody');
+            searchInput.addEventListener('input', function(){
+                const q = this.value.trim().toLowerCase();
+                tbody.querySelectorAll('tr').forEach(tr => {
+                const text = tr.textContent.toLowerCase();
+                tr.style.display = text.includes(q) ? '' : 'none';
+                });
+        });
+    });
+
     const totalRow = document.createElement('tr');
     totalRow.innerHTML = `
         <td><strong>Totals</strong></td>
         <td class="text-center text-muted"><strong>$${totalSystemCost.toFixed(2)}</strong></td>
-        <td class="text-center"><strong>$${totalActualCost.toFixed(2)}</strong></td>
-        <td class="text-center"><strong></strong></td>
-        <td class="text-center">
+        <td class="text-center text-muted"><strong>$${totalActualCost.toFixed(2)}</strong></td>
+        <td class="text-center text-muted"><strong></strong></td>
+        <td class="text-center text-muted">
             <span style="color:green; font-weight:500;">+$${totalPositive.toFixed(2)}</span> |
             <span style="color:red; font-weight:500;">-$${totalNegative.toFixed(2)}</span>
-        </td>>
+        </td>
     `;
     totalRow.style.backgroundColor = "#f8f9fa";
     totalRow.style.fontWeight = "bold";
     tbody.appendChild(totalRow);
+
+    // apply current ingredient filter after re-render
+    if (typeof filterIngredients === 'function') {
+        filterIngredients();
+    }
 }
 function loadRawmaterials () {
     fetch('/production/raw-materials/{{ production.id }}/')
@@ -202,7 +278,6 @@ function loadRawmaterials () {
 }
 
 loadRawmaterials()
-
 
 function getCSRFToken() {
 
@@ -265,8 +340,6 @@ function processInput(event, input, raw_material_id) {
     });
   }
 }
-
-
 
 const inputs = document.querySelectorAll('#minor input[type="number"]');
     const confirmBtn = document.getElementById('confirm-btn');
@@ -362,28 +435,6 @@ const inputs = document.querySelectorAll('#minor input[type="number"]');
             });
         });
     }
-
-    document.querySelectorAll('input#portions_declared').forEach(input => {
-        const row = input.closest('tr');
-        const dishName = row.cells[0].querySelector('strong').innerText;
-        
-        input.addEventListener('keydown', function(event) {
-            if (event.key === 'Enter') {
-                event.preventDefault();
-                const dishId = input.getAttribute('data-dish-id');
-                if (dishId) {
-                    declarePortion(input, dishId);
-                }
-            }
-        });
-        
-        input.addEventListener('blur', function() {
-            const dishId = input.getAttribute('data-dish-id');
-            if (dishId && input.value.trim() !== '') {
-                declarePortion(input, dishId);
-            }
-        });
-    });
 
     function checkInputs() {
         let allFilled = true;
@@ -504,26 +555,12 @@ const inputs = document.querySelectorAll('#minor input[type="number"]');
 
     checkInputs();
 
-    document.getElementById("showDishesBtn").addEventListener("click", function() {
-        document.getElementById("dishesSection").style.display = "block";
-        document.getElementById("rawMaterialsSection").style.display = "none";
-        this.classList.add("active");
-        document.getElementById("showRawBtn").classList.remove("active");
-    });
-
-    document.getElementById("showRawBtn").addEventListener("click", function() {
-        document.getElementById("rawMaterialsSection").style.display = "block";
-        document.getElementById("dishesSection").style.display = "none";
-        this.classList.add("active");
-        document.getElementById("showDishesBtn").classList.remove("active");
-    });
-
     document.getElementById("confirm-btn").addEventListener("click", function(e) {
         e.preventDefault(); 
 
         Swal.fire({
-            title: 'Confirm Production?',
-            text: "Are you sure you want to confirm this production?",
+            title: 'Declare Production?',
+            text: "Are you sure you want to declare this production?",
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#3085d6',
@@ -532,7 +569,7 @@ const inputs = document.querySelectorAll('#minor input[type="number"]');
             cancelButtonText: 'Cancel'
         }).then((result) => {
             if (result.isConfirmed) {
-                fetch('/production/confirm/', {
+                fetch('/production/confirm-declaration/{{ production.id }}/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

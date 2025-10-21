@@ -84,12 +84,13 @@
                 <!-- Raw Materials Table -->
                 <div id="rawMaterialsSection" style="display: none;">
                     <div class="d-flex mt-3 align-items-center justify-content-between rounded p-2">
-                        <h5 class="fw-bold">Raw Materials</h5>
+                        <h5 class="fw-bold">Ingredients</h5>
                     </div>
-                    <table class="table table-hover" id="minor">
+                    <table class="table table-hover table-striped table-borderless" id="minor">
                         <thead class="bg-primary-subtle">
-                            <th>Raw Material</th>
+                            <th>Ingredient</th>
                             <th>Planned Quantity</th>
+                            <th>Kitchen Inventory Qty</th>
                             <th>Expected Qnty From Stores</th>
                             <th>Stores Allocation</th>
                         </thead>
@@ -98,13 +99,10 @@
                                 <tr data-id="{{ item.id }}">
                                     <td>{{ item.name }}</td>
                                     <td class="text-center">{{ item.quantity|floatformat:2 }}</td>
-                                    <td class="text-center">{{ item.expected_quantity|floatformat:2 }}</td>
+                                    <td class="text-center text-danger">{{ item.quantity_b_f|floatformat:2 }}</td>
+                                    <td class="text-center text-success">{{ item.expected_quantity|floatformat:2 }}</td>
                                     <td>
-                                        {% if not item.allocated_quantity %}
-                                            <input type="number" class="form-control-sm form-control" min="0" placeholder="Press enter when done">
-                                        {% else %}
-                                            {{ item.allocated_quantity }}
-                                        {% endif %}
+                                        <input type="number" class="form-control-sm form-control" step="0.01" min="0" value="{{ item.expected_quantity|default_if_none:0|floatformat:2 }}" placeholder="Press enter when done">
                                     </td>
                                 </tr>
                             {% endfor %}
@@ -232,7 +230,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 const cells = row.querySelectorAll('td');
                 const plannedQuantity = parseFloat(cells[1].innerText.trim());
-                const expectedQuantity = parseFloat(cells[2].innerText.trim());
+                const expectedQuantity = parseFloat(cells[3].innerText.trim());
 
                 if (quantityEntered > expectedQuantity) {
                     Swal.fire({

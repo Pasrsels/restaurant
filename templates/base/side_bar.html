@@ -22,7 +22,6 @@
         box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     }
     
-    /* Notification Badge */
     .notification-btn {
         position: relative;
     }
@@ -103,7 +102,6 @@
         display: none;
     }
 
-    /* Notification bell inside header */
     .notification-wrapper {
         position: relative;
         display: flex;
@@ -126,7 +124,6 @@
         border-radius: 50%;
     }
 
-    /* Dropdown */
     .notifications {
         display: none;
         position: absolute;
@@ -219,7 +216,6 @@
         display: none;
     }
 
-    /* Floating Button for Mobile */
     .floating-notification-btn {
         display: none;
         position: relative;
@@ -278,13 +274,17 @@
         </div>
         <div class="branch-info d-flex justify-content-between align-items-center">
             <span>Logout</span>
-            <button>
+            <button id="sidebarLogoutBtn">
                 <i class='bx bx-log-out fs-5'></i>
             </button>
         </div>
     </div>
 
     <div class="sidebar-menu">
+         <a href="/dashboard/" class="{% if request.resolver_match.url_name == 'pos' %}active{% endif %}">
+            <i class='bx bx-grid-alt text-primary'></i>
+            <span>Dashboard</span>
+        </a>
         <a href="{% url 'pos:pos' %}" class="{% if request.resolver_match.url_name == 'pos' %}active{% endif %}">
             <i class='bx bx-cart-alt text-primary'></i>
             <span>Point Of Sale</span>

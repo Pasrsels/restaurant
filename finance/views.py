@@ -1362,7 +1362,6 @@ def cash_up(request, cashier_id):
             collected_changes = Change.objects.filter(
                 Q(cashier__id=cashier_id)|
                 Q(cashier_give__id=cashier_id),
-                timestamp__date=report_date,
                 collected=True,
                 # data_collected=report_date,
                 sale__branch=request.user.branch
@@ -1371,7 +1370,6 @@ def cash_up(request, cashier_id):
             ).aggregate(Sum('amount_collected'))['amount_collected__sum'] or 0
 
             cashier_partially_collected_changes = Change.objects.filter(
-                timestamp__date=report_date,
                 cashier__id=cashier_id,
                 collected=False,
                 balance__gt=0,
@@ -1379,7 +1377,6 @@ def cash_up(request, cashier_id):
             ).aggregate(Sum('balance'))['balance__sum'] or 0
 
             uncollected_change = Change.objects.filter(
-                timestamp__date=report_date,
                 cashier__id=cashier_id,
                 collected=False,
                 amount_collected=0,
@@ -1387,7 +1384,7 @@ def cash_up(request, cashier_id):
             ).aggregate(Sum('amount'))['amount__sum'] or 0
             
             total_change = accumulated_change.aggregate(Sum('amount'))['amount__sum'] or 0
-            cash_in_hand = total_sales - total_expenses - total_void_sales - collected_changes + uncollected_change + cashier_partially_collected_changes 
+            cash_in_hand = total_sales - total_expenses - total_void_sales  + uncollected_change - collected_changes + cashier_partially_collected_changes 
             uncollected_change = uncollected_change + cashier_partially_collected_changes
 
             # Get finished products

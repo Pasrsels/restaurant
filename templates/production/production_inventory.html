@@ -7,44 +7,23 @@
         background:rgba(14, 134, 212, 0.10);
     }
 </style>
-<div class="products container-fluid">
+<div class="production-inventory container-fluid">
     <div class="d-flex flex-wrap justify-content-between my-3 gap-2">
         <div class="d-flex align-items-center">
-            {% comment %} <a href='{% url "finance:finance"%}' class='border btn bx bx-arrow-back nav-back-btn fs-5'></a> {% endcomment %}
             <a href='/' class='bx bx-home btn nav-back-btn fs-5 ms-1'></a>
-            <h2 class='fw-bold ms-1'>Inventory Dashboard</h2>
-        </div>
-       <div>
-            <a href="{% url 'inventory:create_purchase_order' %}" class="btn btn-primary">
-                <i class="bx bx-plus"></i> Add New Product
-            </a>
-            <a href="{% url 'inventory:order_list' %}" class="btn btn-primary">
-                <i class="bx bx-list-ul"></i> Reorder List
-            </a>
-            <a href="{% url 'inventory:create_purchase_order' %}" class="btn btn-primary">
-                <i class="bx bx-cart-add"></i> Purchase Orders
-            </a>
-            <a href="{% url 'inventory:suppliers' %}" class="btn btn-primary">
-                <i class="bx bx-user"></i> Suppliers
-            </a>
-            <a href="{% url 'inventory:stocktake' %}" class="btn btn-primary">
-                <i class="bx bx-check-square"></i> Stocktake
-            </a>
-            <button class="btn bg-success-subtle">
-                <i class="bx bx-export"></i> Export Excel
-            </button>
+            <h2 class='fw-bold ms-1'>Production/Kitchen Inventory </h2>
         </div>
     </div>
 
     <div class="row my-3">
         <div class="col-md-6">
-            <div class="card p-3 text-center">
+            <div class="card p-3 text-center border-0 shadow-sm">
                 <h6 class="text-muted">TOTAL INVENTORY COST</h6>
                 <h4 class="fw-bold">USD {{ total_inventory_cost|default:"0" }}</h4>
             </div>
         </div>
         <div class="col-md-6">
-            <div class="card p-3 text-center">
+            <div class="card p-3 text-center border-0 shadow-sm">
                 <h6 class="text-muted">TOTAL INVENTORY PRICE</h6>
                 <h4 class="fw-bold">USD {{ total_inventory_price|default:"0" }}</h4>
             </div>
@@ -70,7 +49,7 @@
     </div>
 
     <div class="">
-        <table class="table table-hover table-responsive" id="raw_materials_table" style="width: 100%;"> 
+        <table class="table table-hover table-responsive table-borderless" id="raw_materials_table" style="width: 100%;"> 
         <thead class="bg-primary-subtle">
             <th>Name</th>
             <th>Cost per unit</th> 
@@ -78,25 +57,21 @@
             <th>Action</th> 
         </thead> 
         <tbody> 
-            {% for raw_material in raw_materials %}
+            {% for raw_material in products %}
                 <tr>
-                <td>{{ raw_material.name }}</td> 
-                <td>{{ raw_material.cost|floatformat:2 }}</td> 
-                <td>{{ raw_material.quantity|floatformat:2 }} {{ raw_material.unit }}</td> 
-                <td>
-                    <span>
-                        <a href="javascript:void(0);" 
-                           class='text-dark activity-log-btn'
-                           data-source="inventory"
-                           data-product-id="{{ raw_material.id }}">
-                           <i class='bx bx-show'></i>
-                        </a>
-                    </span> 
-                    <span class='mx-3'> 
-                        <a href="{% url 'inventory:edit_inventory' raw_material.id %}" class="text-dark"> <i class='bx bx-edit-alt'></i></a>
-                    </span> 
-                    <span id='delete' data-id="" onclick="productId({{raw_material.id}})" class="text-dark"> <i class='bx bx-trash-alt'></i></span> 
-                </td>
+                    <td>{{ raw_material.raw_material.name }}</td> 
+                    <td>{{ raw_material.raw_material.cost | floatformat:2 }}</td> 
+                    <td>{{ raw_material.quantity | floatformat:2 }} {{ raw_material.unit }}</td> 
+                    <td>
+                        <span>
+                            <a href="javascript:void(0);" 
+                               class='text-dark activity-log-btn'
+                               data-source="production"
+                               data-product-id="{{ raw_material.raw_material.id }}">
+                               <i class='bx bx-show'></i>
+                            </a>
+                        </span> 
+                    </td>
                 </tr> 
                 {% endfor %} 
             </tbody> 
@@ -136,13 +111,13 @@
                 .then(data => {
                     modalContent.innerHTML = `
                         <h2>${data.name.charAt(0).toUpperCase() + data.name.slice(1)}</h2>
-                        <p class='fs-5 text-muted'>Cost per unit: USD ${Number(data.cost ?? 0).toFixed(2)}</p>
-                        <p class'fs-5 text-muted'>Quantity: ${Number(data.quantity ?? 0).toFixed(2)} ${data.unit}</p>
+                        <p class='fs-5 text-muted'>Cost per unit: USD ${data.cost}</p>
+                        <p class'fs-5 text-muted'>Quantity: ${data.quantity} ${data.unit}</p>
                         <h6 class="mt-4">Recent Logs</h6>
                         <ul class="list-group">
                             ${data.logs.map(log => `
                                 <li class="list-group-item">
-                                    ${log.timestamp} - ${log.action} by ${log.user} (Qty: ${Number(log.quantity ?? 0).toFixed(2)})
+                                    ${log.timestamp} - ${log.action} by ${log.user} (Qty: ${log.quantity})
                                 </li>
                             `).join('')}
                         </ul>

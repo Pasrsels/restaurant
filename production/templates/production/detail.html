@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% load custom_filters %}
+{% load humanize %}
+{% block content %}
+<div class="px-2">
+    <div class="row mb-4 mt-3">
+        <div class="col-12">
+            <div class="border-0 w-100 d-flex justify-content-between align-items-center">
+                <a href='{% url "production:production-list" %}' class='border btn bx bx-arrow-back fs-5'></a>
+                <a href='/dashboard' class='bx bx-home btn border fs-5 mx-2'></a>
+                <div class="">
+                    <h4 class="mb-0">Production Plan - {{ production.plan_number }} Detail</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 text-muted">
+                                <span class="badge {% if production.confirm %}bg-success{% else %}bg-warning{% endif %}">
+                                    {% if production.declared %}Declared{% else %}Not yet processed{% endif %}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            {% if not production.confirm %}
+                                <a href="{% url 'production:confirm' production.id %}" class="btn btn-primary">
+                                    <i class="fas fa-check-circle me-1"></i> Confirm Production
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0">
+                <div class="p-2 bg-primary-subtle d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">{{ production_plan_items|length }} - Dishes in Production</h5>
+                    <small>Actual Portions * Cost</small>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-borderless">
+                        <thead class="bg bg-primary-subtle">
+                            <tr>
+                                <th>Dish</th>
+                                <th class="text-end">Planned Portions</th>
+                                <th class="text-end">Actual Portions</th>
+                                <th class="text-end">Variance</th>
+                                <th class="text-end">Cost per Portion</th>
+                                <th class="text-end">Total Cost</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                           {% for item in production_plan_items %}
+                                <tr>
+                                    <td>
+                                        {{ item.dish.name }}
+                                    </td>
+                                    <td class="text-end">{{ item.portions }} {{ item.raw_material.unit }}</td>
+                                    <td class="text-end">{{ item.declared_portions }}</td>
+                                    <td id="portion_variance" class="text-end">
+                                        {% if item.variance < 0 %}
+                                            <span class="text-danger">{{ item.variance }}</span>
+                                        {% elif item.variance > 0 %}
+                                            <span class="text-success">{{ item.variance }}</span>
+                                        {% else %}
+                                            <span class="">{{ item.variance }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">${{ item.dish.cost }}</td>
+                                    <td class="text-end">${{ item|calculate_dish_total_cost:item.declared_portions }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <th colspan="5" class="text-end">Total Dishes Cost:</th>
+                                <td class="text-end">${{ production_plan_items|calculate_total_dish_cost|floatformat:2 }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0">
+                <div class="p-2 bg bg-primary-subtle d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">{{ production_ingredients|length }} - Ingredient Usage</h5>
+                    <small>Actual Used * Cost</small>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-borderless">
+                        <thead class="bg bg-primary-subtle">
+                            <tr>
+                                <th>Ingredient</th>
+                                <th class="text-end">Planned Quantity</th>
+                                <th class="text-end">Actual Used</th>
+                                <th class="text-end">Remaining Quantity</th>
+                                <th class="text-end">Variance</th>
+                                <th class="text-end">Cost per Unit</th>
+                                <th class="text-end">Total Cost</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for allocation in production_ingredients %}
+                            <tr>
+                                <td>{{ allocation.ingredient.name }}</td>
+                                <td class="text-end">{{ allocation.quantity }}kgs</td>
+                                <td class="text-end">{{ allocation.actual_quantity|default:"-"|floatformat:2 }}kgs</td>
+                                <td class="text-end">{{ allocation.remaining_quantity|default:0.00|floatformat:2 }}kgs</td>
+                                <td class="text-end {% if allocation.variance < 0 %}text-danger{% elif allocation.variance > 0 %}text-success{% endif %}">
+                                    {{ allocation.variance|default:"-"|floatformat:2 }}
+                                </td>
+                                <td class="text-end">${{ allocation.ingredient.cost|default:0.00|floatformat:2 }}</td>
+                                <td class="text-end">${{ allocation|calculate_ingredient_cost:allocation.actual_quantity|floatformat:2 }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <th colspan="6" class="text-end">Total Ingredient Cost:</th>
+                                <td class="text-end">${{ production_ingredients|calculate_total_ing_cost|floatformat:2 }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

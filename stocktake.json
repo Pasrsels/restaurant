@@ -1,0 +1,121 @@
+[
+  {
+    "product": "Oraimo Type C cable",
+    "actual": 17,
+    "expected": 15,
+    "loss_qty": -2,
+    "loss_value": -6.00
+  },
+  {
+    "product": "Hp Centrepin",
+    "actual": 2,
+    "expected": 1,
+    "loss_qty": -1,
+    "loss_value": -10.00
+  },
+  {
+    "product": "Sandisk 128gb SDCard",
+    "actual": 2,
+    "expected": 1,
+    "loss_qty": -1,
+    "loss_value": -15.00
+  },
+  {
+    "product": "Printer cable",
+    "actual": 25,
+    "expected": 24,
+    "loss_qty": -1,
+    "loss_value": -5.00
+  },
+  {
+    "product": "Hdmi cable",
+    "actual": 7,
+    "expected": 6,
+    "loss_qty": -1,
+    "loss_value": -5.00
+  },
+  {
+    "product": "digirich 16gb flash",
+    "actual": 1,
+    "expected": 0,
+    "loss_qty": -1,
+    "loss_value": -3.00
+  },
+  {
+    "product": "Itel Lightning iphone cable",
+    "actual": 76,
+    "expected": 71,
+    "loss_qty": -5,
+    "loss_value": -15.00
+  },
+  {
+    "product": "dell wired mouse",
+    "actual": 7,
+    "expected": 6,
+    "loss_qty": -1,
+    "loss_value": -5.00
+  },
+  {
+    "product": "m20 car modulators",
+    "actual": 21,
+    "expected": 20,
+    "loss_qty": -1,
+    "loss_value": -10.00
+  },
+  {
+    "product": "Dell centre pin",
+    "actual": 25,
+    "expected": 22,
+    "loss_qty": -3,
+    "loss_value": -30.00
+  },
+  {
+    "product": "Acer Small pin",
+    "actual": 2,
+    "expected": 1,
+    "loss_qty": -1,
+    "loss_value": -10.00
+  },
+  {
+    "product": "Oraimo Car mount",
+    "actual": 18,
+    "expected": 13,
+    "loss_qty": -5,
+    "loss_value": -50.00
+  },
+  {
+    "product": "Lenovo USB",
+    "actual": 46,
+    "expected": 43,
+    "loss_qty": -3,
+    "loss_value": -45.00
+  },
+  {
+    "product": "Lenovo type C",
+    "actual": 42,
+    "expected": 41,
+    "loss_qty": -1,
+    "loss_value": -15.00
+  },
+  {
+    "product": "type c 8 in 1 adapter",
+    "actual": 4,
+    "expected": 3,
+    "loss_qty": -1,
+    "loss_value": -3.00
+  },
+  {
+    "product": "Oraimo Earphones",
+    "actual": 1,
+    "expected": 0,
+    "loss_qty": -1,
+    "loss_value": -5.00
+  },
+  {
+    "product": "Alliso car charger",
+    "actual": 1,
+    "expected": 0,
+    "loss_qty": -1,
+    "loss_value": -5.00
+  }
+]

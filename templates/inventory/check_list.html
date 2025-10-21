@@ -1,25 +1,54 @@
-
 <style>
     .filter-btn.active {
         background-color: #0d6efd;
         color: #fff;
+    }
+    /* Thin primary scrollbar */
+    .stock-scroll {
+        scrollbar-width: thin;
+        scrollbar-color: #0d6efd transparent;
+    }
+    .stock-scroll::-webkit-scrollbar {
+        width: 6px;
+    }
+    .stock-scroll::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .stock-scroll::-webkit-scrollbar-thumb {
+        background-color: #0d6efd;
+        border-radius: 4px;
+    }
+    /* Right-align last cell */
+    #stock-list td:last-child {
+        text-align: right;
     }
 </style>
 <div style="width:100%">
     <div class="card border-0 shadow-sm w-100 p-3 rounded" style='height:100vh;'>
         <div class="d-flex justify-content-between align-items-center mb-2">
             <h4 class="mb-0">
-                <i class="bx bx-line-chart"></i> Stock Movement
+                <i class="bx bx-line-chart"></i> Inventory
             </h4>
         </div>
 
-        <div class="w-100 mb-3 border d-flex justify-content-between" role="group">
-            <button type="button" class="btn btn-primary-sm filter-btn active" data-filter="all">All</button>
-            <button type="button" class="btn btn-primary-sm filter-btn" data-filter="finished">Finished</button>
-            <button type="button" class="btn btn-primary-sm filter-btn" data-filter="rawmaterial">Raw Material</button>
+        <div class="mb-3 d-flex justify-content-between align-items-center gap-1 p-2 flex-column" role="group">
+            <div class="btn-group" role="group" aria-label="Type filters">
+                <button type="button" class="btn btn-primary-sm filter-btn active" data-filter="all">All</button>
+                <button type="button" class="btn btn-primary-sm filter-btn" data-filter="finished">Finished</button>
+                <button type="button" class="btn btn-primary-sm filter-btn" data-filter="rawmaterial">RM</button>
+                <!-- <button type="button" class="btn btn-primary-sm filter-btn" data-filter="packaging">Packaging</button> -->
+            </div>
+            <div class="d-flex align-items-center ms-2">
+                <label for="location-select" class="me-2 mb-0 small text-muted">Location</label>
+                <select id="location-select" class="form-select form-select-sm" style="min-width: 140px;">
+                    <option value="all" selected>All</option>
+                    <option value="kitchen">Kitchen</option>
+                    <option value="warehouse">Warehouse</option>
+                </select>
+            </div>
         </div>
 
-        <div style="height: 80vh; overflow-y: auto;">
+        <div class="stock-scroll" style="height: 100vh; overflow-y: auto;">
             <table class="table table-borderless mb-0 w-100">
                 <tbody id="stock-list">
                     {% for product in products %}
@@ -27,16 +56,15 @@
                         <td class="d-flex align-items-center">
                             {{ product.name }}
                         </td>
-                        <td class="">
-                            <i class="bx bx-info-circle text-secondary ms-2 info-icon"
-                                style="cursor: pointer;"
-                                data-bs-toggle="modal"
-                                data-bs-target="#productModal"
-                                data-id="{{ product.id }}">
+                        <td>
+                            <i class="bx bx-info-circle text-secondary ms-2 activity-log-btn"
+                               style="cursor: pointer;"
+                               data-source="inventory"
+                               data-product-id="{{ product.id }}">
                             </i>
-                            <span class="">
-                                {{ product.quantity }}
-                            </span>
+                        </td>
+                        <td class="text-end">
+                            <span class="">{{ product.quantity|floatformat:2 }}</span>
                         </td>
                     </tr>
                     {% empty %}
@@ -53,29 +81,11 @@
     </div>
 </div>
 
-<div class="modal fade" id="productModal" tabindex="-1" aria-labelledby="productModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold" id="productModalLabel">Product Logs</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div id="product-detail-content" class="p-2">
-                    <p class="text-center text-muted">Loading...</p>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const stockList = document.getElementById('stock-list');
-    const modalBody = document.getElementById('product-detail-content');
+
+    const locationSelect = document.getElementById('location-select');
 
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.addEventListener('click', function() {
@@ -83,8 +93,9 @@ document.addEventListener('DOMContentLoaded', () => {
             this.classList.add('active');
 
             const filterType = this.getAttribute('data-filter');
+            const location = locationSelect ? locationSelect.value : 'all';
 
-            fetch(`/inventory/filter-products/?filter=${filterType}`)
+            fetch(`{% url "inventory:filter_products" %}?filter=${filterType}&location=${location}`)
                 .then(response => response.json())
                 .then(data => {
                     stockList.innerHTML = '';
@@ -98,15 +109,15 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <td class="d-flex align-items-center">
                                     ${product.name}
                                 </td>
-                                <td class="">
+                                <td>
                                     <i class="bx bx-info-circle text-secondary ms-2 info-icon"
                                         style="cursor: pointer;"
                                         data-bs-toggle="modal"
                                         data-bs-target="#productModal"
                                         data-id="${product.id}"></i>
-                                    <span class="badge bg-primary rounded-pill">
-                                        ${product.quantity}
-                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <span class="">${product.quantity}</span>
                                 </td>
                             </tr>
                         `;
@@ -117,8 +128,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    function run(){
-        fetch(`{% url "inventory:filter_products" %}?filter=all`)
+    if (locationSelect) {
+        locationSelect.addEventListener('change', () => {
+            const activeBtn = document.querySelector('.filter-btn.active');
+            const filterType = activeBtn ? activeBtn.getAttribute('data-filter') : 'all';
+            run(filterType);
+        });
+    }
+
+    function run(filterType='all'){
+        const location = locationSelect ? locationSelect.value : 'all';
+        fetch(`{% url "inventory:filter_products" %}?filter=${filterType}&location=${location}`)
             .then(response => response.json())
             .then(data => {
                 console.log(data)
@@ -133,15 +153,15 @@ document.addEventListener('DOMContentLoaded', () => {
                             <td class="d-flex align-items-center">
                                 ${product.name}
                             </td>
-                            <td class="">
+                            <td>
                                 <i class="bx bx-info-circle text-secondary ms-2 info-icon"
                                     style="cursor: pointer;"
                                     data-bs-toggle="modal"
                                     data-bs-target="#productModal"
                                     data-id="${product.id}"></i>
-                                <span class="badge bg-primary rounded-pill">
-                                    ${product.quantity}
-                                </span>
+                            </td>
+                            <td class="text-end">
+                                <span class="">${product.quantity}</span>
                             </td>
                         </tr>
                     `;
@@ -154,33 +174,9 @@ document.addEventListener('DOMContentLoaded', () => {
     run();
 
     function attachInfoIconListeners() {
-        document.querySelectorAll('.info-icon').forEach(icon => {
-            icon.addEventListener('click', function() {
-                const productId = this.getAttribute('data-id');??.,÷
-                modalBody.innerHTML = `<p class="text-center text-muted">Loading...</p>`;
-
-                fetch(`/inventory/stock-detail/${productId}/`)
-                    .then(response => response.json())
-                    .then(data => {
-                        modalBody.innerHTML = `
-                            <div>
-                                <p><strong>Name:</strong> ${data.name}</p>
-                                <p><strong>Quantity:</strong> ${data.quantity}</p>
-                                <p><strong>Last Updated:</strong> ${data.last_updated}</p>
-                                <p><strong>Location:</strong> ${data.location}</p>
-                            </div>
-                        `;
-                    })
-                    .catch(error => {
-                        modalBody.innerHTML = `<p class="text-danger text-center">Error loading product details.</p>`;
-                        console.error('Error fetching product detail:', error);
-                    });
-            });
-        });
+        // to fill 
     }
 
     attachInfoIconListeners();
 });
 </script>
-
-

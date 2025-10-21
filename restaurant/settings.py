@@ -111,7 +111,8 @@ TEMPLATES = [
                 'inventory.context_processors.all_meals_dishes',
                 'users.context_processors.branches',
                 'inventory.context_processors.products',
-                'users.context_processors.cashiers'
+                'users.context_processors.cashiers',
+                'inventory.context_processors.categories'
             ],
         },
     },
@@ -128,7 +129,7 @@ LOGIN_URL = "users:login"
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'restaurant',  
+        'NAME': 'restaurant_clone',  
         'USER': 'postgres',
         'PASSWORD': 'neverfail',
         'PORT': '5432',
@@ -244,14 +245,14 @@ EMAIL_HOST_PASSWORD = "wxsh mufd blej nyvq"
 EMAIL_USE_TLS = False
 
 # channels
-# CHANNEL_LAYERS = {
-#     'default': {
-#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
-#         'CONFIG': {
-#             'hosts': [('127.0.0.1', 6379)],
-#         },
-#     },
-# }
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts': [os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/0')],
+        },
+    },
+}
 
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_COOKIE_AGE = 86400 #1day

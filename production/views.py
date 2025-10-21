@@ -13,7 +13,7 @@ from .forms import *
 from inventory.models import EndOfDay, EndOfDayItems, CheckList
 from django.db import transaction
 import datetime
-from permisions.permisions import admin_required
+from permisions.permisions import can_confirm_required, can_declare_required
 from collections import defaultdict
 from inventory.models import Logs
 
@@ -69,22 +69,59 @@ class ProductionListView(ListView):
 
 class ProductionDetailView(DetailView):
     model = Production
-    template_name = "production/production_detail.html"
+    template_name = "production/detail.html"
     context_object_name = "production"
     
-    def get_queryset(self, production_id):
+    def get_queryset(self):
         user = self.request.user
         queryset = super().get_queryset()
-        queryset = queryset.filter(branch=user.branch, id=production_id) 
-        return queryset.select_related("branch")
+        return queryset.filter(branch=user.branch).select_related("branch")
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        production = self.get_object()
+
+        production_items = ProductionItem.objects.filter(
+            production=production
+        ).select_related('dish')
+
+        dish_ids = production_items.values_list('dish_id', flat=True)
+        ingredients = Ingredient.objects.filter(
+            dish_id__in=dish_ids
+        ).select_related('raw_material')
+   
+        dish_ingredients = defaultdict(list)
+        for ingredient in ingredients:
+            dish_ingredients[ingredient.dish_id].append(ingredient)
+            
+        ingredient_usage = defaultdict(float)
+        for item in production_items:
+            for ingredient in dish_ingredients.get(item.dish_id, []):
+                usage = (ingredient.quantity * item.portions) / item.dish.portion_multiplier
+                ingredient_usage[ingredient.raw_material] += usage
+        
+        context['production_items'] = production_items
+        context['production_plan_items'] = ProductionItem.objects.filter(
+            production=production
+        ).select_related('dish')
+        context['ingredient_usage'] = dict(ingredient_usage)
+        context['production_ingredients'] = ProductionIngredients.objects.filter(
+            production=production
+        ).select_related('ingredient')
+        context['raw_material_allocations'] = ProductionRawMaterialAllocation.objects.filter(
+            production=production
+        ).select_related('product')
+        
+        return context
     
 @login_required
+@can_confirm_required
 def confirm(request):
     try:
         data = json.loads(request.body)
         production_id = int(data.get('production_id'))
 
-        production = Production.objects.get(id=production_id)
+        production = Production.objects.get(id=production_id, branch=request.user.branch)
         production.confirm = True
         production.save()
 
@@ -97,6 +134,7 @@ def confirm(request):
 
 
 @login_required
+@can_confirm_required
 def confirm_production(request, pp_id):
     if request.method == 'GET':
         try:
@@ -119,18 +157,23 @@ def confirm_production(request, pp_id):
                     allocation, _ = ProductionRawMaterialAllocation.objects.get_or_create(
                         product=ing.raw_material,
                         branch = request.user.branch,
-                        defaults = {
-                            "production":production_plan
-                        }
+                        production=production_plan
                     )
 
                     required_quantity = ing.quantity * (item.portions / item.dish.portion_multiplier)
                     current_quantity = raw_material_in.quantity if raw_material_in else 0
                     expected_quantity = required_quantity - current_quantity
 
-                    if _: 
-                        allocation.expected_quantity=expected_quantity
-                        allocation.save()
+                    if expected_quantity < 0:
+                        expected_quantity = 0
+
+                    logger.info(f'Raw material: {ing.raw_material.name}, Required quantity: {required_quantity}, Current quantity: {current_quantity}, Expected quantity: {expected_quantity}')
+
+                    
+                    allocation.expected_quantity=expected_quantity
+                    allocation.save()
+
+                    logger.info(f'Raw material: {ing.raw_material.name}, Allocated quantity: {allocation.expected_quantity}')
 
                     raw_material_found = next((rm for rm in raw_materials if rm['id'] == ing.raw_material.id), None)
                     if raw_material_found:
@@ -167,61 +210,66 @@ def confirm_production(request, pp_id):
 
 
 @login_required 
+@can_confirm_required
 def confirm_production_item(request):
     """
         raw_material allocation for production
     """
     try:
         data = json.loads(request.body)
-        logger.info(data)
-
         raw_material_id = data.get('raw_material_id')
         quantity = data.get('quantity')
         production_id = data.get('production_id')
         quantity = float(quantity)
         
         with transaction.atomic():
-            raw_material = Product.objects.select_for_update().get(id=raw_material_id, branch = request.user.branch)
-            production = Production.objects.get(id=production_id, branch = request.user.branch)
+            raw_material = Product.objects.select_for_update().get(id=raw_material_id, branch=request.user.branch)
+            production = Production.objects.get(id=production_id, branch=request.user.branch)
 
-            p_raw_material, created = ProductionInventory.objects.get_or_create(
+            main_before = float(raw_material.quantity or 0)
+            main_after = max(main_before - float(quantity), 0)
+            main_delta = main_after - main_before  
+            raw_material.quantity = main_after
+            raw_material.save(update_fields=["quantity"])
+
+            p_raw_material, created = ProductionInventory.objects.select_for_update().get_or_create(
                 raw_material=raw_material,
-                branch = request.user.branch,
-                defaults={
-                    "quantity": quantity,
-                }  
+                branch=request.user.branch,
+                defaults={"quantity": 0},
             )
+            kitchen_before = float(p_raw_material.quantity or 0)
+            p_raw_material.quantity = kitchen_before + float(quantity)
+            p_raw_material.save(update_fields=["quantity"])
+            kitchen_after = float(p_raw_material.quantity)
+            kitchen_delta = kitchen_after - kitchen_before  
 
-            if p_raw_material:
-                p_raw_material.quantity =+ quantity
-                p_raw_material.save()
+            allocation = ProductionRawMaterialAllocation.objects.get(product=raw_material, production=production)
+            allocation.quantity = float(quantity)
+            allocation.save(update_fields=["quantity"]) 
 
-            allocation = ProductionRawMaterialAllocation.objects.get( product=raw_material)
-            allocation.quantity = quantity
-            allocation.save()
-            
-            Logs.objects.create( # main inventory logs
-                user=request.user, 
+            Logs.objects.create(
+                user=request.user,
                 action='Transfer',
                 description=f'to production for production {production.plan_number}',
                 product=raw_material,
-                quantity=quantity,
-                total_quantity=raw_material.quantity,
+                quantity=main_delta,  
+                total_quantity=main_after,
             )
-            
-            ProductionLogs.objects.create( # kitchen/production inventory logs
-                user=request.user, 
+
+            ProductionLogs.objects.create(
+                user=request.user,
                 action='stock in',
                 description=f'from stores for production {production.plan_number}',
                 product=p_raw_material,
-                quantity=quantity,
-                total_quantity=p_raw_material.quantity,
+                quantity=kitchen_delta,  
+                total_quantity=kitchen_after,
             )
+
+            return JsonResponse({'success': True}, status=200)
 
     except Exception as e:
         logger.error(f'Failed processing: {e}')
         return JsonResponse({'success': False, 'message': f'{e}'}, status=400)
-    return JsonResponse({'success': True}, status=200)
 
     
 @login_required
@@ -337,6 +385,25 @@ def create_production_plan(request):
     return JsonResponse({'success': False, 'message': 'Invalid HTTP method'}, status=405)
 
 @login_required
+# @can_declare_required
+def confirm_declaration(request, production_id):
+    try:
+        production = Production.objects.get(id=production_id, branch=request.user.branch)
+
+        if production.confirm:
+
+            production.declared=True
+            production.save()
+
+            return JsonResponse({'message':'Production successfully Declared', 'success':True}, status=200)
+        return JsonResponse({'success':False, 'message':'Confirm Production First!'}, status=400)
+        
+    except Exception as e:
+        logger.error(f'Failed to declare production plan {production}', status=400)
+        return JsonResponse({'success':False, 'message':"{e}"})
+
+@login_required
+@can_declare_required
 def declare_production(request, plan_id):
     try:
         production_plan = Production.objects.get(id=plan_id, branch=request.user.branch)
@@ -358,20 +425,16 @@ def declare_production(request, plan_id):
                 allocation, _ = ProductionRawMaterialAllocation.objects.get_or_create(
                     product=ing.raw_material,
                     branch = request.user.branch,
-                    defaults = {
-                        "production":production_plan
-                    }
+                    production=production_plan
                 )
 
                 required_quantity = ing.quantity * (item.portions / item.dish.portion_multiplier)
                 current_quantity = raw_material_in.quantity if raw_material_in else 0
                 expected_quantity = required_quantity - current_quantity
 
-                if _: 
-                    allocation.expected_quantity=expected_quantity
-                    allocation.save()
-
-                logger.info(f'allocation: {allocation.expected_quantity} : {expected_quantity}')
+                
+                allocation.expected_quantity=expected_quantity
+                allocation.save()
 
                 raw_material_found = next((rm for rm in raw_materials if rm['id'] == ing.raw_material.id), None)
                 if raw_material_found:
@@ -380,7 +443,6 @@ def declare_production(request, plan_id):
                     raw_material_found['quantity_b_f'] += current_quantity
                     raw_material_found['allocated_quantity'] = allocation.quantity if allocation else None
                 else:
-                    logger.info(f'production: here')
                     raw_materials.append(
                         {
                             'id': ing.raw_material.id,
@@ -403,9 +465,10 @@ def declare_production(request, plan_id):
                 }
             )
 
-            if p_ing:
-                p_ing.quantity = raw_material['quantity']
-                p_ing.save()
+            p_ing.quantity = raw_material['quantity']
+            p_ing.save()
+
+        logger.info(f'production ingredients: {raw_materials}')
 
         return render(request, 'production/declare_production.html', 
             {
@@ -421,6 +484,7 @@ def declare_production(request, plan_id):
         return JsonResponse({'success': False, 'message': f'Error: {e}'}, status=500)
     
 @login_required
+@can_declare_required
 def process_dish_declaration(request, plan_id):
     """
     Process declared portions for dishes and recalculate raw material requirements
@@ -454,89 +518,62 @@ def process_dish_declaration(request, plan_id):
             production_item.variance = portion_variance
             production_item.save()
             
-            raw_materials_dict = {}
-            all_production_items = ProductionItem.objects.filter(
-                production=production_plan
-            ).select_related('dish')
-            
-            for item in all_production_items:
-                portions_to_use = item.declared_portions if item.declared_portions else item.portions
-                logger.info(f'Dish: {item.dish.id} - Portions to use: {portions_to_use}')
-
-                ingredients_qs = Ingredient.objects.filter(
-                    dish=item.dish,
-                    raw_material__branch=request.user.branch
-                ).select_related('raw_material')
-
-                logger.info(f'Found {ingredients_qs.count()} ingredients for dish {item.dish.name}')
-
-                for ing in ingredients_qs:
-                    logger.info(f'Processing ingredient: {ing.raw_material.name} ({ing.quantity} units per portion)')
-                    
-                    required_quantity = float(ing.quantity) * (portions_to_use / item.dish.portion_multiplier)
-                    
-                    rm = ing.raw_material
-                    rm_id = rm.id
-
-                    if rm_id in raw_materials_dict:
-                        raw_materials_dict[rm_id]['quantity'] += required_quantity
-                    else:
-                        raw_material_inv = ProductionInventory.objects.filter(
-                            raw_material=rm,
-                            branch=request.user.branch
-                        ).first()
-
-                        allocation = ProductionRawMaterialAllocation.objects.filter(
-                            product=rm,
-                            branch=request.user.branch,
-                            production=production_plan,
-                        ).first()
-
-                        raw_materials_dict[rm_id] = {
-                            'id': rm_id,
-                            'name': rm.name,
-                            'quantity': required_quantity,
-                            'quantity_b_f': float(raw_material_inv.quantity if raw_material_inv else 0),
-                            'allocated_quantity': allocation.quantity if allocation and allocation.quantity else 0,
-                        }
-
-            
             updated_raw_materials = []
-            for rm_id, rm_data in raw_materials_dict.items():
-                expected_quantity = rm_data['quantity'] - rm_data['quantity_b_f']
-                
-                allocation = ProductionRawMaterialAllocation.objects.filter(
-                    product_id=rm_id,
+            ingredients_qs = Ingredient.objects.filter(
+                dish=production_item.dish,
+                raw_material__branch=request.user.branch
+            ).select_related('raw_material')
+
+            for ing in ingredients_qs:
+                required_quantity = float(ing.quantity) * (declared_portions / production_item.dish.portion_multiplier)
+
+                p_inv, _ = ProductionInventory.objects.get_or_create(
+                    raw_material=ing.raw_material,
                     branch=request.user.branch,
-                    production=production_plan
+                    defaults={'quantity': 0}
+                )
+
+                before_qty = float(p_inv.quantity or 0)
+                after_qty = max(before_qty - required_quantity, 0)
+                p_inv.quantity = after_qty
+                p_inv.save()
+
+                ProductionLogs.objects.create(
+                    user=request.user,
+                    action='declared',
+                    description=f'declared quantity for production {production_plan.plan_number}',
+                    product=p_inv,
+                    quantity=-required_quantity,
+                    total_quantity=after_qty,
+                )
+
+                allocation = ProductionRawMaterialAllocation.objects.filter(
+                    product=ing.raw_material,
+                    branch=request.user.branch,
+                    production=production_plan,
                 ).first()
-                
-                if allocation:
-                    allocation.expected_quantity = expected_quantity
-                    allocation.save()
-                
+
                 p_ing, _ = ProductionIngredients.objects.update_or_create(
                     production=production_plan,
-                    ingredient_id=rm_id,
+                    ingredient_id=ing.raw_material.id,
                 ) 
 
-                if p_ing:
-                    if p_ing.declared_quantity:
-                        p_ing.declared_quantity += float(declared_portions / item.dish.portion_multiplier)
-                    else:
-                        p_ing.declared_quantity = 0
-                        p_ing.declared_quantity += float(declared_portions / item.dish.portion_multiplier)
-                    
-                    p_ing.variance = p_ing.quantity - p_ing.declared_quantity
-                    p_ing.save()
+                if p_ing.declared_quantity:
+                    p_ing.declared_quantity += float(declared_portions / production_item.dish.portion_multiplier)
+                else:
+                    p_ing.declared_quantity = 0
+                    p_ing.declared_quantity += float(declared_portions / production_item.dish.portion_multiplier)
+                
+                p_ing.variance = p_ing.quantity - p_ing.declared_quantity
+                p_ing.save()
 
                 updated_raw_materials.append({
-                    'id': rm_data['id'],
-                    'name': rm_data['name'],
-                    'quantity': float(rm_data['quantity']),
-                    'expected_quantity': float(expected_quantity),
-                    'quantity_b_f': rm_data['quantity_b_f'],
-                    'allocated_quantity': rm_data['allocated_quantity']
+                    'id': ing.raw_material.id,
+                    'name': ing.raw_material.name,
+                    'quantity': float(required_quantity),
+                    'expected_quantity': 0.0,
+                    'quantity_b_f': before_qty,
+                    'allocated_quantity': allocation.quantity if allocation and allocation.quantity else 0,
                 })
             
             return JsonResponse({
@@ -574,16 +611,17 @@ def get_raw_materials(request, production_id):
             'id': rm.ingredient.id,
             'cost': float(rm.ingredient.cost),
             'name': rm.ingredient.name,
-            'remaining_quantity':float(rm.remaining_quantity),
-            'actual_quantity': float(rm.actual_quantity),
-            'quantity': float(rm.quantity),
-            'declared_quantity':float(rm.declared_quantity),
+            'remaining_quantity':float(rm.remaining_quantity) if rm.remaining_quantity else 0,
+            'actual_quantity': float(rm.actual_quantity) if rm.actual_quantity else 0,
+            'quantity': float(rm.quantity) if rm.quantity else 0,
+            'declared_quantity':float(rm.declared_quantity) if rm.declared_quantity else 0,
             'expected_quantity': float(getattr(rm, 'expected_quantity', 0)),
             'allocated_quantity': float(getattr(rm, 'allocated_quantity', 0)),
         } for rm in raw_materials]
 
         return JsonResponse({'success': True, 'raw_materials': data}, status=200)
     except Exception as e:
+        logger.debug(f'Error getting raw materials: {e}')
         return JsonResponse({'success': False, 'message': str(e)}, status=500)
 
 @login_required
@@ -592,8 +630,6 @@ def process_remaining_kgs(request, production_id):
         data = json.loads(request.body)
         remaining_kgs = float(data.get('remaining_kgs'))
         raw_material_id = data.get('raw_material_id')
-
-        logger.info(remaining_kgs)
 
         production_plan = Production.objects.get(id=production_id, branch=request.user.branch)
         raw_material = ProductionIngredients.objects.filter(production=production_plan, ingredient__id=raw_material_id).first()
@@ -706,7 +742,6 @@ def create_dish(request):
                 
                 for item in ingredients:
                     raw_material = Product.objects.get(name=item.get('raw_material'), branch=request.user.branch)
-                    logger.info(f"Adding ingredient: {raw_material.name}, Quantity: {item.get('quantity')}, Note: {item.get('note')}")
                     Ingredient.objects.create(
                         dish=dish,
                         note=item.get('note'),
@@ -853,3 +888,9 @@ def dish_json_detail(request):
     except Exception as e:
         logger.error(f"Error in dish_json_detail: {e}")
         return JsonResponse({'success': False, 'message': f'{e}'}, status=400)
+
+@login_required
+def production_inventory(request):
+    products = ProductionInventory.objects.filter(branch=request.user.branch).select_related('raw_material', 'branch')
+    logger.info(f'Production Inventory: {products}')
+    return render(request, 'production/production_inventory.html', {'products': products})

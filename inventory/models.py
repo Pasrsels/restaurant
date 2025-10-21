@@ -213,8 +213,8 @@ class Supplies(models.Model):
         ('meal', 'Meal'),
     )
     type = models.CharField(max_length=10, choices=TYPE_CHOICES)
-    dish = models.ForeignKey(Dish, on_delete=models.CASCADE, null=True, blank=True)
     meal = models.ForeignKey('inventory.Meal', on_delete=models.CASCADE, null=True, blank=True)
+    dish = models.ForeignKey(Dish, on_delete=models.CASCADE, null=True, blank=True)
     item = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='inventory_supplies')
     quantity = models.IntegerField()
 

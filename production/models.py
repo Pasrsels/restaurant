@@ -172,6 +172,7 @@ class ProductionLogs(models.Model):  # kitchen inventory logs
     quantity = models.FloatField()
     total_quantity = models.FloatField()
     description = models.CharField(max_length=255, null=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
 
 
 class AllocatedRawMaterials(models.Model):
