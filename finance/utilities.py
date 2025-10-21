@@ -55,5 +55,4 @@ def save_cashier_expenses(cashier, amount, description, branch, name):
         user = cashier,
         branch = branch,
         status = False,
-        track_amount = amount
     )

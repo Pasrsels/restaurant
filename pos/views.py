@@ -751,7 +751,7 @@ def collect_change(request):
             cashier_id = request.user.id
 
             with transaction.atomic():
-                change = Change.objects.get(id=change_id, sale__branch=request.user.branch)
+                change = Change.objects.get(id=change_id)
                 cashier = User.objects.get(id=cashier_id)
 
                 if amount > change.amount:
@@ -779,8 +779,9 @@ def collect_change(request):
                 change.save()
 
                 if change_date and change_date != today:
-                    expense_note = f'Change collected for {change.name} (from {change_date})'
+                    expense_note = f'Change collected for {change.name} (at {change_date})'
                     save_cashier_expenses(cashier, amount, expense_note, request.user.branch, 'Past Change Collected')
+                    logger.success(f'Change collected for {change.name} (at {change_date})')
       
                 return JsonResponse({
                     'success': True, 
@@ -1071,56 +1072,6 @@ def cash_up(request, cashier_id):
             total_expenses = expenses.aggregate(Sum('amount'))['amount__sum'] or 0
             total_change = accumulated_change.aggregate(Sum('amount'))['amount__sum'] or 0
 
-            yesterday_collected_today = Change.objects.filter(
-                collected=True,
-                timestamp__date__lte=datetime.datetime.today(),
-                data_collected__isnull=False,
-                data_collected__date=datetime.datetime.today(),
-                sale__branch=request.user.branch,
-                cashier_give=cashier_id,
-                balance=0
-            ).aggregate(Sum('amount_collected'))['amount_collected__sum'] or 0
-
-            yesterday_partially_collected_changes = Change.objects.filter(
-                timestamp__date__lte=datetime.datetime.today(),
-                data_collected__isnull=False,
-                data_collected__date=datetime.datetime.today(),
-                sale__branch=request.user.branch,
-                cashier_give=cashier_id,
-                balance__gt=0
-            ).aggregate(Sum('balance'))['balance__sum'] or 0
-
-            today_collected = Change.objects.filter(
-                collected=True,
-                timestamp__date=datetime.datetime.today(),
-                sale__branch=request.user.branch,
-                cashier_give=cashier_id,
-                balance=0
-            ).aggregate(Sum('amount_collected'))['amount_collected__sum'] or 0
-
-            cashier_partially_collected_changes = Change.objects.filter(
-                timestamp__date=datetime.datetime.today(),
-                cashier__id=cashier_id,
-                collected=False,
-                balance__gt=0,
-                sale__branch=request.user.branch
-            ).aggregate(Sum('balance'))['balance__sum'] or 0
-
-            collected_changes = yesterday_collected_today + yesterday_partially_collected_changes - today_collected + cashier_partially_collected_changes
-
-            cashier_self_collected = Change.objects.filter(
-                cashier__id=cashier_id,
-                collected=True,
-                sale__branch=request.user.branch,
-                timestamp__date=datetime.datetime.today(),
-                timestamp__date__lt=datetime.datetime.today()
-            ).aggregate(Sum('amount_collected'))['amount_collected__sum'] or 0
-
-            logger.info(f'Collected changes from others: {collected_changes}')
-            logger.info(f'Partially collected changes by cashier: {cashier_partially_collected_changes}')
-
-            total_collected_change = collected_changes + cashier_partially_collected_changes 
-            collected_change = total_collected_change
 
             uncollected_change = Change.objects.filter(
                 timestamp__date=datetime.datetime.today(),
@@ -1130,10 +1081,19 @@ def cash_up(request, cashier_id):
                 sale__branch=request.user.branch
             ).aggregate(Sum('amount'))['amount__sum'] or 0
 
+            cashier_partially_uncollected_changes = Change.objects.filter(
+                timestamp__date=datetime.datetime.today(),
+                cashier__id=cashier_id,
+                collected=False,
+                balance__gt=0,
+                sale__branch=request.user.branch
+            ).aggregate(Sum('balance'))['balance__sum'] or 0
+
             logger.info(f'Uncollected changes by cashier: {uncollected_change}')
+
+            uncollected_change = uncollected_change + cashier_partially_uncollected_changes
             
-            cash_in_hand = total_sales - total_expenses - total_void_sales - collected_changes + uncollected_change
-            uncollected_change = uncollected_change + cashier_partially_collected_changes
+            cash_in_hand = total_sales - total_expenses - total_void_sales + uncollected_change
             
             cashier = User.objects.get(id=cashier_id)
 
@@ -1145,7 +1105,7 @@ def cash_up(request, cashier_id):
                 # cashed_amount=cashed_amount,
                 void_amount=total_void_sales,
                 sales=total_sales,
-                change=collected_change,
+                change=0,
                 user=request.user,
                 expenses=total_expenses,
                 status=False,
@@ -1174,7 +1134,7 @@ def cash_up(request, cashier_id):
                 'staff_sales_summary': staff_sales_summary,
                 'eco_cash_total': eco_cash_total,
                 'eco_cash_tax': Decimal(eco_cash_tax),
-                'collected_changes': float(collected_changes),
+                'collected_changes': '',
                 'cashier':request.user.username
             }   
 

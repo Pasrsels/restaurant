@@ -1122,8 +1122,16 @@ def cashier_expenses(request, cashier_id):
         if not amount:
             return JsonResponse({'success':False, 'message':'Missing fields: amount.'})
 
-        save_cashier_expenses(request.user, amount, description, request.user.branch, name)
-        
+        CashierExpense.objects.create(
+            name = name,
+            amount = amount,
+            description = description,
+            cashier = request.user,
+            branch = request.user.branch,
+            status = False,
+            track_amount = amount,
+        )
+            
         return JsonResponse({'success':True, 'message':'Cashier expense successfully created.'}, status=201)
     
     if request.method == 'PUT':
