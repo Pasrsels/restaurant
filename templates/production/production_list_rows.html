@@ -2,16 +2,14 @@
 {% for plan in productions %}
 <tr>
     <td>
-        {{ plan.plan_number }}
+        <span>{{ plan.plan_number }}</span>
         <br>
-        <small>Cost: ${{ plan|calculate_total_cost| floatformat:2 }}</small>
+        <small class="text-muted" >Cost: ${{ plan|calculate_total_cost| floatformat:2 }}</small> <small class="ms-2 text-muted">Sales: ${{ plan|calculate_today_sale|floatformat:2 }}</small>
         <br>
-        <small>Sales: ${{ plan|calculate_today_sale| floatformat:2 }}</small>
-        <br>
-        <small>Gp: ${{ plan|calculate_production_gp| floatformat:2 }}</small>
+        <span class="text-success" style="opacity: 5;">Gp: ${{ plan|calculate_production_gp| floatformat:2 }}</span>
         <br>
         <i class="bx bx-time text-muted"></i>
-        <small class="text-muted">{{ plan.created }}</small>
+        <small class="text-muted" style="font-size: 12px;">{{ plan.created }}</small>
     </td>
     <td>{{ plan|calculate_planned_cost|floatformat:2 }}</td>
     <td>{{ plan|calculate_actual_cost|floatformat:2 }}</td>
