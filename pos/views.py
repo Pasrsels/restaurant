@@ -799,7 +799,7 @@ def collect_change(request):
                 if change.cashier != cashier:
                     CashierExpense.objects.create(
                         branch=request.user.branch,
-                        name=change.name,
+                        name=f'Change given to {change.name}',
                         track_amount=amount,
                         cashier=request.user,
                         amount=amount,
@@ -807,7 +807,20 @@ def collect_change(request):
                         status=False
                     )
                     logger.success(f'Change given to {change.name} expensed.')
-                
+
+                if change.timestamp.date() != datetime.date.today():
+                    if change.cashier_give == cashier:
+                        CashierExpense.objects.create(
+                            branch=request.user.branch,
+                            name=f'Change given to {change.name}',
+                            track_amount=amount,
+                            cashier=request.user,
+                            amount=amount,
+                            description=f'Change given to {change.name}',
+                            status=False
+                        )
+                        logger.success(f'Change given to {change.name} expensed.')
+                        
                 return JsonResponse({
                     'success': True, 
                     'amount_collected': str(change.amount_collected),
