@@ -20,7 +20,7 @@ urlpatterns = [
     # path('__debug__/', include('debug_toolbar.urls')),
 
     #dash
-    path('dashboard/', dashboard_view, name='dashborad'),
+    path('', dashboard_view, name='dashborad'),
     path('api/dashboard-stats/', dashboard_stats_api, name='dashboard_stats_api'),
     path('api/chart-data/', chart_data_api, name='chart_data_api'),
     path('api/orders-list/', orders_list_api, name='orders_list_api')

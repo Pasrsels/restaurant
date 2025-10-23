@@ -773,7 +773,7 @@ def collect_change(request):
 
             with transaction.atomic():
             
-                change = Change.objects.get(id=change_id, sale__branch = request.user.branch)
+                change = Change.objects.get(id=change_id)
                 cashier = User.objects.get(id = cashier_id)
 
                 if amount > change.amount:
@@ -800,7 +800,7 @@ def collect_change(request):
                 if change.cashier != cashier:
                     CashierExpense.objects.create(
                         branch=request.user.branch,
-                        name=change.name,
+                        name=f'Change given to {change.name}',
                         track_amount=amount,
                         cashier=request.user,
                         amount=amount,
@@ -808,6 +808,19 @@ def collect_change(request):
                         status=False
                     )
                     logger.success(f'Change given to {change.name} expensed.')
+
+                if change.timestamp.date() != datetime.datetime.today():
+                    if change.cashier_give == cashier:
+                        CashierExpense.objects.create(
+                            branch=request.user.branch,
+                            name=f'Change given to {change.name}',
+                            track_amount=amount,
+                            cashier=request.user,
+                            amount=amount,
+                            description=f'Change given to {change.name}',
+                            status=False
+                        )
+                        logger.success(f'Change given to {change.name} expensed.')
                 
                 return JsonResponse({
                     'success': True, 

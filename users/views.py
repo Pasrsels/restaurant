@@ -146,7 +146,7 @@ def login_view(request):
                 # logger.info(f'logged with session key: {session_key}')
                 if user.role in ['accountant', 'admin', 'owner']:
                     logger.info(f'User: {user.first_name + " " + user.email} is an {user.role}')
-                    return redirect('dashborad')
+                    return redirect('/dashborad')
                 elif user.role in ['chef', 'stores_person']:
                     logger.info(f'User: {user.first_name + " " + user.email} is a {user.role}')
                     return redirect('inventory:production_plans')
