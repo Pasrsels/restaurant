@@ -129,7 +129,7 @@ LOGIN_URL = "users:login"
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'restaurant_clone',  
+        'NAME': 'restaurant',  
         'USER': 'postgres',
         'PASSWORD': 'neverfail',
         'PORT': '5432',
