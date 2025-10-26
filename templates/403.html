@@ -1,5 +1,133 @@
-{% extends "base.html" %}
-{% block content %}
+{% load static i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="description" content="Urban Eats Restaurant Software"/>
+    <meta name="Author" content="Casper Moyo" />
+    <link rel="icon" href="{% static 'images/favicons/favicon.ico' %}"/>
+
+    {% block css %}
+        <link rel="stylesheet" href="{% static 'css/theme.css'%}">
+        <link rel="stylesheet" href="{% static 'css/main.css'%}">
+        <link rel="stylesheet" href="{% static 'css/bootstrap/css/bootstrap.css'%}">
+        <link rel="stylesheet" href="{% static 'assets/hint.css/hint.min.css'%}">
+        <link rel="stylesheet" href="{% static 'assets/DataTables/datatables.min.css'%}">
+        <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+        <link href='{% static "assets/boxicons/css/boxicons.css"%}' rel='stylesheet'>
+        <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    {% endblock css %}
+
+    <style>
+
+        body{
+            height: 100%;
+            margin: 0;
+            font-family: Arial, sans-serif !important;
+            background-color: #f0f2f5 !important;
+        }
+
+        .mobile-sidebar {
+            position: fixed;
+            top: 0;
+            left: -260px;
+            width: 250px;
+            height: 100%;
+            background: #fff;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+            transition: left 0.3s ease;
+            z-index: 1050;
+            padding: 15px;
+        }
+        .mobile-sidebar.show {
+            left: 0;
+        }
+        
+
+        .floating-controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column; /* stack vertically */
+            gap: 15px;
+            z-index: 2000;
+        }
+
+        .floating-controls .btn {
+            border-radius: 50%;
+            width: 55px;
+            height: 55px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+
+        .notification-btn {
+            position: relative;
+        }
+
+        .notification-count {
+            background: red;
+            color: white;
+            font-size: 12px;
+            padding: 2px 6px;
+            border-radius: 50%;
+            position: absolute;
+            top: -5px;
+            right: -5px;
+        }
+
+        /* Global Loader */
+        #global-loader {
+            position: fixed;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 5000;
+        }
+        .global-loader-spinner {
+            width: 56px;
+            height: 56px;
+            border: 6px solid #e9ecef;
+            border-top-color: #0d6efd;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://unpkg.com/slim-select@latest/dist/slimselect.min.js"></script>
+    <link href="https://unpkg.com/slim-select@latest/dist/slimselect.css" rel="stylesheet">
+    <!-- SlimSelect JS -->
+    <script src="https://cdn.jsdelivr.net/npm/slim-select@1.27.1/dist/slimselect.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/idb@7/build/umd.js"></script>
+    <script src="{% static 'db.js' %}"></script>
+    <script src="{% static 'js/jquery.js'%}"></script>
+    <script src="{% static 'css/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+    <script src="{% static 'assets/DataTables/datatables.min.js' %}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.6.1/toastify.js" crossorigin="anonymous"></script>
+    <title>
+        {% block title %}{{ request.user.company.name }}{% endblock title %}
+    </title>
+</head>
+<body>
 <div class="container d-flex align-items-center justify-content-center" style="min-height:100vh;">
   <div class="text-center">
     <div class="display-6 mb-3">Permission denied</div>
@@ -16,4 +144,5 @@
     </div>
   </div>
 </div>
-{% endblock %}
+</body>
+</html>

@@ -1,0 +1,271 @@
+<div class="purchase_form">
+    <div class="purchase_form_header d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">Purchase Order</h4>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    
+    <!-- Add Product Form -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="product" class="form-label">Product</label>
+                    <select class="form-select" id="product">
+                        <option value="" selected disabled>Select Product</option>
+                        {% for product in products %}
+                            <option value="{{ product.id }}" data-price="{{ product.cost_price|default:0 }}">
+                                {{ product.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="quantity" class="form-label">Quantity</label>
+                    <input type="number" class="form-control" id="quantity" min="1" value="1">
+                </div>
+                <div class="col-md-3">
+                    <label for="cost" class="form-label">Unit Cost</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" class="form-control" id="cost" step="0.01" min="0">
+                    </div>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="button" class="btn btn-primary w-100" id="addToCart">
+                        <i class="bx bx-plus"></i> Add to Cart
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cart Items -->
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Purchase Items</h5>
+            <div class="table-responsive">
+                <table class="table table-hover" id="purchaseCart">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Quantity</th>
+                            <th>Unit Cost</th>
+                            <th>Total</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cartItems">
+                        <!-- Cart items will be added here dynamically -->
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-active">
+                            <td colspan="3" class="text-end fw-bold">Total:</td>
+                            <td id="cartTotal" class="fw-bold">$0.00</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="d-flex justify-content-between mt-3">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="bx bx-x"></i> Cancel
+                </button>
+                <div>
+                    <button type="button" class="btn btn-outline-danger me-2" id="clearCart">
+                        <i class="bx bx-trash"></i> Clear All
+                    </button>
+                    <button type="button" class="btn btn-success" id="submitPurchase" disabled>
+                        <i class="bx bx-check"></i> Submit Purchase
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .purchase_form {
+        min-width: 800px;
+    }
+    #purchaseCart th {
+        white-space: nowrap;
+    }
+    .quantity-input {
+        width: 80px;
+        text-align: center;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const cart = [];
+    let cartTotal = 0;
+
+    document.getElementById('product').addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        const price = selectedOption.dataset.price || '0';
+        document.getElementById('cost').value = parseFloat(price).toFixed(2);
+    });
+
+    document.getElementById('addToCart').addEventListener('click', function() {
+        const productSelect = document.getElementById('product');
+        const productId = productSelect.value;
+        const productName = productSelect.options[productSelect.selectedIndex].text;
+        const quantity = parseInt(document.getElementById('quantity').value) || 1;
+        const cost = parseFloat(document.getElementById('cost').value) || 0;
+        const total = quantity * cost;
+
+        if (!productId) {
+            alert('Please select a product');
+            return;
+        }
+
+        if (cost <= 0) {
+            alert('Please enter a valid cost');
+            return;
+        }
+        
+        const existingItem = cart.find(item => item.productId === productId);
+        if (existingItem) {
+            existingItem.quantity += quantity;
+            existingItem.total = existingItem.quantity * existingItem.cost;
+        } else {
+            cart.push({
+                productId,
+                productName,
+                quantity,
+                cost,
+                total
+            });
+        }
+
+        updateCart();
+        resetForm();
+    });
+
+    document.getElementById('clearCart').addEventListener('click', function() {
+        if (confirm('Are you sure you want to clear all items?')) {
+            cart.length = 0;
+            updateCart();
+        }
+    });
+
+    function updateCart() {
+        const tbody = document.getElementById('cartItems');
+        tbody.innerHTML = '';
+        cartTotal = 0;
+
+        cart.forEach((item, index) => {
+            cartTotal += item.total;
+            
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${item.productName}</td>
+                <td>
+                    <input type="number" class="form-control form-control-sm quantity-input" 
+                           value="${item.quantity}" min="1" 
+                           data-index="${index}" onchange="updateQuantity(this)">
+                </td>
+                <td>$${item.cost.toFixed(2)}</td>
+                <td>$${item.total.toFixed(2)}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-danger" onclick="removeItem(${index})">
+                        <i class="bx bx-trash"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('cartTotal').textContent = `$${cartTotal.toFixed(2)}`;
+        document.getElementById('submitPurchase').disabled = cart.length === 0;
+    }
+
+    function resetForm() {
+        document.getElementById('product').selectedIndex = 0;
+        document.getElementById('quantity').value = '1';
+        document.getElementById('cost').value = '';
+    }
+
+    document.getElementById('submitPurchase').addEventListener('click', function() {
+        if (cart.length === 0) return;
+        
+        console.log('Submitting purchase:', cart);
+        
+        fetch('{% url "pos:create_purchase_order" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ items: cart })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    title: 'Success!',
+                    text: 'Purchase submitted successfully!',
+                    icon: 'success',
+                    confirmButtonText: 'OK'
+                });
+             
+                const modal = bootstrap.Modal.getInstance(document.getElementById('purchaseModal'));
+                modal.hide();
+
+                window.location.reload();
+            } else {
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Failed to submit purchase: ' + (data.message || 'Unknown error'),
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                title: 'Error!',
+                text: 'An error occurred while submitting the purchase.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        });
+    });
+});
+
+function updateQuantity(input) {
+    const index = parseInt(input.dataset.index);
+    const newQuantity = parseInt(input.value) || 1;
+    
+    if (newQuantity < 1) {
+        input.value = 1;
+        return;
+    }
+    
+    const item = cart[index];
+    item.quantity = newQuantity;
+    item.total = item.quantity * item.cost;
+    
+    const tds = input.closest('tr').getElementsByTagName('td');
+    tds[3].textContent = `$${item.total.toFixed(2)}`;
+    
+    updateCartTotal();
+}
+
+function removeItem(index) {
+    if (confirm('Remove this item from cart?')) {
+        cart.splice(index, 1);
+        updateCart();
+    }
+}
+
+function updateCartTotal() {
+    cartTotal = cart.reduce((sum, item) => sum + item.total, 0);
+    document.getElementById('cartTotal').textContent = `$${cartTotal.toFixed(2)}`;
+    document.getElementById('submitPurchase').disabled = cart.length === 0;
+}
+</script>

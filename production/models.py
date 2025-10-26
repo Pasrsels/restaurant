@@ -119,6 +119,7 @@ class Meal(TimestampModel):
         related_name='meal_notification',
         null=True, blank=True
     )
+    combo = models.BooleanField(default=False)
 
     def __str__(self) -> str:
         return self.name

@@ -894,3 +894,73 @@ def production_inventory(request):
     products = ProductionInventory.objects.filter(branch=request.user.branch).select_related('raw_material', 'branch')
     logger.info(f'Production Inventory: {products}')
     return render(request, 'production/production_inventory.html', {'products': products})
+
+
+@login_required
+def create_meal(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            items_data = data.get('items_data')
+            supplies_data = data.get('supplies_data')
+            meal_name = data.get('meal_name')
+            category = data.get('category')
+            price = data.get('price')
+            combo_meal = data.get('combo_meal')
+
+            logger.info(f'Create meal data: {meal_name, category, price, combo_meal}')
+            
+            if not meal_name or not category or not price:
+                return JsonResponse({'success': False, 'message': 'Meal name, category and price are required'}, status=400)
+            
+            meal = Meal.objects.create(
+                name=meal_name, 
+                category_id=category, 
+                price=price,
+                branch=request.user.branch,
+                is_meal=True,
+                image='placeholder1.jpg',
+                deactivate=False,
+                combo_meal=combo_meal
+            )
+
+            for item in items_data:
+                dish = Dish.objects.get(id=item['dish_id'])
+                meal.dishes.add(dish)
+
+            for supply in supplies_data:
+                product = Product.objects.get(id=supply['product_id'])
+                meal.supplies.add(product)
+
+            logger.success(f"Meal created successfully: {meal}")
+            return JsonResponse({'success': True, 'meal_id': meal.id}, status=200)
+        except Exception as e:
+            logger.error(f"Error in create_meal: {e}")
+            return JsonResponse({'success': False, 'message': f'{e}'}, status=400)
+   
+    return render(request, 'production/create_meal.html')
+
+@login_required
+def create_meal_category(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        category_name = data.get('category').strip()
+
+        if not category_name:
+            return JsonResponse({'success': False, 'message': 'Category name is required'}, status=400)
+        
+        if MealCategory.objects.filter(name=category_name).exists():
+            return JsonResponse({'success': False, 'message': 'Category already exists'}, status=400)
+        
+        category = MealCategory.objects.create(name=category_name)
+        return JsonResponse({'success': True, 'id': category.id, 'name': category.name})
+    
+    return render(request, 'production/create_meal_category.html')
+
+@login_required
+def meal(request):
+    meals = Meal.objects.filter().select_related('branch', 'category').prefetch_related('dishes') #to put branche
+    meal_cat = MealCategory.objects.all()
+
+    logger.info(f'meals: {meals}')
+    return render(request, 'production/meal.html', {'meals': meals, 'meal_categories': meal_cat})

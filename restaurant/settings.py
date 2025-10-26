@@ -108,11 +108,13 @@ TEMPLATES = [
                 # custom
                 'inventory.context_processors.notification_processor', 
                 'inventory.context_processors.check_list_processor',
-                'inventory.context_processors.all_meals_dishes',
+                'inventory.context_processors.all_dishes_products',
                 'users.context_processors.branches',
                 'inventory.context_processors.products',
                 'users.context_processors.cashiers',
-                'inventory.context_processors.categories'
+                'inventory.context_processors.categories',
+
+                'production.context_processors.meal_categories',
             ],
         },
     },
@@ -129,7 +131,7 @@ LOGIN_URL = "users:login"
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'restaurant',  
+        'NAME': 'restaurant_clone',  
         'USER': 'postgres',
         'PASSWORD': 'neverfail',
         'PORT': '5432',

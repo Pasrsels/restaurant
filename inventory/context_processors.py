@@ -26,10 +26,15 @@ def check_list_processor(request):
     return {'products': products}
 
 
-def all_meals_dishes(request):
-    dishes = Dish.objects.all().values('id', 'name')
+def all_dishes_products(request):
+    if request.user.is_authenticated:
+        products = Product.objects.filter(branch=request.user.branch).values('id', 'name', 'cost')
+        dishes = Dish.objects.filter(branch=request.user.branch).values('id', 'name', 'cost')
+    else:
+        products = []
+        dishes = []
     return {
-        "dishes": dishes
+        "dishes": list(dishes) + list(products)
     }
 
 def products(request):

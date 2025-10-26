@@ -21,4 +21,9 @@ urlpatterns = [
     path("process-remaining-kgs/<int:production_id>/", process_remaining_kgs, name='process_remaining_kgs'),
     path("confirm-declaration/<int:production_id>/", confirm_declaration, name='confirm_declaration'),
     path("production-inventory", production_inventory, name="production_inventory"),
+
+    #meals
+    path("meal/list/", meal, name="meal_list"),
+    path("meal/create/", create_meal, name="create_meal"),
+    path("meal/create/category/", create_meal_category, name="create_meal_category"),
 ]

@@ -1,0 +1,143 @@
+{% load static %}
+<style>
+    .left-sidebar {
+        width: 250px;
+        background-color: #f8f9fa;
+        padding: 20px;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .left-sidebar .nav-item {
+        margin-bottom: 10px;
+    }
+
+    .left-sidebar .nav-link {
+        display: flex;
+        align-items: center;
+        color: #333;
+        padding: 10px;
+        border-radius: 8px;
+        transition: background-color 0.3s, color 0.3s;
+    }
+
+    .left-sidebar .nav-link:hover, .left-sidebar .nav-link.active {
+        background-color: #007bff;
+        color: #fff;
+    }
+
+    .left-sidebar .nav-link .bx {
+        font-size: 24px;
+        margin-right: 15px;
+    }
+    .left-sidebar{
+        height: 100vh;
+    }
+</style>
+ <div class="left-sidebar d-flex flex-column justify-content-between bg-white">
+    <div>
+        <div style="margin-top: -15px;">
+            <img src="{% static 'assets/posflow.jpeg' %}" alt="product-name" width="230px" style="height: 100px; width:100px;">
+        </div>
+        <h4 class="mb-2">{{request.user.company.name}}</h4>
+        <div class="branch-info " style="margin-top:-10px;">
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a href="#" id="branchSwitchLink" class="nav-link">
+                        <i class="bx bx-transfer-alt fs-5"></i>
+                        <small class='fs-6'>{{ request.user.branch.branch_name }} branch</small>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link border rounded w-100" href="/dashboard/" >
+                        <i class="bx bx-user text-primary"></i>
+                        ADMIN
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div style="height:70px;"></div>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'pos:pos' %}" >
+                        <i class="bx bx-time text-primary"></i>
+                        POS
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'inventory:end_of_day_view' %}" >
+                        <i class="bx bx-time text-primary"></i>
+                        End Of Day
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'finance:cashier_expenses' request.user.id %}">
+                        <i class="bx bx-wallet text-primary"></i>
+                        Expenses
+                    </a>
+                </li>
+                <li class="nav-item {% if request.user.role == 'sales' %}d-none{% endif %}"">
+                    <a class="nav-link" href='{% url "pos:change_list" %}'>
+                        <i class="bx bx-list-ul text-primary"></i>
+                        View Change
+                    </a>
+                </li> 
+                <a class="nav-link" href='{% url "pos:change_list" %}'>
+                        <i class="bx bx-list-ul text-primary"></i>
+                        View Change
+                    </a>
+                <li class="nav-item">
+                    <a class="nav-link" href="javascript:void(0);" id="collect">
+                        <i class="bx bx-wallet text-primary"></i>
+                        Collect Change
+                    </a>
+                </li>       
+            </ul>
+    </div>
+    <div class="mt-auto">
+        <ul class="nav flex-column">
+            {% comment %} <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="bx bx-cog"></i>
+                    Settings
+                </a>
+            </li> {% endcomment %}
+            <li class="nav-item">
+                <button class="btn btn-secondary w-100" href="javascript:void(0);" id="cashup"> 
+                    Cash up
+                </button>
+            </li>
+            
+            <li class="nav-item">
+                <button class="btn btn-secondary w-100" href="javascript:void(0);" id="void">
+                    Void
+                </button>
+            </li>
+
+            <li class='nav-item'>
+                <a href="javascript:void(0);" class="btn btn-secondary border w-100" id="chargeStaff">Staff</a>
+            </li>
+
+            <li class="nav-item">
+                <button class="btn btn-primary w-100" href="javascript:void(0);" id="void" onclick="addPurchase()">
+                    Add Purchase
+                </button>
+            </li>
+
+            <li class="nav-item">
+                <button class="btn btn-primary w-100" href="javascript:void(0);" id="void">
+                    Add Production
+                </button>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link text-danger btn border text-center" href="#" id="logoutBtn">
+                    <i class="bx bx-log-out"></i>
+                    Log Out
+                </a>
+            </li>
+        </ul>
+    </div>
+</div>

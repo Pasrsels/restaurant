@@ -21,11 +21,6 @@ from asgiref.sync import sync_to_async
 from django.utils.timezone import localdate
 from django.http import JsonResponse, HttpResponse
 from django.contrib.auth.decorators import login_required
-from inventory.models import (
-    EndOfDayItems,
-    Product, 
-    Logs
-)
 from inventory.views import finishedProduct
 from .models import SaleAuthorization
 from finance.models import SaleItem, Sale
@@ -61,7 +56,8 @@ from django.core.cache import cache
 from inventory.forms import ProductionPlanInlineForm
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.timezone import localtime
-from inventory.models import Meal, Dish, DailyLowStockFlag
+from inventory.models import *
+from finance.models import *
 
 today = localdate()
 
@@ -796,20 +792,21 @@ def collect_change(request):
                 
                 change.save()
 
-                if change.cashier != cashier:
-                    CashierExpense.objects.create(
-                        branch=request.user.branch,
-                        name=f'Change given to {change.name}',
-                        track_amount=amount,
-                        cashier=request.user,
-                        amount=amount,
-                        description=f'Change given to {change.name}',
-                        status=False
-                    )
-                    logger.success(f'Change given to {change.name} expensed.')
-
                 if change.timestamp.date() != datetime.date.today():
                     if change.cashier_give == cashier:
+                        CashierExpense.objects.create(
+                            branch=request.user.branch,
+                            name=f'Change given to {change.name}',
+                            track_amount=amount,
+                            cashier=request.user,
+                            amount=amount,
+                            description=f'Change given to {change.name}',
+                            status=False
+                        )
+                        logger.success(f'Change given to {change.name} expensed.')
+
+                else:
+                    if change.cashier != cashier:
                         CashierExpense.objects.create(
                             branch=request.user.branch,
                             name=f'Change given to {change.name}',
@@ -1535,112 +1532,6 @@ def accountantreport(request):
         'cashier': cashier
     })
 
-# def adminreport(request):
-
-#     cashier_id = request.user.id
-#     cash_in_hand = 0
-
-#     sales = Sale.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today(), void=False).values('total_amount')
-#     total_sales = sales.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-
-#     leftover_stuff = LeftOvers.objects.filter(date = datetime.datetime.today()).values('total_amount')
-#     total_leftovers = leftover_stuff.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-
-#     try:
-#         declared_cash = LeftOvers.objects.get(cashier__id = cashier_id, date = datetime.datetime.today())
-#         cashier_cash = declared_cash.cash
-#     except Exception as e:
-#         cashier_cash = 0
-
-#     change = Change.objects.filter(cashier__id=cashier_id, timestamp__date=datetime.datetime.today(), collected=False).values('amount')
-#     total_change = change.aggregate(Sum('amount'))['amount__sum'] or 0
-
-#     expenses = CashierExpense.objects.filter(cashier__id=cashier_id, date=datetime.datetime.today()).values('amount')
-#     total_expenses = expenses.aggregate(Sum('amount'))['amount__sum'] or 0
-
-
-#     sale_items_list = []
-#     sale_items = SaleItem.objects.filter(sale__void = False, time = datetime.datetime.today()).values('dish__name', 'dish__price', 'product__name', 'product__price', 'quantity')
-
-#     for items in sale_items:
-#         sale_items_list.append(
-#             items
-#         )
-    
-#     sale_items_dict = {}
-#     for items in sale_items_list:
-#         item_name = items['dish_name'] or items['product__name']
-
-#         if item_name in sale_items_dict:
-#             sale_items_dict[item_name]['quantity'] += items['quantity']
-#             sale_items_dict[item_name]['price'] += items['price']
-#         else:
-#             sale_items_dict[item_name] = item_name
-#             sale_items_dict[item_name]['quantity'] = items['quantity']
-#             sale_items_dict[item_name]['price'] = items['dish_price'] or items['product_price']
-    
-#     leftover_list = []
-#     leftover_items = LeftOvers.objects.filter(date = datetime.datetime.today()).values('dish__name', 'dish__price', 'product__name', 'product__price', 'quantity')
-
-#     for items in leftover_items:
-#         leftover_list.append(
-#             items
-#         )
-    
-#     leftover_items_dict = {}
-#     for items in leftover_list:
-#         item_name = items['dish_name'] or items['product__name']
-
-#         if item_name in leftover_items_dict:
-#             leftover_items_dict[item_name]['quantity'] += items['quantity']
-#             leftover_items_dict[item_name]['price'] += items['price']
-#         else:
-#             leftover_items_dict[item_name] = item_name
-#             leftover_items_dict[item_name]['quantity'] = items['quantity']
-#             leftover_items_dict[item_name]['price'] = items['dish_price'] or items['product_price']
-    
-
-#     sale_staff_items_list = []
-#     sale_staff_items = SaleItem.objects.filter(sale__void = False, sale__staff = True , time = datetime.datetime.today()).values('dish__name', 'dish__price', 'product__name', 'product__price', 'quantity')
-
-#     for items in sale_staff_items:
-#         sale_staff_items_list.append(
-#             items
-#         )
-    
-#     sale_staff_items_dict = {}
-#     for items in sale_staff_items_list:
-#         item_name = items['dish_name'] or items['product__name']
-
-#         if item_name in sale_staff_items_dict:
-#             sale_staff_items_dict[item_name]['quantity'] += items['quantity']
-#             sale_staff_items_dict[item_name]['price'] += items['price']
-#         else:
-#             sale_staff_items_dict[item_name] = item_name
-#             sale_staff_items_dict[item_name]['quantity'] = items['quantity']
-#             sale_staff_items_dict[item_name]['price'] = items['dish_price'] or items['product_price']
-
-
-#     cash_in_hand = total_sales + total_change - total_expenses
-
-#     logger.info(cash_in_hand)
-#     logger.info(sale_items_dict)
-#     logger.info(leftover_items_dict)
-#     logger.info(sale_staff_items_dict)
-#     logger.info(total_sales)
-#     logger.info(total_leftovers)
-
-#     return render(request, 'admin_cashup_report.html',{
-#         'now': datetime.datetime.today(),
-#         'sales': sale_items_dict,
-#         'leftovers': leftover_items_dict,
-#         'staff': sale_staff_items_dict,
-#         'total_sales': total_sales,
-#         'total_leftovers': total_leftovers,
-#         'declared_cash': cashier_cash,
-#         'variance': cash_in_hand - cashier_cash,
-#         }, 
-#         status = 200)
 
 @login_required
 def cashier_handover_shift(request):
@@ -1703,3 +1594,101 @@ def sync_sales(request):
             logger.error(f'Error syncing sales: {str(e)}')
             return JsonResponse({'success': False, 'message': str(e)}, status=400)
     return JsonResponse({'success': False, 'message': 'Invalid request'}, status=405)
+
+
+@login_required
+def create_purchase_order(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            items = data.get('items', [])
+
+            logger.info(items)
+
+            with transaction.atomic():
+
+                purchase = PurchaseOrder.objects.create(
+                    branch = request.user.branch,
+                    order_number = PurchaseOrder.generate_order_number(),
+                    total_cost = data.get('totalCost') or 0,
+                    discount = data.get('discount') or 0,
+                    tax_amount = data.get('taxAmount') or 0,
+                    handling_amount = data.get('handlingAmount') or 0,
+                    other_amount = data.get('otherAmount') or 0,
+                    status = 'received',
+                    is_partial = False,
+                    received = True
+                )
+
+                total_cost = 0
+                
+                for item in items:
+                    product_id = item.get('productId')
+                    quantity = item.get('quantity')
+                    cost = item.get('cost')
+                    
+                    PurchaseOrderItem.objects.create(
+                        purchase_order = purchase,
+                        product_id=product_id,
+                        quantity=quantity,
+                        unit_cost=cost,
+                        received_quantity=quantity,
+                        received=True
+                    )
+
+                    product = Product.objects.get(id=product_id)
+                    product.quantity += quantity
+                    product.save()
+
+                    Logs.objects.create(
+                        branch = request.user.branch,
+                        sale = None,
+                        product = product,
+                        user = request.user,
+                        action = 'stock in',
+                        purchase_order = purchase,
+                        quantity = quantity,
+                        total_quantity = product.quantity,
+                        description = f'Stock in from purchase order: {purchase.order_number}'
+                    )
+
+                    total_cost += cost * quantity
+
+                purchase.total_cost = total_cost
+                purchase.save()
+
+                category, _ = ExpenseCategory.objects.get_or_create(name='Purchase Orders')
+
+                expense = Expense.objects.create(
+                    branch = request.user.branch,
+                    user = request.user,
+                    amount = total_cost,
+                    category = category,
+                    description = f'Purchase order: {purchase.order_number}'
+                )
+
+                CashierExpense.objects.create(
+                    name = "Purchase",
+                    branch = request.user.branch,
+                    cashier = request.user,
+                    track_amount = total_cost,
+                    amount = total_cost,
+                    description = f'Purchase order: {purchase.order_number}'
+                )
+
+                CashBook.objects.create(
+                    expense = expense,
+                    credit = True,
+                    branch = request.user.branch,
+                    user = request.user,
+                    amount = total_cost,
+                    description = f'Purchase order: {purchase.order_number}'
+                )
+
+                logger.info(f'Purchase order {purchase.order_number} created successfully')
+                return JsonResponse({'success': True}, status=200)
+        except Exception as e:
+            logger.error(f'Error adding purchase: {str(e)}', exc_info=True)
+            return JsonResponse({'success': False, 'message': str(e)}, status=400)
+    return JsonResponse({'success': False, 'message': 'Invalid request'}, status=405)
+

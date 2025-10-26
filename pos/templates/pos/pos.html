@@ -234,96 +234,41 @@
     </style>
 </head>
 <body>
-
-<div class="pos-container">
-    <div class="left-sidebar">
-        <div>
-            <div style="margin-top: -15px;">
-                <img src="{% static 'assets/posflow.jpeg' %}" alt="product-name" width="230px" style="height: 100px; width:100px;">
+    <!-- Low Stock Toast Container -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div id="lowStockToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header bg-warning text-dark">
+                <strong class="me-auto">Low Stock Alert</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>
-            <h4 class="mb-2">{{request.user.company.name}}</h4>
-            <div class="branch-info " style="margin-top:-10px;">
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a href="javascript::void()" onclick="branchSwitch()" class="nav-link">
-                            <i class="bx bx-transfer-alt fs-5"></i>
-                            <small class='fs-6'>{{ request.user.branch.branch_name }} branch</small>
-                        </a>
-                    </li>
-                </ul>
+            <div class="toast-body" id="lowStockToastBody">
+                <!-- Toast content will be inserted here -->
             </div>
-            <div style="height:70px;"></div>
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'inventory:end_of_day_view' %}" >
-                            <i class="bx bx-time text-primary"></i>
-                            End Of Day
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'finance:cashier_expenses' request.user.id %}">
-                            <i class="bx bx-wallet text-primary"></i>
-                            Expenses
-                        </a>
-                    </li>
-                    <li class="nav-item {% if request.user.role == 'sales' %}d-none{% endif %}"">
-                        <a class="nav-link" href='{% url "pos:change_list" %}'>
-                            <i class="bx bx-list-ul text-primary"></i>
-                            View Change
-                        </a>
-                    </li> 
-                    <a class="nav-link" href='{% url "pos:change_list" %}'>
-                            <i class="bx bx-list-ul text-primary"></i>
-                            View Change
-                        </a>
-                    <li class="nav-item">
-                        <a class="nav-link" href="javascript:void(0);" id="collect">
-                            <i class="bx bx-wallet text-primary"></i>
-                            Collect Change
-                        </a>
-                    </li>       
-                </ul>
-            </div>
-            <div class="mt-auto">
-                <ul class="nav flex-column">
-                    {% comment %} <li class="nav-item">
-                        <a class="nav-link" href="#">
-                            <i class="bx bx-cog"></i>
-                            Settings
-                        </a>
-                    </li> {% endcomment %}
-                    <li class="nav-item">
-                        <button class="btn btn-secondary w-100" href="javascript:void(0);" id="cashup"> 
-                            Cash up
-                        </button>
-                    </li>
-                    
-                    <li class="nav-item">
-                        <button class="btn btn-secondary w-100" href="javascript:void(0);" id="void">
-                            Void
-                        </button>
-                    </li>
-
-                    <li class='nav-item'>
-                        <a href="javascript:void(0);" class="btn btn-secondary border w-100" id="chargeStaff">Staff</a>
-                    </li>
-
-                    <li class="nav-item">
-                        <button class="btn btn-primary w-100" href="javascript:void(0);" id="void">
-                            Add Production
-                        </button>
-                    </li>
-
-                    <li class="nav-item">
-                        <a class="nav-link text-danger btn border text-center" href="#" id="logoutBtn">
-                            <i class="bx bx-log-out"></i>
-                            Log Out
-                        </a>
-                    </li>
-                </ul>
-            </div>
+        </div>
     </div>
+
+    <div class="pos-container">
+    {% include 'pos/aside.html' %}
     <div class="main-content px-3">
+        <!-- Notification Bell -->
+        <div class="position-fixed top-0 end-0 m-3" style="z-index: 1000;">
+            <div class="dropdown">
+                <button class="btn btn-light btn-sm rounded-circle p-2" type="button" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bx bx-bell fs-4"></i>
+                    <span id="notificationBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem; display: none;">
+                        0
+                    </span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" style="min-width: 300px; max-height: 400px; overflow-y: auto;">
+                    <li class="dropdown-header fw-bold">Low Stock Items</li>
+                    <li><hr class="dropdown-divider m-0"></li>
+                    <div id="lowStockItems">
+                        <li class="px-3 py-2 text-muted text-center">No low stock items</li>
+                    </div>
+                </ul>
+            </div>
+        </div>
+
         <div class="products-header px-1">
             <div class="search-bar">
                 <input type="text" class="form-control" id="productSearch" placeholder="Search for items...">
@@ -412,7 +357,6 @@
             </div>
         </div>
     </div>
-
 
     <!-- Charge Modal -->
     <div class="modal fade" id="chargeModal" tabindex="-1" aria-labelledby="chargeModalLabel" aria-hidden="true">
@@ -582,6 +526,7 @@
         </div>
     </div>
 
+    <!--collect change modal-->
    <div class="modal fade" id="collectChangeModal" tabindex="-1" aria-labelledby="chargeModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content p-4 shadow">
@@ -604,18 +549,26 @@
         </div>
     </div>
 
+    <!--Purchase Modal-->
+    <div class="modal fade" id="purchaseModal" tabindex="-1" aria-labelledby="purchaseModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content p-4 shadow">
+                {% include 'pos/purchase/purchase.html' %}
+            </div>
+        </div>
+    </div>
+
+    <!--Branch switch modal-->
     <div class="modal fade" id="switchBranchModal" tabindex="-1" aria-labelledby="switchBranchModalLabel" aria-hidden="true">
         <div class="modal-dialog bg modal-dialog-centered">
             <div class="modal-content p-5">
                 <h5 class="fw-bold text-center mb-3">Switch Branch</h5>
-                <form action="" method="POST" autocomplete="off" id="pos-branch-auth">
-                    {% csrf_token %}
+                <form id="branchAuthForm">
                     <div class="mb-3">
-                        <label for="username" class="form-label">Username</label>
+                        <label for="b_username" class="form-label">Username</label>
                         <input 
                             type="text" 
                             id="b_username" 
-                            name="username" 
                             class="form-control" 
                             placeholder="Enter username" 
                             autocomplete="off"
@@ -623,20 +576,21 @@
                         >
                     </div>
                     <div class="mb-3">
-                        <label for="password" class="form-label">Password</label>
+                        <label for="b_password" class="form-label">Password</label>
                         <input 
                             type="password" 
                             id="b_password" 
-                            name="password" 
                             class="form-control" 
                             placeholder="Enter password" 
                             autocomplete="new-password"
                             required>
                     </div>
-                    <button id="cash_upbutton" onclick="branchSwitch()" type="button" class="btn btn-outline-dark w-100">Authenticate</button>
+                    <button type="button" class="btn btn-outline-dark w-100" onclick="authenticateBranchSwitch()">
+                        Authenticate
+                    </button>
                 </form>
                 <div id="branches" style="display: none;" class="row gap-2 d-flex justify-content-center mt-1">
-                    <!-- populated dynamically -->
+                    <!-- Branches will be populated here after authentication -->
                 </div>
             </div>
         </div>
@@ -682,93 +636,19 @@
     const staffModal = new bootstrap.Modal(document.getElementById('staffModal'));
     const collectChangeModal = new bootstrap.Modal(document.getElementById('collectChangeModal'));
     const BranchModal = new bootstrap.Modal(document.getElementById('switchBranchModal'));
+    const purchaseModal = new bootstrap.Modal(document.getElementById('purchaseModal'));
 
 
-    // branch switching with auth for admins
-    function branchSwitch() {
-        let username = document.getElementById('b_username').value;
-        let password = document.getElementById('b_password').value;
-        let authForm = document.getElementById('pos-branch-auth');
-        let branchesArea = document.getElementById('branches');
-
-        BranchModal.show();
-
-        if (username && password){
-            fetch("{% url 'pos:void_authenticate' %}", { // using void_authenticate for auth processing 
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
-                },
-                body: JSON.stringify({
-                    username:username,
-                    password:password
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    fetch("{% url 'users:branches' %}") // using void_authenticate for auth processing 
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success){
-                            authForm.style.display='none'; // add a loader
-                            branchesArea.display='block'
-                            populateBranchModal(data.branch);
-                        }else{
-                            swal.fire({
-                                title:'Error',
-                                text:'Insufficent Permission to switch branches.',
-                                icon:'error'
-                            })
-                        }
-                    })// put catch
-                }else{
-                    swal.fire({
-                        title:'Error',
-                        text:'Insufficent Permission to switch branches.',
-                        icon:'error'
-                    })
-                }
-            }); // put catch
-        }
-    }
-
-    function populateBranchModal(branches) {
-        const container = document.getElementById('branches');
-        container.innerHTML = '';
-        branches.forEach(branch => {
-            const branchItem = document.createElement('div');
-            branchItem.className = 'branch-item mb-2 border rounded text-center col-3 btn btn-primary';
-            branchItem.textContent = branch.name;
-            branchItem.onclick = () => switchToBranch(branch.id);
-            container.appendChild(branchItem);
-        });
-    }
-
-    function switchToBranch(id) {
-        fetch("{% url 'users:branches' %}", {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify(id)
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                BranchModal.hide();
-                window.location.reload();
-            }
-        });
-    }
-
+    // Branch switching is now handled in base.html
     document.getElementById('collect').addEventListener('click', ()=>{
-        collectChangeModal.show()
-    })
+        collectChangeModal.show();
+    });
 
-    function collectChange(){
+    function addPurchase() {
+        purchaseModal.show();
+    }
+
+    function collectChange() {
         name = document.getElementById('customer_name').value;
         fetch('{% url "pos:change_data" %}', {
           method: "POST",
@@ -863,9 +743,101 @@
         }
 
 
-    //  Low Stock Notifications 
+    // Low Stock Notifications
     document.addEventListener('DOMContentLoaded', function() {
         let notifications = [];
+        
+        // Function to fetch low stock items
+        async function fetchLowStockItems() {
+            try {
+                const response = await fetch('');
+                const items = await response.json();
+                updateNotificationBadge(items);
+                updateNotificationDropdown(items);
+                
+                // Show toast for new low stock items
+                if (items.length > 0 && !sessionStorage.getItem('notificationsShown')) {
+                    showLowStockToast(items);
+                    sessionStorage.setItem('notificationsShown', 'true');
+                }
+            } catch (error) {
+                console.error('Error fetching low stock items:', error);
+            }
+        }
+        
+        // Update notification badge
+        function updateNotificationBadge(items) {
+            const badge = document.getElementById('notificationBadge');
+            if (items.length > 0) {
+                badge.textContent = items.length;
+                badge.style.display = 'block';
+                
+                // Make the bell shake to draw attention
+                const bell = document.querySelector('#notificationDropdown i');
+                bell.style.animation = 'shake 0.5s';
+                setTimeout(() => {
+                    bell.style.animation = '';
+                }, 500);
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+        
+        // Update notification dropdown
+        function updateNotificationDropdown(items) {
+            const container = document.getElementById('lowStockItems');
+            if (items.length === 0) {
+                container.innerHTML = '<li class="px-3 py-2 text-muted text-center">No low stock items</li>';
+                return;
+            }
+            
+            let html = '';
+            items.forEach(item => {
+                html += `
+                    <li class="dropdown-item d-flex justify-content-between align-items-center">
+                        <span>${item.name}</span>
+                        <span class="badge bg-danger">${item.quantity} left</span>
+                    </li>
+                `;
+            });
+            container.innerHTML = html;
+        }
+        
+        // Show toast notification for low stock
+        function showLowStockToast(items) {
+            const toast = new bootstrap.Toast(document.getElementById('lowStockToast'));
+            const toastBody = document.getElementById('lowStockToastBody');
+            
+            let message = `You have ${items.length} item${items.length > 1 ? 's' : ''} with low stock:`;
+            message += '<ul class="mb-0 mt-2">';
+            items.slice(0, 3).forEach(item => {
+                message += `<li>${item.name} (${item.quantity} left)</li>`;
+            });
+            if (items.length > 3) {
+                message += `<li>and ${items.length - 3} more...</li>`;
+            }
+            message += '</ul>';
+            
+            toastBody.innerHTML = message;
+            toast.show();
+        }
+        
+        // Check for low stock every 5 minutes
+        fetchLowStockItems();
+        setInterval(fetchLowStockItems, 5 * 60 * 1000);
+        
+        // Add shake animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes shake {
+                0% { transform: rotate(0deg); }
+                25% { transform: rotate(-15deg); }
+                50% { transform: rotate(15deg); }
+                75% { transform: rotate(-10deg); }
+                100% { transform: rotate(0deg); }
+            }
+        `;
+        document.head.appendChild(style);
         try {
             notifications = JSON.parse(document.getElementById('lowStocksData').textContent);
         } catch (e) {
@@ -996,15 +968,23 @@
             row.classList.add('d-flex', 'justify-content-between', 'align-items-center', 'my-2');
 
             row.innerHTML = `
-                <div class="item-info">
-                    <span>
-                        <i class="bx bx-trash text-danger mx-2" style="cursor: pointer;" onclick="removeItem('${item.id}')"></i>
-                    </span>
-                    <span>${item.name}</span> x 
-                    <span class="qty mx-2">${item.quantity}</span>
-                </div>
-                <div class="item-total">
-                    <span>$${lineTotal.toFixed(2)}</span>
+                <div class="w-100">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-bold">${item.name}</span>
+                        <span>$${lineTotal.toFixed(2)}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <i class="bx bx-trash text-danger mx-1" style="cursor: pointer;" onclick="removeItem('${item.id}')" title="Remove item"></i>
+                            <span>Qty:</span>
+                            <div class="d-flex align-items-center ms-2">
+                                <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="event.stopPropagation(); updateQuantity('${item.id}', -1)">-</button>
+                                <span class="mx-2">${item.quantity}</span>
+                                <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="event.stopPropagation(); updateQuantity('${item.id}', 1)">+</button>
+                            </div>
+                        </div>
+                        <small class="text-muted">$${item.price.toFixed(2)} each</small>
+                    </div>
                 </div>
             `;
 
@@ -1029,6 +1009,20 @@
     function removeItem(id) {
         cart = cart.filter(item => item.id !== id);
         updateOrderDetails();
+    }
+
+    function updateQuantity(id, change) {
+        const item = cart.find(item => item.id === id);
+        if (item) {
+            const newQuantity = item.quantity + change;
+            if (newQuantity > 0) {
+                item.quantity = newQuantity;
+            } else {
+                // If quantity would go to 0 or below, remove the item
+                cart = cart.filter(item => item.id !== id);
+            }
+            updateOrderDetails();
+        }
     }
 
     // change functionality
@@ -1297,6 +1291,14 @@
                 .line span {
                     display: inline-block;
                 }
+                .text-center {
+                    text-align: center;
+                }
+                .flex-c {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
             </style>
 
             <div style="
@@ -1305,7 +1307,29 @@
                 font-size: 14px;
                 "
                 >
-                <h3 style="text-align: center;">Parsles Investments (Urban Eats)</h3>
+                
+                {% if request.user.branch.id == 1 %}
+                    <div class="flex-c" style="margin-bottom:10px;">
+                        <div style="font-size:50px;">~</div>
+                        <div style="text-align: center;">
+                            <h1>CHECKOUT OUR NEW BRANCH</h1>
+                            <p style="font-size: 12px;">Corner Robert Mugabe and Second Ndaziya Thaine Building</p>
+                            <p>
+                                <br> <br>
+                                <div class="flex-c">
+                                    <div style="font-size:50px;">~</div>
+                                    <img src="{% static 'assets/glasses.png' %}" alt="New Location" style="width: 100px; height: 100px;">
+                                    <div style="font-size:50px;">~</div>
+                                </div>
+                                <br> <br>
+                                <i style="font-size: 12px;"><strong style="font-size:14px;">Get a free drink</strong> with this receipt <strong style="font-size:12px;">if you spend atleast 2 dollars</strong> at our new at our new location T&C apply</i> 
+                            </p>
+                        </div>
+                        <div style="font-size:50px;">~</div>
+                    </div>
+                {% endif %}
+                <div>
+                <h3 style="text-align: center;">Grab and Eats</h3>
                 <p style="text-align: center;">65 Speke Ave, Harare</p>
                 <hr>
                 <div class='line'>
@@ -1313,9 +1337,11 @@
                     <span><strong>TIN No:</strong> 2001020099</span>
                 </div>
                 <hr>
-                <p>Date: ${new Date().toLocaleDateString()}</p>
-                <p>Time: ${new Date().toLocaleTimeString()}</p>
-                <p>Order Type: ${orderType}</p>
+                <div class="flex-c">
+                    <p>Date: ${new Date().toLocaleDateString()}</p>
+                    <p>Time: ${new Date().toLocaleTimeString()}</p>
+                    <p>Order Type: ${orderType}</p>
+                </div>
                 <hr>
                 ${items.map(item =>`
                     <p class='line'>
@@ -1915,7 +1941,6 @@
         });
     }
     
-
     // get cookie
     function getCookie(name) {
         let cookieValue = null;

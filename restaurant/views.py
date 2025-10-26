@@ -8,7 +8,10 @@ from finance.models import Sale, SaleItem, Expense
 from users.models import Branch
 import json
 from loguru import logger
+from permisions.permisions import admin_required
 
+
+@admin_required
 @login_required
 def dashboard_view(request): 
     selected_branch = request.GET.get('branch', 'all')

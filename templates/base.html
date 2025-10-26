@@ -111,6 +111,8 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://unpkg.com/slim-select@latest/dist/slimselect.min.js"></script>
     <link href="https://unpkg.com/slim-select@latest/dist/slimselect.css" rel="stylesheet">
+    <!-- SlimSelect JS -->
+    <script src="https://cdn.jsdelivr.net/npm/slim-select@1.27.1/dist/slimselect.min.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/idb@7/build/umd.js"></script>
     <script src="{% static 'db.js' %}"></script>
@@ -143,12 +145,20 @@
         <div class="row">
             <div class="top-bar">
                 <div class="row">
-                    {% if request.resolver_match.url_name == 'pos' %}
-                        <div id="pos-sidebar" class="col-2 d-none d-md-flex justify-content-center border rounded">
-                            {% include 'base/Possidebar.html' %}
+                    {% if request.resolver_match.app_name == 'inventory' and request.resolver_match.url_name == 'end_of_day_view' %}
+                        <div id="pos-sidebar" class="col-2">
+                            {% include 'pos/aside.html' %}
+                        </div>
+                    {% elif request.resolver_match.app_name == 'pos' %}
+                        <div id="pos-sidebar" class="col-2">
+                            {% include 'pos/aside.html' %}
+                        </div>
+                    {% elif request.resolver_match.app_name == 'finance' %}
+                        <div id="pos-sidebar" class="col-2">
+                            {% include 'pos/aside.html' %}
                         </div>
                     {% else %}
-                        <div id="main-sidebar" class="col-2 d-none d-md-flex justify-content-center main-sideba">
+                        <div id="main-sidebar" class="col-2">
                             {% include 'base/side_bar.html' %}
                         </div>
                     {% endif %}
@@ -226,7 +236,6 @@
     </div>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         const BranchModal = new bootstrap.Modal(document.getElementById('switchBranchModal'));
 
@@ -234,17 +243,89 @@
             const mobileSidebar = document.getElementById('mobile-sidebar');
             const toggleButton = document.getElementById('sidebar-toggle-button');
 
-            toggleButton.addEventListener('click', function() {
-                mobileSidebar.classList.toggle('show');
-            });
+            if (toggleButton) {
+                toggleButton.addEventListener('click', function() {
+                    mobileSidebar.classList.toggle('show');
+                });
 
-            // Ensure dropdowns are initialized
-            document.querySelectorAll('[data-bs-toggle="dropdown"]').forEach(function (el) {
-                new bootstrap.Dropdown(el);
-            });
+                document.addEventListener('click', function(event) {
+                    if (mobileSidebar && mobileSidebar.classList.contains('show') && 
+                        !event.target.closest('#mobile-sidebar') && 
+                        !event.target.closest('#sidebar-toggle-button')) {
+                        mobileSidebar.classList.remove('show');
+                    }
+                });
+            }
+
+            const branchSwitchLink = document.getElementById('branchSwitchLink');
+            if (branchSwitchLink) {
+                branchSwitchLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    branchSwitch();
+                });
+            }
+
+            const branchSwitchButton = document.getElementById('branchSwitchButton');
+            if (branchSwitchButton) {
+                branchSwitchButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    branchSwitch();
+                });
+            }
         });
 
+        let currentBranchSwitchAction = null;
+
+        function showBranchAuth() {
+            document.getElementById('branchAuthForm').style.display = 'block';
+            document.getElementById('branches').style.display = 'none';
+            BranchModal.show();
+        }
+
         function branchSwitch() {
+            const posBranchAuth = document.getElementById('pos-branch-auth');
+            
+            if (posBranchAuth) {
+                showBranchAuth();
+            } else {
+                fetchBranches();
+            }
+        }
+
+        function authenticateBranchSwitch() {
+            const username = document.getElementById('b_username').value;
+            const password = document.getElementById('b_password').value;
+            const authForm = document.getElementById('branchAuthForm');
+            
+            if (!username || !password) {
+                alert('Please enter both username and password');
+                return;
+            }
+
+            fetch("{% url 'pos:void_authenticate' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                },
+                body: JSON.stringify({
+                    username: username,
+                    password: password
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Hide auth form and fetch branches
+                    authForm.style.display = 'none';
+                    fetchBranches();
+                } else {
+                    alert(data.message || 'Authentication failed');
+                }
+            });
+        }
+
+        function fetchBranches() {
             fetch("{% url 'users:branches' %}", {
                 method: 'GET',
                 headers: {
@@ -256,7 +337,10 @@
             .then(data => {
                 if (data.success) {
                     populateBranchModal(data.branch);
-                    BranchModal.show();
+                    document.getElementById('branches').style.display = 'block';
+                    if (!BranchModal._isShown) {
+                        BranchModal.show();
+                    }
                 }
             });
         }
@@ -288,6 +372,8 @@
                 if (data.success) {
                     BranchModal.hide();
                     window.location.reload();
+                } else {
+                    alert(data.message || 'Failed to switch branch');
                 }
             });
         }

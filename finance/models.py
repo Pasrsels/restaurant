@@ -75,12 +75,13 @@ class CashBook(models.Model):
     debit = models.BooleanField(default=False, null=True)
     credit = models.BooleanField(default=False, null=True)
     description = models.CharField(max_length=255, default='')
-    date = models.DateField(auto_now_add=True)
+    date = models.DateTimeField(auto_now_add=True)
     manager = models.BooleanField(default=False)
     accountant = models.BooleanField(default=False, null=True)
     director = models.BooleanField(default=False, null=True)
     note = models.TextField(default='', null=True)
     cancelled = models.BooleanField(default=False, null=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     
     def __str__(self) -> str:
         return f'{self.amount}'

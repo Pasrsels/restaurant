@@ -48,4 +48,7 @@ urlpatterns = [
     path('sync/', sync_sales, name='sync_sales'),
     path('get-csrf-token/', get_csrf_token, name='get_csrf_token'),
     path('sync-collections/', sync_collections, name='sync_collections'),
+
+    #purchase_orders
+    path('create/purchase/', create_purchase_order, name='create_purchase_order'),
 ]

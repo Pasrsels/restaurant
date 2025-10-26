@@ -333,7 +333,6 @@ class PurchaseOrderItem(models.Model):
     received_quantity = models.FloatField(default=0) 
     received = models.BooleanField(default=False, null=True)
     note = models.CharField(default='', null=True, max_length=255)
-    note = models.CharField(default='', null=True, max_length=255)
 
     def receive_items(self, quantity):
        

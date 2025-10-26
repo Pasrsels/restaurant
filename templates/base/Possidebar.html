@@ -109,7 +109,7 @@
 
 <script>
     function populateSidebarCategories() {
-        fetch("{% url 'inventory:create_meal_category' %}", {
+        fetch("{% url 'production:create_meal_category' %}", {
             method: 'GET'
         })
         .then(response => response.json())

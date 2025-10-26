@@ -1,0 +1,507 @@
+{% extends "base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block extra_css %}
+{{ block.super }}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+{% endblock %}
+
+<style>
+    input{
+        height: 37px !important;
+    }
+</style>
+
+{% block content %}
+<div class="mt-4">
+  <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
+    <div class="d-flex align-items-center">
+      <a href="{% url 'production:meal_list' %}" class="btn btn-outline-secondary me-2">
+        <i class="bx bx-arrow-back"></i>
+      </a>
+      <a href="/" class="btn btn-outline-secondary me-3">
+        <i class="bx bx-home"></i>
+      </a>
+      <h5 class="">
+        Create Meal / Combo
+      </h5>
+    </div>
+
+    <span id="total_cost_el" class="fs-4"></span>
+  </div>
+
+  <form method="post" class="p-2">
+    {% csrf_token %}
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label for="id_name" class="form-label">Meal Name <span class="text-danger"></span></label>
+        <input type="text" name="name" maxlength="255" class="form-control form-control-sm" required id="id_name" placeholder="Enter meal name">
+      </div>
+
+      <div class="col-md-6">
+        <label for="id_combo_meal" class="mb-3">Please Tick One</label>
+        <div class="d-flex flex-row">
+            <div class="form-check form-check-inline">
+                <label class="form-check-label" for="meal_m">Meal</label>
+                <input class="form-check-input" type="radio" name="meal_type" id="meal_m" value="meal" checked>
+            </div>
+            <div class="form-check form-check-inline">
+                <label class="form-check-label" for="combo">Combo</label>
+                <input class="form-check-input" type="radio" name="meal_type" id="combo" value="combo">
+          </div>
+        </div>
+    </div>
+
+    <div class="row g-3 d-flex align-items-center">
+        <div class="col-md-6">
+            <label for="id_category" class="form-label">Category <span class="text-danger">*</span></label>
+            <div class="input-group">
+            <select name="category" class="form-select form-select-sm" required id="id_category" style="width: 400px !important ;">
+                <option value="" selected disabled>---------</option>
+                {% for category in meal_categories %}
+                    <option value="{{ category.id }}">{{ category }}</option>
+                {% endfor %}
+            </select>
+            <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+                <i class="bx bx-plus"></i>
+            </button>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <label for="id_price" class="mb-1">Price</label>
+            <input type="number" step="0.01" name="price" class="form-control" required id="id_price" placeholder="Enter price">
+        </div>
+    </div>
+
+    <div class="mt-4">
+      <!-- Items Section -->
+      <div class="mb-4">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <div class="col-md-2">
+            <label for="id_dish" class="form-label">Select dish or product for <span class="meal_type">meal</span></span>
+          </div>
+          <div class="col-md-2 d-flex align-items-center" style="width: 300px; margin-left: -100px;">
+            <select name="dish" class="form-select" id="id_dish" style="height: 100px;">
+              <option value="">Select Dish or Product</option>
+              {% for dish in dishes %}
+                <option value="{{ dish.id }}" data-cost="{{ dish.cost|default:0 }}">{{ dish.name }} ({{ dish.cost|default:0 }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-3">
+            <input type="number" id="item_quantity" placeholder="Quantity" class="form-control" min="1" value="1" style="height: 30px;">
+          </div>
+          <div class="col-md-2">
+            <button class="btn btn-primary w-100" type="button" onclick="addItem()">Add Item</button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-borderless table-hover">
+            <thead class="bg bg-primary-subtle">
+              <tr>
+                <th>Details</th>
+                <th>Unit Cost</th>
+                <th>Quantity</th>
+                <th>Total Cost</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="item_table"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Supplies Section -->
+      <div class="mb-4">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <div class="col-md-2">
+                <label for="id_supply_item" class="form-label">Select supply / add ons for <span class="meal_type">meal</span></span>
+            </div>
+          <div class="col-md-3">
+            <select name="supply_item" class="form-select" id="id_supply_item">
+              <option value="">Select Supply</option>
+              {% for supply in packaging_products %}
+                <option value="{{ supply.id }}" data-cost="{{ supply.cost|default:0 }}" data-unit="{{ supply.unit|default:'' }}">
+                  {{ supply.name }} ({{ supply.unit }})
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-3">
+            <input type="number" id="supply_quantity" placeholder="Quantity" class="form-control" min="0.001" step="0.001" value="1">
+          </div>
+          <div class="col-md-2">
+            <button class="btn btn-primary w-100" type="button" onclick="addSupply()">Add Supply</button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-borderless table-hover">
+            <thead class="bg bg-primary-subtle">
+              <tr>
+                <th>Details</th>
+                <th>Unit Cost</th>
+                <th>Quantity</th>
+                <th>Total Cost</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="supply_table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-end mt-4">
+      <button type="reset" class="btn btn-outline-secondary me-2">
+        <i class="bx bx-reset"></i> Reset
+      </button>
+      <button type="submit" class="btn btn-primary">
+        <i class="bx bx-save"></i> Save Meal
+      </button>
+    </div>
+  </form>
+
+  <div class="modal fade" id="addCategoryModal" tabindex="-1" aria-labelledby="addCategoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addCategoryModalLabel">Add New Category</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="categoryForm">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label for="categoryName" class="form-label">Category Name</label>
+              <input type="text" class="form-control" id="categoryName" placeholder="Enter category name" required>
+            </div>
+            <div class="d-flex justify-content-end">
+              <button type="button" id="categorySubmitBtn" class="btn btn-primary">
+                <i class="bx bx-save"></i> Save
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    let items = [];
+    let supplies = [];
+    let selectedDish = null;
+    let selectedSupply = null;
+    let total_cost = 0;
+
+    $('#id_dish, #id_supply_item').select2({
+      width: '100%',
+      placeholder: 'Select an option',
+      allowClear: true
+    });
+
+    window.addItem = function() {
+      const selectElement = document.getElementById('id_dish');
+      const quantityElement = document.getElementById('item_quantity');
+      const selectedOption = selectElement.selectedOptions[0];
+      
+      if (!selectedOption || !selectedOption.value) {
+        alert('Please select a dish or product');
+        return;
+      }
+      
+      const quantity = parseFloat(quantityElement.value);
+      if (isNaN(quantity) || quantity <= 0) {
+        alert('Please enter a valid quantity');
+        return;
+      }
+      
+      const cost = parseFloat(selectedOption.dataset.cost || 0);
+      const item = {
+        id: selectedOption.value,
+        name: selectedOption.text.split(' (')[0],
+        quantity: quantity,
+        cost: cost
+      };
+      
+      items.push(item);
+      
+      $(selectElement).val(null).trigger('change');
+      quantityElement.value = '1';
+      
+      updateItemsTable();
+      updateTotalCost();
+    };
+    
+    window.addSupply = function() {
+      const selectElement = document.getElementById('id_supply_item');
+      const quantityElement = document.getElementById('supply_quantity');
+      const selectedOption = selectElement.selectedOptions[0];
+      
+      if (!selectedOption || !selectedOption.value) {
+        alert('Please select a supply');
+        return;
+      }
+      
+      const quantity = parseFloat(quantityElement.value);
+      if (isNaN(quantity) || quantity <= 0) {
+        alert('Please enter a valid quantity');
+        return;
+      }
+      
+      const supply = {
+        id: selectedOption.value,
+        name: selectedOption.text.split(' (')[0],
+        quantity: quantity,
+        unit: selectedOption.dataset.unit || '',
+        cost: parseFloat(selectedOption.dataset.cost || 0)
+      };
+      
+      supplies.push(supply);
+      
+      $(selectElement).val(null).trigger('change');
+      quantityElement.value = '1';
+      
+      updateSuppliesTable();
+      updateTotalCost();
+    };
+    
+    function updateItemsTable() {
+      const tbody = document.getElementById('item_table');
+      if (!tbody) return;
+      
+      tbody.innerHTML = '';
+      
+      items.forEach((item, index) => {
+        const totalCost = item.quantity * item.cost;
+        const row = `
+          <tr>
+            <td>${item.name}</td>
+            <td>${item.cost.toFixed(2)}</td>
+            <td>${item.quantity}</td>
+            <td>${totalCost.toFixed(2)}</td>
+            <td>
+              <button type="button" class="btn btn-sm" onclick="removeItem(${index})">
+                <i class="bx bx-trash"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+        tbody.insertAdjacentHTML('beforeend', row);
+      });
+    }
+    
+    function updateSuppliesTable() {
+      const tbody = document.getElementById('supply_table');
+      if (!tbody) return;
+      
+      tbody.innerHTML = '';
+      
+      supplies.forEach((supply, index) => {
+        const totalCost = supply.quantity * supply.cost;
+        const row = `
+          <tr>
+            <td>${supply.name} (${supply.unit})</td>
+            <td>${supply.cost.toFixed(2)}</td>
+            <td>${supply.quantity}</td>
+            <td>${totalCost.toFixed(2)}</td>
+            <td>
+              <button type="button" class="btn btn-sm btn-danger" onclick="removeSupply(${index})">
+                <i class="bx bx-trash"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+        tbody.insertAdjacentHTML('beforeend', row);
+      });
+    }
+    
+    window.removeItem = function(index) {
+      items.splice(index, 1);
+      updateItemsTable();
+      updateTotalCost();
+    };
+    
+    window.removeSupply = function(index) {
+      supplies.splice(index, 1);
+      updateSuppliesTable();
+      updateTotalCost();
+    };
+    
+    function updateTotalCost() {
+      let total = 0;
+      
+      items.forEach(item => {
+        total += item.quantity * item.cost;
+      });
+
+      supplies.forEach(supply => {
+        total += supply.quantity * supply.cost;
+      });
+
+      const totalEl = document.getElementById('total_cost_el');
+      if (totalEl) {
+        totalEl.textContent = `Total Cost: $${total.toFixed(2)}`;
+      }
+    }
+    
+    const form = document.querySelector('form');
+    if (form) {
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const hiddenItems = document.createElement('input');
+        hiddenItems.type = 'hidden';
+        hiddenItems.name = 'items_data';
+        hiddenItems.value = JSON.stringify(items);
+        this.appendChild(hiddenItems);
+
+        const hiddenSupplies = document.createElement('input');
+        hiddenSupplies.type = 'hidden';
+        hiddenSupplies.name = 'supplies_data';
+        hiddenSupplies.value = JSON.stringify(supplies);
+        this.appendChild(hiddenSupplies);
+
+        this.submit();
+      });
+    }
+    
+    updateTotalCost();
+  });
+
+  const mealCheckbox = document.getElementById('meal_m');
+  const comboCheckBox = document.getElementById('combo');
+  const nameElement = document.getElementById('m_name');
+
+  mealCheckbox.addEventListener('change', () => {
+    nameElement.textContent = 'Meal';
+  });
+
+  comboCheckBox.addEventListener('change', () => {
+    nameElement.textContent = 'Combo';
+  });
+
+  document.getElementById("categorySubmitBtn").addEventListener('click', function () {
+    const categoryName = document.getElementById('categoryName').value.trim();
+    if (!categoryName) {
+      Swal.fire("Error", "Please enter a category name.", "error");
+      return;
+    }
+
+    const formData = {
+      category: categoryName,
+      csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
+    };
+
+    fetch("{% url 'production:create_meal_category' %}", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()
+      },
+      body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        const categorySelect = document.getElementById('id_category');
+        const option = document.createElement('option');
+        option.value = data.id;
+        option.text = data.name;
+        option.selected = true;
+        categorySelect.add(option);
+
+        Swal.fire("Success", "Meal category successfully added.", "success");
+
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addCategoryModal'));
+        modal.hide();
+      } else {
+        Swal.fire("Error", data.message, "error");
+      }
+    });
+  });
+
+  function saveMeal() {
+    const form = document.querySelector('form');
+    const formData = new FormData(form);
+    const mealName = document.getElementById('id_name').value.trim();
+    const category = document.getElementById('id_category').value;
+    const price = document.getElementById('id_price')?.value || 0;
+    const mealType = document.querySelector('input[name="meal_type"]:checked')?.value || 'meal';
+    const comboMeal = document.querySelector('input[name="combo"]:checked')?.value || 'meal';
+
+    const data = {
+        name: mealName,
+        category: category,
+        price: parseFloat(price),
+        meal_type: mealType,
+        items: window.items || [],
+        supplies: window.supplies || [],
+        csrfmiddlewaretoken: formData.get('csrfmiddlewaretoken')
+    };
+
+    console.log('data', data)
+    return;
+
+    const submitBtn = document.querySelector('button[type="submit"]');
+    const originalBtnText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+
+    fetch("{% url 'production:create_meal' %}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': data.csrfmiddlewaretoken,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                title: 'Success!',
+                text: 'Meal created successfully',
+                icon: 'success',
+                confirmButtonText: 'OK'
+            }).then(() => {
+                window.location.href = "{% url 'production:meal_list' %}";
+            });
+        } else {
+            throw new Error(data.message || 'Failed to create meal');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            title: 'Error!',
+            text: error.message || 'An error occurred while saving the meal',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnText;
+    });
+}
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveMeal();
+            });
+        }
+    });
+</script>
+{% endblock %}
