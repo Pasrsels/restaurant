@@ -1220,7 +1220,7 @@ def accountantreport(request):
         cashier_id = request.user.id
         cashier_cash = 0 
 
-        # Get sales data
+        # Get sales data #
         sales = Sale.objects.filter(
             cashier__id=cashier_id, 
             date=datetime.datetime.today(), 
