@@ -1359,17 +1359,8 @@ def cash_up(request, cashier_id):
                 sale__branch=request.user.branch
             )
 
-            collected_changes = Change.objects.filter(
-                Q(cashier__id=cashier_id)|
-                Q(cashier_give__id=cashier_id),
-                collected=True,
-                # data_collected=report_date,
-                sale__branch=request.user.branch
-            ).exclude(
-                cashier__id=cashier_id
-            ).aggregate(Sum('amount_collected'))['amount_collected__sum'] or 0
-
             cashier_partially_collected_changes = Change.objects.filter(
+                timestamp__date=datetime.datetime.today(),
                 cashier__id=cashier_id,
                 collected=False,
                 balance__gt=0,
@@ -1377,6 +1368,7 @@ def cash_up(request, cashier_id):
             ).aggregate(Sum('balance'))['balance__sum'] or 0
 
             uncollected_change = Change.objects.filter(
+                timestamp__date=datetime.datetime.today(),
                 cashier__id=cashier_id,
                 collected=False,
                 amount_collected=0,
@@ -1384,21 +1376,19 @@ def cash_up(request, cashier_id):
             ).aggregate(Sum('amount'))['amount__sum'] or 0
             
             total_change = accumulated_change.aggregate(Sum('amount'))['amount__sum'] or 0
-            cash_in_hand = total_sales - total_expenses - total_void_sales  + uncollected_change - collected_changes + cashier_partially_collected_changes 
+            cash_in_hand = total_sales - total_expenses - total_void_sales  + uncollected_change + cashier_partially_collected_changes 
             uncollected_change = uncollected_change + cashier_partially_collected_changes
 
             # Get finished products
             # finished_product = finishedProduct(cashier_id)
 
-
-            # Only create CashUp record if it's for today
             if report_date == datetime.date.today():
                 CashUp.objects.create(
                     branch=request.user.branch,
                     cashier=cashier,
                     void_amount=total_void_sales,
                     sales=total_sales,
-                    change=collected_changes + cashier_partially_collected_changes,
+                    change=uncollected_change,
                     user=request.user,
                     expenses=total_expenses,
                     status=False,
@@ -1429,7 +1419,7 @@ def cash_up(request, cashier_id):
                 'staff_sales_summary': staff_sales_summary,
                 'eco_cash_total': eco_cash_total,
                 'eco_cash_tax': Decimal(eco_cash_tax),
-                'collected_changes': float(collected_changes),
+                'collected_changes': 0,
             }
 
             # Add report-specific data based on report type

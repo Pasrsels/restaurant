@@ -492,25 +492,25 @@ def process_sale(request):
 
             remove_duplicates(request)
             
-            logger.success(f'sale successfully recorded: {sale}')
-            # Broadcast websocket update for dashboards
-            try:
-                channel_layer = get_channel_layer()
-                if channel_layer is not None:
-                    async_to_sync(channel_layer.group_send)(
-                        'sales_group',
-                        {
-                            'type': 'send_sales_update',
-                            'data': {
-                                'receipt_number': str(sale.receipt_number),
-                                'branch': getattr(request.user.branch, 'id', None),
-                                'total_amount': float(sale.total_amount),
-                                'date': str(localdate()),
-                            }
-                        }
-                    )
-            except Exception as ws_err:
-                logger.error(f'WebSocket broadcast failed: {ws_err}')
+            # logger.success(f'sale successfully recorded: {sale}')
+            # # Broadcast websocket update for dashboards
+            # try:
+            #     channel_layer = get_channel_layer()
+            #     if channel_layer is not None:
+            #         async_to_sync(channel_layer.group_send)(
+            #             'sales_group',
+            #             {
+            #                 'type': 'send_sales_update',
+            #                 'data': {
+            #                     'receipt_number': str(sale.receipt_number),
+            #                     'branch': getattr(request.user.branch, 'id', None),
+            #                     'total_amount': float(sale.total_amount),
+            #                     'date': str(localdate()),
+            #                 }
+            #             }
+            #         )
+            # except Exception as ws_err:
+            #     logger.error(f'WebSocket broadcast failed: {ws_err}')
 
             return JsonResponse({'success': True, 'data': data}, status=201)
         except Exception as e:
@@ -756,7 +756,7 @@ def create_change(request):
         except Exception as e:
             return JsonResponse({'success':False, 'message':f'{e}'}, status=400)
     return JsonResponse({'success':False, 'message':'Invalid request'}, status=405)
-
+    
 @login_required
 def collect_change(request):
     # payload
@@ -797,20 +797,21 @@ def collect_change(request):
                 
                 change.save()
 
-                if change.cashier != cashier:
-                    CashierExpense.objects.create(
-                        branch=request.user.branch,
-                        name=f'Change given to {change.name}',
-                        track_amount=amount,
-                        cashier=request.user,
-                        amount=amount,
-                        description=f'Change given to {change.name}',
-                        status=False
-                    )
-                    logger.success(f'Change given to {change.name} expensed.')
-
                 if change.timestamp.date() != datetime.date.today():
                     if change.cashier_give == cashier:
+                        CashierExpense.objects.create(
+                            branch=request.user.branch,
+                            name=f'Change given to {change.name}',
+                            track_amount=amount,
+                            cashier=request.user,
+                            amount=amount,
+                            description=f'Change given to {change.name}',
+                            status=False
+                        )
+                        logger.success(f'Change given to {change.name} expensed.')
+
+                else:
+                    if change.cashier != cashier:
                         CashierExpense.objects.create(
                             branch=request.user.branch,
                             name=f'Change given to {change.name}',
@@ -936,6 +937,8 @@ def void_authenticate(request):
 @login_required
 def cash_up(request, cashier_id):
     logger.info(f'Cash up requested for cashier_id: {cashier_id} by user: {request.user.username}')
+
+    # cashier_id = 9
 
     today = datetime.datetime.today().date()
     yesterday = today - timedelta(days=1)
@@ -1114,7 +1117,7 @@ def cash_up(request, cashier_id):
                 timestamp__date=datetime.datetime.today(),
                 cashier__id=cashier_id,
                 collected=False,
-                amount_collected=0,
+                balance__gt=0,
                 sale__branch=request.user.branch
             ).aggregate(Sum('balance'))['balance__sum'] or 0
 
@@ -1122,16 +1125,14 @@ def cash_up(request, cashier_id):
                 timestamp__date=datetime.datetime.today(),
                 cashier__id=cashier_id,
                 collected=False,
-                balance__gt=0,
+                amount_collected=0,
                 sale__branch=request.user.branch
             ).aggregate(Sum('amount'))['amount__sum'] or 0
-
+            
+            total_change = accumulated_change.aggregate(Sum('amount'))['amount__sum'] or 0
+            cash_in_hand = total_sales - total_expenses - total_void_sales  + uncollected_change + cashier_partially_collected_changes 
             uncollected_change = uncollected_change + cashier_partially_collected_changes
 
-            logger.info(f'Uncollected changes by cashier: {uncollected_change}')
-            
-            cash_in_hand = total_sales - total_expenses - total_void_sales + uncollected_change
-        
             
             cashier = User.objects.get(id=cashier_id)
 
