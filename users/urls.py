@@ -15,4 +15,7 @@ urlpatterns = [
     path('get-branch/', getBranches, name='branches'),
     path('create-branch/', createBranch, name="create_branch"),
     path('ajax/load-branches/', load_branches, name='load_branches'),
+    # aded delete logic
+    path('user/delete/<int:user_id>/', delete_user, name='delete_user')
+
 ]

@@ -55,15 +55,23 @@
                     </div>
 
                     <div class="mt-auto d-flex justify-content-between">
-                        <button type="button" class="btn btn-primary btn-sm viewUserBtn" data-user-id="{{ user.id }}">
-                            <i class="bx bx-show"></i>
-                            View
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm editUserBtn" data-user-id="{{ user.id }}">
-                            <i class="bx bx-edit"></i>
-                            Edit
-                        </button>
-                    </div>
+    <button type="button" class="btn btn-primary btn-sm viewUserBtn" data-user-id="{{ user.id }}">
+        <i class="bx bx-show"></i>
+        View
+    </button>
+
+    <button type="button" class="btn btn-danger btn-sm deleteUserBtn" data-user-id="{{ user.id }}">
+    <i class="bx bx-trash"></i>
+    Delete
+</button>
+
+
+    <button type="button" class="btn btn-outline-secondary btn-sm editUserBtn" data-user-id="{{ user.id }}">
+        <i class="bx bx-edit"></i>
+        Edit
+    </button>
+</div>
+
                 </div>
             </div>
         </div>
@@ -187,6 +195,8 @@
 
     const editUserBtns = document.querySelectorAll('.editUserBtn');
     const viewUserBtns = document.querySelectorAll('.viewUserBtn');
+    // new delete handler
+    const deleteUserBtns = document.querySelectorAll('.deleteUserBtn');
 
     addBtn.addEventListener('click', () => {
         addModal.show();
@@ -306,6 +316,53 @@
             });
         });
     });
+
+    // added the javascript for delete functionality
+
+    
+deleteUserBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+        const userId = this.getAttribute('data-user-id');
+        const url = "{% url 'users:delete_user' 0 %}".replace('0', userId);
+
+        Swal.fire({
+            title: 'Are you sure you?',
+            text: "This action cannot be undone.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: url,
+                    method: 'POST',
+                    data: { csrfmiddlewaretoken: '{{ csrf_token }}' },
+                    success: function(response) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Deleted!',
+                            text: response.message,
+                            timer: 1500,
+                            showConfirmButton: false
+                        }).then(() => {
+                            location.reload();
+                        });
+                    },
+                    error: function() {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: 'Could not delete user.'
+                        });
+                    }
+                });
+            }
+        });
+    });
+});
+// end of my update
 </script>
 
 {% endblock content %}

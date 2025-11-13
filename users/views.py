@@ -17,6 +17,7 @@ from django.db import transaction
 from permisions.permisions import admin_required
 import json
 from django.core.paginator import Paginator
+from django.views.decorators.http import require_POST
 
 def create_company(request):
     if Company.objects.exists():
@@ -117,6 +118,15 @@ def users(request):
         'page_size': page_size,
     })
 
+# added delete function /view
+@admin_required
+@require_POST
+def delete_user(request, user_id):
+    user = get_object_or_404(User, id=user_id)
+    user.delete()
+    messages.success(request, 'User deleted successfully.')
+    return JsonResponse({'success': True, 'message': 'User deleted successfully'})
+# end of new update here
 
 def login_view(request):
     if request.method == 'POST':
