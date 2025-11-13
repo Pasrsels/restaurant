@@ -119,7 +119,7 @@ def users(request):
     })
 
 # added delete function /view
-@admin_required
+# @admin_required
 @require_POST
 def delete_user(request, user_id):
     user = get_object_or_404(User, id=user_id)

@@ -325,6 +325,7 @@ deleteUserBtns.forEach(btn => {
         const userId = this.getAttribute('data-user-id');
         const url = "{% url 'users:delete_user' 0 %}".replace('0', userId);
 
+
         Swal.fire({
             title: 'Are you sure you?',
             text: "This action cannot be undone.",
