@@ -1281,121 +1281,7 @@
         const total_amount = sub_total;
         const change = received_amount - total_amount;
 
-        // return `
-        //     <style>
-        //         .totals {
-        //             width: 100%;
-        //             font-weight: bold;
-        //         }
-
-        //         .line {
-        //             display: flex;
-        //             justify-content: space-between;
-        //             margin: 5px 0;
-        //         }
-
-        //         .line span {
-        //             display: inline-block;
-        //         }
-        //         .text-center {
-        //             text-align: center;
-        //         }
-        //         .flex-c {
-        //             display: flex;
-        //             justify-content: space-between;
-        //             align-items: center;
-        //         }
-        //     </style>
-
-        //     <div style="
-        //         font-family: Arial, 
-        //         sans-serif; 
-        //         font-size: 14px;
-        //         "
-        //         >
-                
-        //         {% if request.user.branch.id == 1 %}
-        //             <div class="flex-c" style="margin-bottom:10px;">
-        //                 <div style="font-size:50px;">~</div>
-        //                 <div style="text-align: center;">
-        //                     <h1>CHECKOUT OUR NEW BRANCH</h1>
-        //                     <p style="font-size: 12px;">Corner Robert Mugabe and Second Ndaziya Thaine Building</p>
-        //                     <p>
-        //                         <br> <br>
-        //                         <div class="flex-c">
-        //                             <div style="font-size:50px;">~</div>
-        //                             <img src="{% static 'assets/glasses.png' %}" alt="New Location" style="width: 100px; height: 100px;">
-        //                             <div style="font-size:50px;">~</div>
-        //                         </div>
-        //                         <br> <br>
-        //                         <i style="font-size: 12px;">
-        //                             <strong style="font-size:14px;">Get a free drink</strong> with this receipt 
-        //                             <strong style="font-size:12px;">if you spend at least 2 dollars</strong> at our new location. T&C apply.
-        //                         </i>
-        //                     </p>
-        //                 </div>
-        //                 <div style="font-size:50px;">~</div>
-        //             </div>
-        //         {% endif %}
-        //         <div>
-        //         <h3 style="text-align: center;">Grab and Eats</h3>
-        //         <p style="text-align: center;">65 Speke Ave, Harare</p>
-        //         <hr>
-        //         <div class='line'>
-        //             <span><strong>TAX NR:</strong> 220356643</span>
-        //             <span><strong>TIN No:</strong> 2001020099</span>
-        //         </div>
-        //         <hr>
-        //         <div class="flex-c">
-        //             <p>Date: ${new Date().toLocaleDateString()}</p>
-        //             <p>Time: ${new Date().toLocaleTimeString()}</p>
-        //             <p>Order Type: ${orderType}</p>
-        //         </div>
-        //         <hr>
-        //         ${items.map(item =>`
-        //             <p class='line'>
-        //                 <span>
-        //                     ${item.dish__name 
-        //                         ? item.dish__name 
-        //                         : item.meal__name 
-        //                         ? item.meal__name 
-        //                         : item.product__name} 
-        //                     ${item.quantity} x $${item.price}
-        //                 </span>
-        //                 <span>$${(item.quantity * item.price).toFixed(2)}</span>
-        //             </p>
-        //         `).join('')}
-        //         <hr>
-        //         <div class="totals">
-        //             <div class="line">
-        //                 <span>Subtotal:</span>
-        //                 <span>$${sub_total.toFixed(2)}</span>
-        //             </div>
-        //             <div class="line">
-        //                 <span>Total:</span>
-        //                 <span>$${total_amount.toFixed(2)}</span>
-        //             </div>
-        //             <div class="line">
-        //                 <span>Received:</span>
-        //                 <span>$${received_amount.toFixed(2)}</span>
-        //             </div>
-        //             <div class="line">
-        //                 <span>Change:</span>
-        //                 <span>$${change.toFixed(2)}</span>
-        //             </div>
-        //             <div class="line">
-        //                 <span>Cashier:</span>
-        //                 <span>${cashier}</span>
-        //             </div>
-        //             <div class="line">
-        //                 <span>Receipt Number:</span>
-        //                 <span style='font-size:13.5px'>#${receipt_number}</span>
-        //             </div>
-        //         </div>
-        //         <hr>
-        //         <p style="text-align: center;">Thank you for your purchase!</p>
-        //     </div>
-        // `;
+        
 
 
 
@@ -1513,54 +1399,115 @@
         `;
     }
 
+    // function printReceiptSilently(content) {
+    //     console.log(content)
+    //     let printFrame = document.getElementById("print-frame");
+
+    //     if (!printFrame) {
+    //         printFrame = document.createElement("iframe");
+    //         printFrame.id = "print-frame";
+    //         printFrame.style.display = "none"
+    //         document.body.appendChild(printFrame);
+    //     }
+    //     const frameDoc = printFrame.contentWindow || 
+    //                     printFrame.contentDocument.document || 
+    //                     printFrame.contentDocument;
+
+    //     frameDoc.document.open();
+    //     frameDoc.document.write(`
+    //         <html>
+    //         <head>
+    //             <title>Receipt</title>
+    //             <style>
+    //                 body {
+    //                     font-family: Arial, sans-serif;
+    //                     font-size: 13.5px;
+    //                     margin: 0;
+    //                     padding: 2px;
+    //                 }
+    //                 h3 {
+    //                     text-align: center;
+    //                 }
+    //                 hr {
+    //                     border: none;
+    //                     border-top: 1px solid #000;
+    //                 }
+    //                 p {
+    //                     margin: 5px 0;
+    //                 }
+    //             </style>
+    //         </head>
+    //         <body>
+    //             ${content}
+    //         </body>
+    //         </html>
+    //     `);
+    //     frameDoc.document.close();
+    //     setTimeout(() => {
+    //         printFrame.contentWindow.print(false);
+    //     }, 100);
+    // }
+
+
     function printReceiptSilently(content) {
-        console.log(content)
-        let printFrame = document.getElementById("print-frame");
-
-        if (!printFrame) {
-            printFrame = document.createElement("iframe");
-            printFrame.id = "print-frame";
-            printFrame.style.display = "none"
-            document.body.appendChild(printFrame);
-        }
-        const frameDoc = printFrame.contentWindow || 
-                        printFrame.contentDocument.document || 
-                        printFrame.contentDocument;
-
-        frameDoc.document.open();
-        frameDoc.document.write(`
-            <html>
-            <head>
-                <title>Receipt</title>
-                <style>
-                    body {
-                        font-family: Arial, sans-serif;
-                        font-size: 13.5px;
-                        margin: 0;
-                        padding: 2px;
-                    }
-                    h3 {
-                        text-align: center;
-                    }
-                    hr {
-                        border: none;
-                        border-top: 1px solid #000;
-                    }
-                    p {
-                        margin: 5px 0;
-                    }
-                </style>
-            </head>
-            <body>
-                ${content}
-            </body>
-            </html>
-        `);
-        frameDoc.document.close();
-        setTimeout(() => {
-            printFrame.contentWindow.print(false);
-        }, 100);
+    console.log(content)
+    let printFrame = document.getElementById("print-frame");
+    if (!printFrame) {
+        printFrame = document.createElement("iframe");
+        printFrame.id = "print-frame";
+        printFrame.style.display = "none"
+        document.body.appendChild(printFrame);
     }
+    const frameDoc = printFrame.contentWindow ||
+                    printFrame.contentDocument.document ||
+                    printFrame.contentDocument;
+    frameDoc.document.open();
+    frameDoc.document.write(`
+        <html>
+        <head>
+            <title>Receipt</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    font-size: 13.5px;
+                    margin: 0;
+                    padding: 2px;
+                }
+                h3 {
+                    text-align: center;
+                }
+                hr {
+                    border: none;
+                    border-top: 1px solid #000;
+                }
+                p {
+                    margin: 5px 0;
+                }
+                @media print {
+                    @page {
+                        margin: 0 !important;
+                        size: 80mm auto; /* Adjust for receipt width if needed */
+                    }
+                    html, body {
+                        height: 100%;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                    }
+                    /* Suppress browser headers/footers */
+                    header, footer { display: none !important; }
+                }
+            </style>
+        </head>
+        <body>
+            ${content}
+        </body>
+        </html>
+    `);
+    frameDoc.document.close();
+    setTimeout(() => {
+        printFrame.contentWindow.print();
+    }, 100);
+}
 
     // cash up functionality
     const cashUp = () => {
