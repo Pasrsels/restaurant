@@ -246,6 +246,7 @@
             $.ajax({
                 url: fetchUrl,
                 success: function(data) {
+                    console.log("Branch received:", data.branch);  // ← shows the ID
                     $('#editUserForm').attr('action', "{% url 'users:edit_user' 0 %}".replace('0', userId));
                     $('#editUserId').val(data.id);
                     $('#editUserModal input[name="first_name"]').val(data.first_name);
