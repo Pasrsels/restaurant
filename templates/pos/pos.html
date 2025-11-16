@@ -1317,7 +1317,7 @@
                 "
                 >
                 
-                {% if request.user.branch.id == 1 %}
+                {% if request.user.branch.id == 4 %}
                     <div class="flex-c">
                         <div style="font-size:37.5px;">~</div>
                         <div style="text-align: center;">
@@ -1398,56 +1398,6 @@
             </div>
         `;
     }
-
-    // function printReceiptSilently(content) {
-    //     console.log(content)
-    //     let printFrame = document.getElementById("print-frame");
-
-    //     if (!printFrame) {
-    //         printFrame = document.createElement("iframe");
-    //         printFrame.id = "print-frame";
-    //         printFrame.style.display = "none"
-    //         document.body.appendChild(printFrame);
-    //     }
-    //     const frameDoc = printFrame.contentWindow || 
-    //                     printFrame.contentDocument.document || 
-    //                     printFrame.contentDocument;
-
-    //     frameDoc.document.open();
-    //     frameDoc.document.write(`
-    //         <html>
-    //         <head>
-    //             <title>Receipt</title>
-    //             <style>
-    //                 body {
-    //                     font-family: Arial, sans-serif;
-    //                     font-size: 13.5px;
-    //                     margin: 0;
-    //                     padding: 2px;
-    //                 }
-    //                 h3 {
-    //                     text-align: center;
-    //                 }
-    //                 hr {
-    //                     border: none;
-    //                     border-top: 1px solid #000;
-    //                 }
-    //                 p {
-    //                     margin: 5px 0;
-    //                 }
-    //             </style>
-    //         </head>
-    //         <body>
-    //             ${content}
-    //         </body>
-    //         </html>
-    //     `);
-    //     frameDoc.document.close();
-    //     setTimeout(() => {
-    //         printFrame.contentWindow.print(false);
-    //     }, 100);
-    // }
-
 
     function printReceiptSilently(content) {
     console.log(content)
