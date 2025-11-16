@@ -116,6 +116,8 @@ def users(request):
         'start_date': start_date,
         'end_date': end_date,
         'page_size': page_size,
+
+        'branches': Branch.objects.all(),
     })
 
 # added delete function /view
