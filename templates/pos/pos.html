@@ -1235,25 +1235,79 @@
         .then(response => response.json())
         .then(data => {
             Swal.close();
-            if (data.success) {
-                console.log('Sale processed successfully:', data);
-                Swal.fire({
-                    title: "Success",
-                    text: "Processing Receipt",
-                    icon: "success"
-                }).then(() => {
+            // if (data.success) {
+            //     console.log('Sale processed successfully:', data);
+            //     Swal.fire({
+            //         title: "Sale Processed Successifully",
+            //         text: "Processing Receipt",
+            //         icon: "success"
+            //     }).then(() => {
                    
-                    clearChangeData();
-                    cart = [];
-                    updateOrderDetails();
-                    chargeModal.hide();
-                    const receiptContent = generateReceiptContent(data.data);
-                    printReceiptSilently(receiptContent);
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000);
+            //         clearChangeData();
+            //         cart = [];
+            //         updateOrderDetails();
+            //         chargeModal.hide();
+            //         const receiptContent = generateReceiptContent(data.data);
+            //         printReceiptSilently(receiptContent);
+            //         setTimeout(() => {
+            //             window.location.reload();
+            //         }, 1000);
+            //     });
+            // } 
+
+            if (data.success) {
+    console.log('Sale processed successfully:', data);
+
+    Swal.fire({
+        title: "Sale Success",
+        text: "Sale Processed Successfully, Processing Receipt",
+        icon: "success"
+    }).then(() => {
+
+        clearChangeData();
+        cart = [];
+        updateOrderDetails();
+        chargeModal.hide();
+
+        const receiptContent = generateReceiptContent(data.data);
+
+        // ---- NEW: FAILSAFE TIMEOUT ----
+        let receiptProcessed = false;
+
+        const timeoutId = setTimeout(() => {
+            if (!receiptProcessed) {
+                Swal.fire({
+                    title: "Receipt Error",
+                    text: "Sale recorded, but receipt could not be processed.",
+                    icon: "warning"
                 });
-            } else {
+            }
+        }, 7000); // 7 seconds
+        // --------------------------------
+
+        try {
+            printReceiptSilently(receiptContent);
+
+            receiptProcessed = true;  
+            clearTimeout(timeoutId); // stop the timeout if printing worked
+
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+
+        } catch (error) {
+            clearTimeout(timeoutId);
+            Swal.fire({
+                title: "Receipt Error",
+                text: "Sale recorded, but receipt could not be processed.",
+                icon: "warning",
+                
+            });
+        }
+    });
+}
+ 
+            else {
                 Swal.fire({
                     title: "Error",
                     text: data.message,
