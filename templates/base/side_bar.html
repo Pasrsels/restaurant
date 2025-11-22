@@ -11,7 +11,6 @@
         gap: 10px;
         z-index: 1100;
     }
-    
     .floating-controls .btn {
         width: 50px;
         height: 50px;
@@ -21,11 +20,7 @@
         justify-content: center;
         box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     }
-    
-    .notification-btn {
-        position: relative;
-    }
-    
+    .notification-btn { position: relative; }
     .notification-count {
         position: absolute;
         top: 5px;
@@ -49,204 +44,73 @@
         border-radius: 0 20px 20px 0;
         z-index: 1000;
     }
-
-    .sidebar.collapsed {
-        width: 80px;
-    }
-
-    .sidebar-header {
-        padding: 20px;
-        border-bottom: 1px solid #ddd;
-    }
-
+    .sidebar.collapsed { width: 80px; }
+    .sidebar-header { padding: 20px; border-bottom: 1px solid #ddd; }
     .sidebar-header h4 {
-        font-size: 16px;
-        font-weight: bold;
-        margin: 0;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
+        font-size: 16px; font-weight: bold; margin: 0;
+        display: flex; align-items: center; justify-content: space-between; gap: 8px;
     }
-
-    .sidebar-header .left-info {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .sidebar-header .company-icon {
-        font-size: 20px;
-        color: #4F46E5;
-    }
-
+    .sidebar-header .left-info { display: flex; align-items: center; gap: 8px; }
+    .sidebar-header .company-icon { font-size: 20px; color: #4F46E5; }
     .sidebar-header .branch-info {
-        margin-top: 6px;
-        font-size: 13px;
-        color: #6c757d;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
+        margin-top: 6px; font-size: 13px; color: #6c757d;
+        display: flex; align-items: center; justify-content: space-between; gap: 8px;
     }
-
     .sidebar-header .branch-info button {
-        border: none;
-        background: none;
-        cursor: pointer;
-        padding: 0;
+        border: none; background: none; cursor: pointer; padding: 0;
     }
-
     .sidebar.collapsed .sidebar-header h4 span,
-    .sidebar.collapsed .branch-info span {
-        display: none;
-    }
+    .sidebar.collapsed .branch-info span { display: none; }
 
-    .notification-wrapper {
-        position: relative;
-        display: flex;
-        align-items: center;
-    }
-
-    .notification-wrapper i {
-        font-size: 22px;
-        cursor: pointer;
-    }
-
+    .notification-wrapper { position: relative; display: flex; align-items: center; }
+    .notification-wrapper i { font-size: 22px; cursor: pointer; }
     .notification-wrapper .badge {
-        font-size: 12px;
-        position: absolute;
-        top: -5px;
-        right: -5px;
-        background: red;
-        color: #fff;
-        padding: 3px 6px;
-        border-radius: 50%;
+        font-size: 12px; position: absolute; top: -5px; right: -5px;
+        background: red; color: #fff; padding: 3px 6px; border-radius: 50%;
     }
-
     .notifications {
-        display: none;
-        position: absolute;
-        right: 0;
-        top: 35px;
-        background: #fff;
-        width: 250px;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-        z-index: 1100;
+        display: none; position: absolute; right: 0; top: 35px;
+        background: #fff; width: 250px; border: 1px solid #ddd;
+        border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); z-index: 1100;
     }
+    .notifications.show { display: block; }
+    .notifications ul { list-style: none; padding: 10px; margin: 0; }
+    .notifications ul li { font-size: 13px; padding: 5px 0; }
 
-    .notifications.show {
-        display: block;
-    }
-
-    .notifications ul {
-        list-style: none;
-        padding: 10px;
-        margin: 0;
-    }
-
-    .notifications ul li {
-        font-size: 13px;
-        padding: 5px 0;
-    }
-
-    /* Sidebar Menu */
-    .sidebar-menu {
-        flex: 1;
-        padding: 10px 0;
-    }
-
+    .sidebar-menu { flex: 1; padding: 10px 0; }
     .sidebar-menu a {
-        display: flex;
-        align-items: center;
-        padding: 12px 20px;
-        text-decoration: none;
-        font-size: 15px;
-        color: #333;
+        display: flex; align-items: center; padding: 12px 20px;
+        text-decoration: none; font-size: 15px; color: #333;
         transition: background 0.3s, padding 0.3s;
     }
-
-    .sidebar-menu a:hover,
-    .sidebar-menu a.active {
-        background: rgba(0, 0, 0, 0.05);
-        border-radius: 8px;
+    .sidebar-menu a:hover, .sidebar-menu a.active {
+        background: rgba(0, 0, 0, 0.05); border-radius: 8px;
     }
+    .sidebar-menu i { font-size: 22px; margin-right: 15px; transition: margin 0.3s; }
+    .sidebar.collapsed .sidebar-menu a span { display: none; }
+    .sidebar.collapsed .sidebar-menu i { margin: 0 auto; }
 
-    .sidebar-menu i {
-        font-size: 22px;
-        margin-right: 15px;
-        transition: margin 0.3s;
-    }
-
-    .sidebar.collapsed .sidebar-menu a span {
-        display: none;
-    }
-
-    .sidebar.collapsed .sidebar-menu i {
-        margin: 0 auto;
-    }
-
-    /* Footer */
     .sidebar-footer {
-        padding: 15px;
-        border-top: 1px solid #ddd;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
+        padding: 15px; border-top: 1px solid #ddd;
+        display: flex; align-items: center; justify-content: space-between;
     }
-
-    .sidebar-footer img {
-        border-radius: 50%;
-        width: 40px;
-        height: 40px;
-    }
-
-    .sidebar-footer .profile-info {
-        margin-left: 10px;
-    }
-
-    .sidebar-footer .profile-info span {
-        display: block;
-        font-size: 14px;
-    }
-
-    .sidebar.collapsed .sidebar-footer .profile-info {
-        display: none;
-    }
+    .sidebar-footer img { border-radius: 50%; width: 40px; height: 40px; }
+    .sidebar-footer .profile-info { margin-left: 10px; }
+    .sidebar-footer .profile-info span { display: block; font-size: 14px; }
+    .sidebar.collapsed .sidebar-footer .profile-info { display: none; }
 
     .floating-notification-btn {
-        display: none;
-        position: relative;
-        bottom: 20px;
-        right: 20px;
-        background: #4F46E5;
-        color: #fff;
-        border: none;
-        border-radius: 50%;
-        width: 55px;
-        height: 55px;
-        font-size: 28px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-        z-index: 1200;
+        display: none; position: relative; bottom: 20px; right: 20px;
+        background: #4F46E5; color: #fff; border: none; border-radius: 50%;
+        width: 55px; height: 55px; font-size: 28px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); z-index: 1200;
     }
 
     @media (max-width: 768px) {
-        .sidebar-header .notification-wrapper {
-            display: none;
-        }
-        .floating-notification-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .main-sidebar {
-            display: none !important;
-        }
+        .sidebar-header .notification-wrapper { display: none; }
+        .floating-notification-btn { display: flex; align-items: center; justify-content: center; }
+        .main-sidebar { display: none !important; }
     }
-
-    
 </style>
 
 <div class="sidebar bg-light" id="sidebar">
@@ -264,6 +128,7 @@
                 </div>
             </div>
         </h4>
+
         <div class="branch-info">
             <span class='fs-5 fw-bold'>{{ request.user.branch.branch_name }}</span>
             {% if request.user.role in 'admin owner accountant supervisor chef stores_person' %}
@@ -272,6 +137,7 @@
                 </button>
             {% endif %}
         </div>
+
         <div class="branch-info d-flex justify-content-between align-items-center">
             <span>Logout</span>
             <button id="sidebarLogoutBtn">
@@ -281,46 +147,60 @@
     </div>
 
     <div class="sidebar-menu">
-         <a href="/dashboard/" class="{% if request.resolver_match.url_name == 'pos' %}active{% endif %}">
-            <i class='bx bx-grid-alt text-primary'></i>
-            <span>Dashboard</span>
-        </a>
+
+        <!-- 😃 Visible to everyone: Point of Sale -->
         <a href="{% url 'pos:pos' %}" class="{% if request.resolver_match.url_name == 'pos' %}active{% endif %}">
             <i class='bx bx-cart-alt text-primary'></i>
             <span>Point Of Sale</span>
         </a>
-        <a href="{% url 'analytics_index' %}" class="{% if request.resolver_match.url_name == 'analytics_index' %}active{% endif %}">
-            <i class='bx bx-bar-chart-alt-2 text-primary'></i>
-            <span>Analytics</span>
-        </a>
-        <a href="{% url 'inventory:products' %}" class="{% if request.resolver_match.url_name == 'products' %}active{% endif %}">
-            <i class='bx bx-package text-primary'></i>
-            <span>Inventory</span>
-        </a>
-        <a href="{% url 'production:production-list' %}" class="{% if request.resolver_match.url_name == 'production_plans' %}active{% endif %}">
-            <i class='bx bx-cog text-primary'></i>
-            <span>Production</span>
-        </a>
-        <a href="{% url 'inventory:transfers' %}" class="{% if request.resolver_match.url_name == 'transfers' %}active{% endif %}">
-            <i class='bx bx-transfer text-primary'></i>
-            <span>Transfers</span>
-        </a>
-        <a href="{% url 'finance:finance' %}" class="{% if request.resolver_match.url_name == 'finance' %}active{% endif %}">
-            <i class='bx bx-wallet text-primary'></i>
-            <span>Finance</span>
-        </a>
-        <a href="{% url 'users:users' %}" class="{% if request.resolver_match.url_name == 'users' %}active{% endif %}">
-            <i class='bx bx-user text-primary'></i>
-            <span>Users</span>
-        </a>
-        <a href="{% url 'finance:logs' %}" class="{% if request.resolver_match.url_name == 'logs' %}active{% endif %}">
-            <i class='bx bx-file text-primary'></i>
-            <span>Transaction Logs</span>
-        </a>
-        <a href="{% url 'settings:settings' %}" class="{% if request.resolver_match.url_name == 'settings' %}active{% endif %}">
-            <i class='bx bx-cog text-primary'></i>
-            <span>Settings</span>
-        </a>
+
+        <!-- 🔐 NOT visible to sales users -->
+        {% if request.user.role != 'sales' %}
+            <a href="/dashboard/">
+                <i class='bx bx-grid-alt text-primary'></i>
+                <span>Dashboard</span>
+            </a>
+
+            <a href="{% url 'analytics_index' %}">
+                <i class='bx bx-bar-chart-alt-2 text-primary'></i>
+                <span>Analytics</span>
+            </a>
+
+            <a href="{% url 'inventory:products' %}">
+                <i class='bx bx-package text-primary'></i>
+                <span>Inventory</span>
+            </a>
+
+            <a href="{% url 'production:production-list' %}">
+                <i class='bx bx-cog text-primary'></i>
+                <span>Production</span>
+            </a>
+
+            <a href="{% url 'inventory:transfers' %}">
+                <i class='bx bx-transfer text-primary'></i>
+                <span>Transfers</span>
+            </a>
+
+            <a href="{% url 'finance:finance' %}">
+                <i class='bx bx-wallet text-primary'></i>
+                <span>Finance</span>
+            </a>
+
+            <a href="{% url 'users:users' %}">
+                <i class='bx bx-user text-primary'></i>
+                <span>Users</span>
+            </a>
+
+            <a href="{% url 'finance:logs' %}">
+                <i class='bx bx-file text-primary'></i>
+                <span>Transaction Logs</span>
+            </a>
+
+            <a href="{% url 'settings:settings' %}">
+                <i class='bx bx-cog text-primary'></i>
+                <span>Settings</span>
+            </a>
+        {% endif %}
     </div>
 
     <div class="sidebar-footer">
@@ -336,20 +216,4 @@
     <i class="bx bx-bell"></i>
 </button>
 
-<!-- <script>
-    const notificationIcon = document.getElementById('notification-icon');
-    const notificationDropdown = document.getElementById('notification-dropdown');
-    const floatingBtn = document.getElementById('floating-notification-btn');
-
-    notificationIcon.addEventListener('click', () => {
-        notificationDropdown.classList.toggle('show');
-    });
-
-    floatingBtn.addEventListener('click', () => {
-        notificationDropdown.classList.toggle('show');
-        notificationDropdown.style.position = 'fixed';
-        notificationDropdown.style.bottom = '80px';
-        notificationDropdown.style.right = '20px';
-    });
-</script> -->
 {% endblock content %}
