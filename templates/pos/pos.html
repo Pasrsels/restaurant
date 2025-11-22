@@ -378,7 +378,7 @@
             </div>
         </div>
         
-        <!-- <div class="product-grid" id="productGrid">
+        <div class="product-grid" id="productGrid">
             {% for item in data.items %}
                 <div class="product-card" 
                     data-name="{{ item.name|lower }}" 
@@ -397,46 +397,7 @@
             {% empty %}
                 <p>No products available.</p>
             {% endfor %}
-        </div> -->
-
-
-        <div class="product-grid" id="productGrid">
-    {% for item in data.items %}
-        {# Safely ensure item.quantity is a number (or 0) for comparison #}
-        {% with quantity=item.quantity|default:0|add:0 %}
-        <div class="product-card {% if quantity <= 0 %}out-of-stock-card{% endif %}" 
-            data-name="{{ item.name|lower }}" 
-            data-category="{{ item.category|default:''|lower }}"
-            {# The comparison (quantity > 0) is now directly in the 'if' statement #}
-            {% if quantity > 0 %}
-                onclick="addToCart('{{item.id}}', '{{item.name}}', {{item.price}}, '{{item.finished_product}}', '{{item.meal}}', '{{item.dish}}')"
-            {% else %}
-                onclick="event.stopPropagation(); alert('{{ item.name }} is Out of Stock.')"
-            {% endif %}>
-            
-            {% if quantity <= 0 %}
-                <div class="out-of-stock-overlay">
-                    <span>OUT OF STOCK</span>
-                </div>
-            {% endif %}
-
-            {% if item.image %}
-                <img src="{{ item.image }}" alt="{{ item.name }}">
-            {% else %}
-                <i class="bx bx-image bx-lg" style="padding: 40px; color: #ccc;"></i>
-            {% endif %}
-
-            <div class="product-card-body">
-                <h6>{{ item.name }}</h6>
-                <p>${{ item.price }}</p>
-            </div>
         </div>
-        {% endwith %}
-    {% empty %}
-        <p>No products available.</p>
-    {% endfor %}
-</div>
-
     </div>
 
     <div class="right-sidebar">
