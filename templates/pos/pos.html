@@ -1026,28 +1026,58 @@
         
         let subTotal = 0;
         
-        cart.forEach(item => {
-            const lineTotal = item.price * item.quantity;
-            subTotal += lineTotal;
+        // cart.forEach(item => {
+        //     const lineTotal = item.price * item.quantity;
+        //     subTotal += lineTotal;
 
-            const row = document.createElement('div');
-            row.classList.add('d-flex', 'justify-content-between', 'align-items-center', 'my-2');
+        //     const row = document.createElement('div');
+        //     row.classList.add('d-flex', 'justify-content-between', 'align-items-center', 'my-2');
 
-            row.innerHTML = `
-                <div class="item-info">
-                    <span>
-                        <i class="bx bx-trash text-danger mx-2" style="cursor: pointer;" onclick="removeItem('${item.id}')"></i>
-                    </span>
-                    <span>${item.name}</span> x 
-                    <span class="qty mx-2">${item.quantity}</span>
-                </div>
-                <div class="item-total">
-                    <span>$${lineTotal.toFixed(2)}</span>
-                </div>
-            `;
+        //     row.innerHTML = `
+        //         <div class="item-info">
+        //             <span>
+        //                 <i class="bx bx-trash text-danger mx-2" style="cursor: pointer;" onclick="removeItem('${item.id}')"></i>
+        //             </span>
+        //             <span>${item.name}</span> x 
+        //             <span class="qty mx-2">${item.quantity}</span>
+        //         </div>
+        //         <div class="item-total">
+        //             <span>$${lineTotal.toFixed(2)}</span>
+        //         </div>
+        //     `;
 
-            orderDetail.appendChild(row);
-        });
+        //     orderDetail.appendChild(row);
+        // });
+
+        cart.forEach((item, index) => {
+    const lineTotal = item.price * item.quantity;
+    subTotal += lineTotal;
+
+    const row = document.createElement('div');
+    row.classList.add('d-flex', 'justify-content-between', 'align-items-center', 'my-2', 'border-bottom', 'pb-2');
+
+    row.innerHTML = `
+        <div class="item-info d-flex align-items-center flex-grow-1">
+            <i class="bx bx-trash text-danger mx-2" style="cursor: pointer;" onclick="removeItem('${item.id}')"></i>
+            <span class="me-2">${item.name}</span>
+            
+            <span>x</span>
+            <input type="number" 
+                   value="${item.quantity}" 
+                   min="1" 
+                   class="form-control form-control-sm mx-2 text-center" 
+                   style="width: 70px;" 
+                   onchange="updateQuantity('${item.id}', this.value)" 
+                   onkeypress="return event.keyCode === 8 || event.keyCode === 46 || (event.keyCode >= 48 && event.keyCode <= 57)"
+            />
+        </div>
+        <div class="item-total">
+            <strong>$${lineTotal.toFixed(2)}</strong>
+        </div>
+    `;
+
+    orderDetail.appendChild(row);
+});
         
         const total = subTotal;
         const subTotalExclTax = total / (1 + VAT_RATE);
