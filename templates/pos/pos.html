@@ -402,17 +402,19 @@
 
         <div class="product-grid" id="productGrid">
     {% for item in data.items %}
-        {% with is_sellable=item.quantity|default:0|add:0 > 0 %}
-        <div class="product-card {% if not is_sellable %}out-of-stock-card{% endif %}" 
+        {# Safely ensure item.quantity is a number (or 0) for comparison #}
+        {% with quantity=item.quantity|default:0|add:0 %}
+        <div class="product-card {% if quantity <= 0 %}out-of-stock-card{% endif %}" 
             data-name="{{ item.name|lower }}" 
             data-category="{{ item.category|default:''|lower }}"
-            {% if is_sellable %}
+            {# The comparison (quantity > 0) is now directly in the 'if' statement #}
+            {% if quantity > 0 %}
                 onclick="addToCart('{{item.id}}', '{{item.name}}', {{item.price}}, '{{item.finished_product}}', '{{item.meal}}', '{{item.dish}}')"
             {% else %}
                 onclick="event.stopPropagation(); alert('{{ item.name }} is Out of Stock.')"
             {% endif %}>
             
-            {% if not is_sellable %}
+            {% if quantity <= 0 %}
                 <div class="out-of-stock-overlay">
                     <span>OUT OF STOCK</span>
                 </div>
