@@ -13,36 +13,36 @@
         /* Ensure the card is positioned relative for the absolute overlay */
 .product-card {
     position: relative;
-    overflow: hidden; /* Keeps the overlay constrained */
+    overflow: hidden;
     cursor: pointer;
-    /* other existing styles for the card... */
+    transition: transform 0.2s;
 }
 
-/* Styles for the Out of Stock Overlay */
+.product-card:hover {
+    transform: translateY(-5px);
+}
+
 .out-of-stock-overlay {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(255, 0, 0, 0.7); /* Red with 70% opacity */
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-color: rgba(220, 53, 69, 0.85);
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 10; /* Ensures it sits on top of the image/content */
+    z-index: 10;
     color: white;
-    font-size: 1.2em;
     font-weight: bold;
+    font-size: 1.4em;
     text-align: center;
-    padding: 10px;
-    box-sizing: border-box;
-    pointer-events: none; /* Allows clicks to pass through to the element underneath, though we disabled onclick in HTML */
+    pointer-events: none;
+    border-radius: 12px;
 }
 
-
 .out-of-stock-card {
-    opacity: 0.6; /* Visually dims the card */
-    cursor: not-allowed !important; /* Changes the cursor to indicate non-interactable */
+    opacity: 0.5;
+    cursor: not-allowed !important;
+    pointer-events: auto; /* Allow click to show message */
 }
 /* end of  styles done */
 
@@ -378,7 +378,7 @@
             </div>
         </div>
         
-        <div class="product-grid" id="productGrid">
+        <!-- <div class="product-grid" id="productGrid">
             {% for item in data.items %}
                 <div class="product-card" 
                     data-name="{{ item.name|lower }}" 
@@ -397,7 +397,49 @@
             {% empty %}
                 <p>No products available.</p>
             {% endfor %}
+        </div> -->
+
+        <div class="product-grid" id="productGrid">
+    {% for item in data.items %}
+        <div class="product-card {% if item.quantity <= 0 %}out-of-stock-card{% endif %}"
+             data-name="{{ item.name|lower }}"
+             data-category="{{ item.category|lower }}"
+             {% if item.quantity > 0 %}
+             onclick="addToCart('{{ item.id }}', '{{ item.name|escapejs }}', {{ item.price }}, {{ item.finished_product|yesno:"true,false" }}, {{ item.meal|yesno:"true,false" }}, {{ item.dish|yesno:"true,false" }})"
+             {% else %}
+             onclick="Swal.fire({icon:'error', title:'Out of Stock', text:'{{ item.name }} is currently unavailable.'})"
+             {% endif %}
+             style="position:relative;">
+             
+            <!-- Out of Stock Overlay -->
+            {% if item.quantity <= 0 %}
+                <div class="out-of-stock-overlay">
+                    <div>OUT OF STOCK</div>
+                </div>
+            {% endif %}
+
+            <!-- Product Image -->
+            {% if item.image %}
+                <img src="{{ item.image }}" alt="{{ item.name }}">
+            {% else %}
+                <i class="bx bx-image bx-lg" style="padding: 40px; color: #ccc;"></i>
+            {% endif %}
+
+            <div class="product-card-body">
+                <h6>{{ item.name }}</h6>
+                <p>${{ item.price|floatformat:2 }}</p>
+                <!-- Optional: Show remaining stock -->
+                {% if item.quantity > 0 and item.quantity <= 5 %}
+                    <small class="text-warning fw-bold">Only {{ item.quantity }} left!</small>
+                {% endif %}
+            </div>
         </div>
+    {% empty %}
+        <p>No products available.</p>
+    {% endfor %}
+</div>
+
+
     </div>
 
     <div class="right-sidebar">

@@ -73,69 +73,131 @@ def lowStockNotification(request):
         logger.info(data)
         return JsonResponse({'success': True, 'data': data})
 
+# @login_required
+# def pos(request):
+#     form = ProductionPlanInlineForm()
+#     low_stock_qs = DailyLowStockFlag.objects.filter(is_active=True)
+#     low_stock = []
+#     for flag in low_stock_qs:
+#         low_stock.append({
+#             'meal': {'name': flag.meal.name} if flag.meal else None,
+#             'dish': {'name': flag.dish.name} if flag.dish else None,
+#             'message': flag.message if hasattr(flag, 'message') else '',
+#             'threshold': flag.threshold if hasattr(flag, 'threshold') else '',
+#             'current_portions': flag.current_portions if hasattr(flag, 'current_portions') else '',
+#         })
+        
+#     meals = Meal.objects.filter(deactivate=False, branch = request.user.branch).select_related('branch', 'category')
+#     products = Product.objects.filter(raw_material=False, branch = request.user.branch).select_related('branch', 'category')
+#     dishes = Dish.objects.filter(branch = request.user.branch).select_related('branch')
+
+#     meal_data = [
+#         {
+#             'image': meal.image.url if meal.image else '',
+#             'name':meal.name,
+#             'price':meal.price,
+#             'category':None,
+#             'meal':meal.meal,
+#             'id':f'm-{meal.id}'
+#         }
+#         for meal in meals
+#     ]
+
+#     product_data = [
+#         {
+#             'image': product.image.url if product.image else '',
+#             'name':product.name,
+#             'price':product.price,
+#             'finished_product':product.finished_product,
+#             'id':f'p-{product.id}'
+#         }
+#         for product in products
+#     ]
+
+#     dish_data = [
+#         {
+#             'image': dish.image.url if dish.image else '',
+#             'name':dish.name,
+#             'price':dish.price,
+#             'dish':dish.dish,
+#             'id':f'd-{dish.id}'
+#         }
+#         for dish in dishes
+#     ]
+    
+#     combined_items = meal_data + product_data + dish_data
+
+#     data = {
+#         'items': combined_items
+#     }
+
+#     return render(request, 'pos/pos.html', {
+#         'form': form,
+#         'low_stocks': low_stock,
+#         'data': data
+#     })
+
 @login_required
 def pos(request):
-    form = ProductionPlanInlineForm()
-    low_stock_qs = DailyLowStockFlag.objects.filter(is_active=True)
-    low_stock = []
-    for flag in low_stock_qs:
-        low_stock.append({
-            'meal': {'name': flag.meal.name} if flag.meal else None,
-            'dish': {'name': flag.dish.name} if flag.dish else None,
-            'message': flag.message if hasattr(flag, 'message') else '',
-            'threshold': flag.threshold if hasattr(flag, 'threshold') else '',
-            'current_portions': flag.current_portions if hasattr(flag, 'current_portions') else '',
-        })
-        
-    meals = Meal.objects.filter(deactivate=False, branch = request.user.branch).select_related('branch', 'category')
-    products = Product.objects.filter(raw_material=False, branch = request.user.branch).select_related('branch', 'category')
-    dishes = Dish.objects.filter(branch = request.user.branch).select_related('branch')
+    # ... your existing code ...
 
-    meal_data = [
-        {
+    # Add quantity logic
+    meals = Meal.objects.filter(deactivate=False, branch=request.user.branch)
+    products = Product.objects.filter(raw_material=False, branch=request.user.branch)
+    dishes = Dish.objects.filter(branch=request.user.branch)
+
+    combined_items = []
+
+    for meal in meals:
+        # Assuming you have a way to get current portions (e.g., from production plan or stock tracking)
+        current_portions = meal.get_current_portions() if hasattr(meal, 'get_current_portions') else 999  # fallback
+        combined_items.append({
+            'id': f'm-{meal.id}',
+            'name': meal.name,
+            'price': float(meal.price),
             'image': meal.image.url if meal.image else '',
-            'name':meal.name,
-            'price':meal.price,
-            'category':None,
-            'meal':meal.meal,
-            'id':f'm-{meal.id}'
-        }
-        for meal in meals
-    ]
+            'category': meal.category.name.lower() if meal.category else 'all',
+            'quantity': current_portions,
+            'meal': True,
+            'dish': False,
+            'finished_product': False,
+        })
 
-    product_data = [
-        {
+    for product in products:
+        combined_items.append({
+            'id': f'p-{product.id}',
+            'name': product.name,
+            'price': float(product.price),
             'image': product.image.url if product.image else '',
-            'name':product.name,
-            'price':product.price,
-            'finished_product':product.finished_product,
-            'id':f'p-{product.id}'
-        }
-        for product in products
-    ]
+            'category': 'all',
+            'quantity': product.quantity,  # This is your real stock
+            'meal': False,
+            'dish': False,
+            'finished_product': True,
+        })
 
-    dish_data = [
-        {
+    for dish in dishes:
+        current_portions = dish.get_current_portions() if hasattr(dish, 'get_current_portions') else 999
+        combined_items.append({
+            'id': f'd-{dish.id}',
+            'name': dish.name,
+            'price': float(dish.price),
             'image': dish.image.url if dish.image else '',
-            'name':dish.name,
-            'price':dish.price,
-            'dish':dish.dish,
-            'id':f'd-{dish.id}'
-        }
-        for dish in dishes
-    ]
+            'category': 'all',
+            'quantity': current_portions,
+            'meal': False,
+            'dish': True,
+            'finished_product': False,
+        })
+
+    data = {'items': combined_items}
     
-    combined_items = meal_data + product_data + dish_data
-
-    data = {
-        'items': combined_items
-    }
-
     return render(request, 'pos/pos.html', {
         'form': form,
         'low_stocks': low_stock,
         'data': data
     })
+
 
 @login_required
 def dashboard(request):
