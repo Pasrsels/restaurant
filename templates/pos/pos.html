@@ -1408,7 +1408,7 @@
 
 
         return `
-<style>
+        <style>
     .totals {
         width: 100%;
         font-weight: bold;
@@ -1445,16 +1445,16 @@
     {% if request.user.branch.id == 1 %}
         <div class="flex-c">
             <div style="font-size:34px;">~</div>
-            <div style="text-align: center; width: 60%;">
+            <div style="text-align: center; width: 100%;">
                 <h1 style="font-size: 11px; margin: 2px 0;">CHECKOUT OUR NEW BRANCH</h1>
                 <p style="font-size: 8px; margin: 2px 0;">Corner Robert Mugabe and Second Ndaziya Thaine Building</p>
-                <p>
-                    <div class="flex-c">
+                <p style="text-align: center;">
+                    <div style="display: flex; justify-content: center; align-items: center; margin: 2px 0;">
                         <div style="font-size:34px;">~</div>
-                        <img src="{% static 'assets/glasses.png' %}" alt="New Location" style="width: 65px; height: 65px;">
+                        <img src="{% static 'assets/glasses.png' %}" alt="New Location" style="width: 65px; height: 65px; margin: 0 4px;">
                         <div style="font-size:34px;">~</div>
                     </div>
-                    <i style="font-size: 8px; display: block; margin-top: 2px;">
+                    <i style="font-size: 8px; display: block; margin-top: 2px; text-align: center;">
                         <strong style="font-size:9px;">Get a free drink</strong> with this receipt 
                         <strong style="font-size:8px;">if you spend at least 2 dollars</strong> at our new location. T&C apply.
                     </i>
@@ -1468,24 +1468,24 @@
     <p style="text-align: center; font-size: 8.5px; margin: 2px 0;">65 Speke Ave, Harare</p>
     <hr style="margin: 4px 0;">
     
-    <div class='line' style="font-size: 8.5px;">
-        <span><strong>TAX NR:</strong> 220356643</span>
-        <span><strong>TIN No:</strong> 2001020099</span>
+    <div style="text-align: center; font-size: 8.5px; margin: 2px 0;">
+        <span style="margin: 0 5px;"><strong>TAX NR:</strong> 220356643</span>
+        <span style="margin: 0 5px;"><strong>TIN No:</strong> 2001020099</span>
     </div>
     
     <hr style="margin: 4px 0;">
     
-    <div class="flex-c" style="font-size: 9px;">
-        <p style="margin: 2px 0;">Date: ${new Date().toLocaleDateString()}</p>
-        <p style="margin: 2px 0;">Time: ${new Date().toLocaleTimeString()}</p>
-        <p style="margin: 2px 0;">Order Type: ${orderType}</p>
+    <div style="text-align: center; font-size: 9px; margin: 2px 0;">
+        <span style="margin: 0 5px;">Date: ${new Date().toLocaleDateString()}</span>
+        <span style="margin: 0 5px;">Time: ${new Date().toLocaleTimeString()}</span>
+        <span style="margin: 0 5px;">Order Type: ${orderType}</span>
     </div>
     
     <hr style="margin: 4px 0;">
     
     ${items.map(item =>`
-        <p class='line' style="margin: 3px 0; font-size: 9px;">
-            <span style="width: 70%;">
+        <div class='line' style="margin: 3px 0; font-size: 9px; justify-content: space-between;">
+            <span style="text-align: left; width: 65%;">
                 ${item.dish__name 
                     ? item.dish__name 
                     : item.meal__name 
@@ -1493,8 +1493,8 @@
                     : item.product__name} 
                 ${item.quantity} x $${item.price}
             </span>
-            <span style="width: 30%; text-align: right;">$${(item.quantity * item.price).toFixed(2)}</span>
-        </p>
+            <span style="text-align: right; width: 35%;">$${(item.quantity * item.price).toFixed(2)}</span>
+        </div>
     `).join('')}
     
     <hr style="margin: 4px 0;">
