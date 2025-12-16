@@ -1408,116 +1408,128 @@
 
 
         return `
-            <style>
-                .totals {
-                    width: 100%;
-                    font-weight: bold;
-                }
+<style>
+    .totals {
+        width: 100%;
+        font-weight: bold;
+    }
 
-                .line {
-                    display: flex;
-                    justify-content: space-between;
-                }
+    .line {
+        display: flex;
+        justify-content: space-between;
+    }
 
-                .line span {
-                    display: inline-block;
-                }
-                .text-center {
-                    text-align: center;
-                }
-                .flex-c {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                }
-            </style>
+    .line span {
+        display: inline-block;
+    }
+    .text-center {
+        text-align: center;
+    }
+    .flex-c {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+</style>
 
-            <div style="
-                font-family: Arial, 
-                sans-serif; 
-                font-size: 10.5px;
-                "
-                >
-                
-                {% if request.user.branch.id == 1 %}
+<div style="
+    font-family: Arial, sans-serif; 
+    font-size: 9.5px;
+    margin: 0 -8px;
+    width: 108%;
+    transform: scale(0.92);
+    transform-origin: left top;
+    "
+    >
+    
+    {% if request.user.branch.id == 1 %}
+        <div class="flex-c">
+            <div style="font-size:34px;">~</div>
+            <div style="text-align: center; width: 60%;">
+                <h1 style="font-size: 11px; margin: 2px 0;">CHECKOUT OUR NEW BRANCH</h1>
+                <p style="font-size: 8px; margin: 2px 0;">Corner Robert Mugabe and Second Ndaziya Thaine Building</p>
+                <p>
                     <div class="flex-c">
-                        <div style="font-size:37.5px;">~</div>
-                        <div style="text-align: center;">
-                            <h1>CHECKOUT OUR NEW BRANCH</h1>
-                            <p style="font-size: 9px;">Corner Robert Mugabe and Second Ndaziya Thaine Building</p>
-                            <p>
-                                <div class="flex-c">
-                                    <div style="font-size:37.5px;">~</div>
-                                    <img src="{% static 'assets/glasses.png' %}" alt="New Location" style="width: 75px; height: 75px;">
-                                    <div style="font-size:37.5px;">~</div>
-                                </div>
-                                <i style="font-size: 9px;">
-                                    <strong style="font-size:10.5px;">Get a free drink</strong> with this receipt 
-                                    <strong style="font-size:9px;">if you spend at least 2 dollars</strong> at our new location. T&C apply.
-                                </i>
-                            </p>
-                        </div>
-                        <div style="font-size:37.5px;">~</div>
+                        <div style="font-size:34px;">~</div>
+                        <img src="{% static 'assets/glasses.png' %}" alt="New Location" style="width: 65px; height: 65px;">
+                        <div style="font-size:34px;">~</div>
                     </div>
-                {% endif %}
-                <div>
-                <h3 style="text-align: center;">Grab and Eats</h3>
-                <p style="text-align: center;">65 Speke Ave, Harare</p>
-                <hr>
-                <div class='line'>
-                    <span><strong>TAX NR:</strong> 220356643</span>
-                    <span><strong>TIN No:</strong> 2001020099</span>
-                </div>
-                <hr>
-                <div class="flex-c">
-                    <p>Date: ${new Date().toLocaleDateString()}</p>
-                    <p>Time: ${new Date().toLocaleTimeString()}</p>
-                    <p>Order Type: ${orderType}</p>
-                </div>
-                <hr>
-                ${items.map(item =>`
-                    <p class='line'>
-                        <span>
-                            ${item.dish__name 
-                                ? item.dish__name 
-                                : item.meal__name 
-                                ? item.meal__name 
-                                : item.product__name} 
-                            ${item.quantity} x $${item.price}
-                        </span>
-                        <span>$${(item.quantity * item.price).toFixed(2)}</span>
-                    </p>
-                `).join('')}
-                <hr>
-                <div class="totals">
-                    <div class="line">
-                        <span>Subtotal:</span>
-                        <span>$${sub_total.toFixed(2)}</span>
-                    </div>
-                    <div class="line">
-                        <span>Total:</span>
-                        <span>$${total_amount.toFixed(2)}</span>
-                    </div>
-                    <div class="line">
-                        <span>Received:</span>
-                        <span>$${received_amount.toFixed(2)}</span>
-                    </div>
-                    <div class="line">
-                        <span>Change:</span>
-                        <span>$${change.toFixed(2)}</span>
-                    </div>
-                    <div class="line">
-                        <span>Cashier:</span>
-                        <span>${cashier}</span>
-                    </div>
-                    <div class="line">
-                        <span>Receipt Number:</span>
-                        <span style='font-size:10.125px'>#${receipt_number}</span>
-                    </div>
-                </div>
-                <hr>
-                <p style="text-align: center;">Thank you for your purchase!</p>
+                    <i style="font-size: 8px; display: block; margin-top: 2px;">
+                        <strong style="font-size:9px;">Get a free drink</strong> with this receipt 
+                        <strong style="font-size:8px;">if you spend at least 2 dollars</strong> at our new location. T&C apply.
+                    </i>
+                </p>
             </div>
+            <div style="font-size:34px;">~</div>
+        </div>
+    {% endif %}
+    
+    <h3 style="text-align: center; font-size: 10px; margin: 4px 0;">Grab and Eats</h3>
+    <p style="text-align: center; font-size: 8.5px; margin: 2px 0;">65 Speke Ave, Harare</p>
+    <hr style="margin: 4px 0;">
+    
+    <div class='line' style="font-size: 8.5px;">
+        <span><strong>TAX NR:</strong> 220356643</span>
+        <span><strong>TIN No:</strong> 2001020099</span>
+    </div>
+    
+    <hr style="margin: 4px 0;">
+    
+    <div class="flex-c" style="font-size: 9px;">
+        <p style="margin: 2px 0;">Date: ${new Date().toLocaleDateString()}</p>
+        <p style="margin: 2px 0;">Time: ${new Date().toLocaleTimeString()}</p>
+        <p style="margin: 2px 0;">Order Type: ${orderType}</p>
+    </div>
+    
+    <hr style="margin: 4px 0;">
+    
+    ${items.map(item =>`
+        <p class='line' style="margin: 3px 0; font-size: 9px;">
+            <span style="width: 70%;">
+                ${item.dish__name 
+                    ? item.dish__name 
+                    : item.meal__name 
+                    ? item.meal__name 
+                    : item.product__name} 
+                ${item.quantity} x $${item.price}
+            </span>
+            <span style="width: 30%; text-align: right;">$${(item.quantity * item.price).toFixed(2)}</span>
+        </p>
+    `).join('')}
+    
+    <hr style="margin: 4px 0;">
+    
+    <div class="totals" style="font-size: 9.5px;">
+        <div class="line" style="margin: 2px 0;">
+            <span>Subtotal:</span>
+            <span>$${sub_total.toFixed(2)}</span>
+        </div>
+        <div class="line" style="margin: 2px 0;">
+            <span>Total:</span>
+            <span>$${total_amount.toFixed(2)}</span>
+        </div>
+        <div class="line" style="margin: 2px 0;">
+            <span>Received:</span>
+            <span>$${received_amount.toFixed(2)}</span>
+        </div>
+        <div class="line" style="margin: 2px 0;">
+            <span>Change:</span>
+            <span>$${change.toFixed(2)}</span>
+        </div>
+        <div class="line" style="margin: 2px 0;">
+            <span>Cashier:</span>
+            <span>${cashier}</span>
+        </div>
+        <div class="line" style="margin: 2px 0;">
+            <span>Receipt Number:</span>
+            <span style='font-size:9px'>#${receipt_number}</span>
+        </div>
+    </div>
+    
+    <hr style="margin: 4px 0;">
+    
+    <p style="text-align: center; font-size: 9px; margin: 4px 0;">Thank you for your purchase!</p>
+</div>
         `;
     }
 
