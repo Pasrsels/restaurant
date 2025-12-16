@@ -1414,10 +1414,11 @@
                     font-weight: bold;
                 }
 
-                .line {
-                    display: flex;
-                    justify-content: space-between;
-                }
+.line {
+    display: flex;
+    justify-content: flex-start;
+    gap: 8px; /* reduce or increase as needed */
+}
 
                 .line span {
                     display: inline-block;
@@ -1435,7 +1436,7 @@
             <div style="
                 font-family: Arial, 
                 sans-serif; 
-                font-size: 10.5px;
+                font-size: 9.5px;
                 "
                 >
                 
@@ -1477,7 +1478,7 @@
                 <hr>
                 ${items.map(item =>`
                     <p class='line'>
-                        <span>
+                        <span style='font-size:9.125px'>
                             ${item.dish__name 
                                 ? item.dish__name 
                                 : item.meal__name 
@@ -1485,34 +1486,34 @@
                                 : item.product__name} 
                             ${item.quantity} x $${item.price}
                         </span>
-                        <span>$${(item.quantity * item.price).toFixed(2)}</span>
+                        <span style='font-size:9.125px'>$${(item.quantity * item.price).toFixed(2)}</span>
                     </p>
                 `).join('')}
                 <hr>
                 <div class="totals">
                     <div class="line">
-                        <span>Subtotal:</span>
-                        <span>$${sub_total.toFixed(2)}</span>
+                        <span style='font-size:9.125px'>Subtotal:</span>
+                        <span style='font-size:9.125px'>$${sub_total.toFixed(2)}</span>
                     </div>
                     <div class="line">
-                        <span>Total:</span>
-                        <span>$${total_amount.toFixed(2)}</span>
+                        <span style='font-size:9.125px'>Total:</span>
+                        <span style='font-size:9.125px'>$${total_amount.toFixed(2)}</span>
                     </div>
                     <div class="line">
-                        <span>Received:</span>
-                        <span>$${received_amount.toFixed(2)}</span>
+                        <span style='font-size:9.125px'>Received:</span>
+                        <span style='font-size:9.125px'>$${received_amount.toFixed(2)}</span>
                     </div>
                     <div class="line">
-                        <span>Change:</span>
-                        <span>$${change.toFixed(2)}</span>
+                        <span style='font-size:9.125px'>Change:</span>
+                        <span style='font-size:9.125px'>$${change.toFixed(2)}</span>
                     </div>
                     <div class="line">
-                        <span>Cashier:</span>
-                        <span>${cashier}</span>
+                        <span style='font-size:9.125px'>Cashier:</span>
+                        <span style='font-size:9.125px'>${cashier}</span>
                     </div>
                     <div class="line">
-                        <span>Receipt Number:</span>
-                        <span style='font-size:10.125px'>#${receipt_number}</span>
+                        <span style='font-size:9.125px'>Receipt Number:</span>
+                        <span style='font-size:9.125px'>#${receipt_number}</span>
                     </div>
                 </div>
                 <hr>
